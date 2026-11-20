@@ -68,7 +68,7 @@ type cli struct {
 	Can     CanCmd      `cmd:"" help:"Before writing code: may this file, directory or module depend on that one, or use a library."`
 	Rules   RulesCmd    `cmd:"" help:"The rules that apply to paths or to the change, one rule in full, or the module graph."`
 	Request RequestCmd  `cmd:"" help:"Ask an owner to change the policy for the errors of the last check."`
-	Init    RepoInitCmd `cmd:"" help:"Set up a repository or convert an Archfit 3 policy."`
+	Init    RepoInitCmd `cmd:"" help:"Set up a repository."`
 	Report  ReportCmd   `cmd:"" help:"The repository-wide picture for owners. Exits 0 whatever it shows."`
 	Doctor  DoctorCmd   `cmd:"" help:"This checkout: the tools and hooks. --fix installs what is missing."`
 	Hook    HookCmd     `cmd:"" hidden:"" help:"The hook entry points installed by doctor --fix."`

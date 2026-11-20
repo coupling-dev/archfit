@@ -18,29 +18,8 @@ const (
 	agentsNotes  = "# Agents\n\nRun make test before you push.\n"
 )
 
-// archfit3Policy is an Archfit 3 policy for the fixture repository.
-const archfit3Policy = `version: 2
-modules:
-  pkg_chaos:
-    paths: [pkg/chaos/**]
-    depends_on: []
-  pkg_runtime:
-    paths: [pkg/runtime/**]
-    depends_on: []
-  pkg_tc:
-    paths: [pkg/tc/**]
-    depends_on: [pkg_util]
-  pkg_util:
-    paths: [pkg/util/**]
-    depends_on: []
-rules:
-  - id: no-chaos-to-runtime
-    type: forbidden_dependency
-    from: pkg/chaos/**
-    to: pkg/runtime/**
-    rationale: A direct import ties a chaos action to one runtime.
-    alternatives: [Add a method to container.Client.]
-`
+// archfit3Policy is a version 2 policy, the Archfit 3 format.
+const archfit3Policy = "version: 2\nmodules: {}\n"
 
 // initFixture is the fixture code without a policy: the copied literal of
 // pkg/tc is an error that exists, which init writes as an exception.
@@ -106,34 +85,6 @@ func TestInitAFreshRepository(t *testing.T) {
 	}
 }
 
-// TestInitConvertsAnArchfit3Repository: the old files become one version 3
-// policy, and check with that policy passes.
-func TestInitConvertsAnArchfit3Repository(t *testing.T) {
-	t.Parallel()
-	files := initFixture()
-	files[defaultConfigPath] = archfit3Policy
-	files[policy3.BaselineFile] = `{"schema_version": "archfit.baseline.v3", "accepted": []}`
-	files[policy3.AppFile] = "version: 1\nowners: [alexei-led]\ngate: required\n"
-	dir := initRepo(t, files)
-
-	got := runCLI(t, fixtureDate, cmdInit, "-C", dir)
-	if got.code != 0 || got.stderr != "" {
-		t.Fatalf("init: exit %d, stderr %q", got.code, got.stderr)
-	}
-	assertCLIGolden(t, initGoldens, "convert", got.stdout)
-	for _, gone := range []string{policy3.BaselineFile, policy3.AppFile} {
-		if _, err := os.Stat(filepath.Join(dir, gone)); !os.IsNotExist(err) {
-			t.Errorf("%s is still there: %v", gone, err)
-		}
-	}
-
-	commitAll(t, dir)
-	check := runCLI(t, fixtureDate, cmdCheck, "-C", dir, "--policy", defaultConfigPath)
-	if check.code != 0 || !strings.HasPrefix(check.stdout, "archfit: pass\n") {
-		t.Errorf("check --policy after init: exit %d\n%s%s", check.code, check.stdout, check.stderr)
-	}
-}
-
 // TestInitWithAVersion3Policy: init leaves the policy as it is and writes
 // only a missing block; a second run writes nothing. Both exit 0.
 func TestInitWithAVersion3Policy(t *testing.T) {
@@ -164,6 +115,8 @@ func TestInitErrorsExit2(t *testing.T) {
 	unbalanced[policy3.AgentsFile] = "<!-- archfit:start -->\nno end\n"
 	oldVersion := initFixture()
 	oldVersion[defaultConfigPath] = version1
+	archfit3 := initFixture()
+	archfit3[defaultConfigPath] = archfit3Policy
 	noRemote := initFixture()
 	for _, tc := range []struct {
 		name   string
@@ -172,7 +125,8 @@ func TestInitErrorsExit2(t *testing.T) {
 		want   string
 	}{
 		{name: "unbalanced markers", files: unbalanced, remote: true, want: "markers are unbalanced"},
-		{name: "a version 1 policy", files: oldVersion, remote: true, want: "no Archfit 3 policy"},
+		{name: "a version 1 policy", files: oldVersion, remote: true, want: "this engine reads version 3"},
+		{name: "a version 2 policy", files: archfit3, remote: true, want: "version 2 is not supported"},
 		{name: "no origin remote", files: noRemote, want: "origin"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -4,7 +4,7 @@ Archfit has seven public commands. Run `archfit <command> --help` for their flag
 
 ## Policy version
 
-`check`, `can`, `rules`, `request`, and `report` need a version 3 `.archfit.yaml`. In an Archfit 3 repository, run `archfit init` to convert it before checking a change. See [Migration](migration.md).
+`check`, `can`, `rules`, `request`, and `report` need a version 3 `.archfit.yaml`. A version 2 file (Archfit 3) is an error: remove it and run `archfit init` to write a fresh version 3 policy.
 
 ## Choose a command
 
@@ -14,7 +14,7 @@ Archfit has seven public commands. Run `archfit <command> --help` for their flag
 | Ask whether a dependency or library may be used | `archfit can <from> <to>` |
 | Show the rules that apply | `archfit rules [PATH... \| RULE] [--graph]` |
 | Ask an owner to change the policy | `archfit request -m "<why>" [--expires DATE]` |
-| Set up a repository, or convert an Archfit 3 one | `archfit init` |
+| Set up a repository | `archfit init` |
 | See the state of the repository and its measurements | `archfit report` |
 | Check tools and hooks, or install what is missing | `archfit doctor` or `archfit doctor --fix` |
 
@@ -32,7 +32,7 @@ Unknown commands and flags also exit `2`. Diagnostics go to stderr; normal outpu
 
 ### `check`
 
-`archfit check [flags]` gives the status of the change in the working tree: `pass`, `fail`, or `unknown`. It needs a version 3 policy. If the policy is missing or version 2, run `archfit init` (see [migration](migration.md)).
+`archfit check [flags]` gives the status of the change in the working tree: `pass`, `fail`, or `unknown`. It needs a version 3 policy. If the policy is missing, run `archfit init`. A version 2 policy is an error.
 
 ```sh
 archfit check
@@ -53,7 +53,7 @@ The run:
 
 1. The target branch is `--base`, else `origin/HEAD`. With neither, the status is `unknown` and the record says to pass `--base`. A CI checkout often has no `origin/HEAD`: see [CI](ci.md).
 2. The base is the merge base of `HEAD` and the target branch. When `HEAD` is the tip of the target branch, the base is the first parent of `HEAD`: the change is the last commit. A clone without the merge base, such as a shallow clone, is `unknown`, and the record names the fetch.
-3. The policy on the target branch is the protected one. When `.archfit.yaml` differs from it, the status is `unknown`, the record names the command that restores the file, and nothing else is checked. When the target branch has no `.archfit.yaml`, or a version 2 one (the pull request that converts the repository), the check uses the local policy and says so on stderr.
+3. The policy on the target branch is the protected one. When `.archfit.yaml` differs from it, the status is `unknown`, the record names the command that restores the file, and nothing else is checked. When the target branch has no `.archfit.yaml`, the check uses the local policy and says so on stderr.
 4. The policy must fit the tree. A path glob that matches no file, or another policy error, is `unknown` with the message.
 5. The check reads the base and the working tree and counts the errors of each by rule, modules, and symbol. An error the base does not have, or has fewer times, is added by the change: the status is `fail`. An expired exception fails every change, and the status line ends with `(not from this change)`. See [results](results.md).
 6. On a push (`HEAD` is the tip of the target branch) with a `pass` or `fail` status, the JSON result adds the state of the repository. See [results](results.md#json).
@@ -150,7 +150,7 @@ next: ask an owner     (open a pull request first if there is none)
 | The repository has | `archfit init` |
 | --- | --- |
 | No `.archfit.yaml` | Writes a version 3 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes. |
-| A version 2 `.archfit.yaml` (Archfit 3) | Converts it, with `.archfit-baseline.json`, `.archfit-labels.yaml` and `.archfit-app.yaml`, into one version 3 policy with `tests` and `generated` as for a new policy, removes the old files, and lists what it could not convert. See [migration](migration.md). |
+| Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 3 `.archfit.yaml` | Leaves it as it is. |
 
 In each case it writes the five lines for agents between the `<!-- archfit:start -->` and `<!-- archfit:end -->` markers in `AGENTS.md`, and creates the file when it is missing. Text outside the markers stays as it is. When the block is already there, nothing is written and the command still exits `0`.

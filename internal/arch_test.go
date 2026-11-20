@@ -778,9 +778,6 @@ func assertAdaptersNoAssessmentApplicationImport(t *testing.T, loaded map[string
 // vacuous — it named `update.go` while that command's domain imports lived in
 // `config_update_adapters.go`, which the list did not name.
 var cmdDomainAdapterFiles = map[string]string{
-	// Runs `config update`'s own authoring pipeline (extract → graph → classify)
-	// to propose config edits. Pre-exists the capability migration; recorded as
-	// accepted risk in docs/architecture.md.
 	"application_wiring.go": "composition root: selects concrete stage implementations",
 	"change_wiring.go":      "composition root of check, can and rules: adapters for their application ports",
 	"init_v3.go":            "init writes the version 3 policy and the agent block; initcfg/policy3 is its writer",

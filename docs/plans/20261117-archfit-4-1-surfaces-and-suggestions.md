@@ -1,4 +1,6 @@
-# Archfit 4.1: declared surfaces and suggestions
+# Archfit surfaces design
+
+Status: proposed. Four parts ship in 0.9.0; see the beta plan, docs/plans/20261120-archfit-0-9-new-home-and-beta.md.
 
 Date: 2026-11-17. Status: proposed, revision 2.
 Scope: the engine and CLI (`archfit`), its Docker image, the GitHub Action (`archfit-action`), the

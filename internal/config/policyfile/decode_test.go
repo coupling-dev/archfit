@@ -183,7 +183,7 @@ func TestDecodeKeepsAbsentKeysZero(t *testing.T) {
 var invalidFixtures = map[string][]string{
 	"unknown-key":        {`unknown field "owner"`, "6:5"},
 	"version-missing":    {`version: missing: add "version: 3"`},
-	"version-2":          {`version 2 is the Archfit 3 policy format: run "archfit init" to convert it to version 3`},
+	"version-2":          {`version 2 is not supported: archfit reads policy version 3; remove the file and run "archfit init" to write a fresh policy`},
 	"version-4":          {"version 4: this engine reads version 3"},
 	"version-string":     {`version "3": this engine reads version 3`},
 	"expires-shape":      {`exceptions[0].expires: "19-11-2026" is not a date: use YYYY-MM-DD`},
@@ -282,8 +282,8 @@ func TestDecodeVersionNumbers(t *testing.T) {
 	}{
 		{version: "3"},
 		{version: "3.0"},
-		{version: "2", wantErr: `version 2 is the Archfit 3 policy format: run "archfit init"`, version2: true},
-		{version: "2.0", wantErr: `version 2 is the Archfit 3 policy format: run "archfit init"`, version2: true},
+		{version: "2", wantErr: `version 2 is not supported: archfit reads policy version 3`, version2: true},
+		{version: "2.0", wantErr: `version 2 is not supported: archfit reads policy version 3`, version2: true},
 		{version: "1", wantErr: "version 1: this engine reads version 3"},
 		{version: "3.5", wantErr: "version 3.5: this engine reads version 3"},
 		{version: "-3", wantErr: "version -3: this engine reads version 3"},

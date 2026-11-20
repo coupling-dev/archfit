@@ -50,7 +50,7 @@ next: read .archfit.yaml, then open a pull request with it
 
 Read the policy, then open one pull request with it. An owner removes an exception when the code is fixed, and writes rules with `why` and `instead`. Read [Configuration](configuration.md) for the fields and [Rules](rules.md) for the built-in rules, custom rules, and exceptions.
 
-`init` never changes a version 3 policy. In a repository with an Archfit 3 policy (`.archfit.yaml` version 2), it converts the old files instead: it replaces the policy and removes the other Archfit 3 files. See [Migrate from Archfit 3 to 4](migration.md).
+`init` never changes a version 3 policy. A version 2 policy (`.archfit.yaml` from Archfit 3) is an error: remove it, then run `archfit init` for a fresh version 3 policy.
 
 ## Work on a change
 

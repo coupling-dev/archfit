@@ -84,7 +84,6 @@ The Docker image includes Node, Python, Rust, the .NET SDK, ast-grep, cargo-modu
 - [Language support](docs/languages.md) — analyzers, tools, and coverage.
 - [CI](docs/ci.md) and [agents](docs/agents.md) — automation workflows.
 - [Troubleshooting](docs/troubleshooting.md) — common errors and recovery.
-- [Migration](docs/migration.md) — upgrade from Archfit 3 to 4. [Archfit 2 to 3](docs/archived/migration-v2-to-v3.md).
 - [Architecture](docs/architecture.md) and [evidence](docs/evidence.md) — contributor references.
 - [Development](CONTRIBUTING.md) — build and change the project.
 - [Changelog](CHANGELOG.md) — release history.

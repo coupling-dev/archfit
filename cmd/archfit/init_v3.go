@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
 	"github.com/alexei-led/archfit/v4/internal/initcfg/policy3"
 	"github.com/alexei-led/archfit/v4/internal/model/evidence"
 )
@@ -20,9 +19,8 @@ const agentLines = policy3.Lines
 // RepoInitCmd is `archfit init` (internal/initcfg/policy3): set up a
 // repository. It writes what is missing and never changes a version 3
 // policy: a fresh repository gets a version 3 policy and the instruction
-// block for agents; an Archfit 3 repository is converted, which replaces its
-// policy and removes the other Archfit 3 files; a repository with a version 3
-// policy gets only a missing block. It writes no workflow file
+// block for agents; a repository with a version 3 policy gets only a missing
+// block; any other policy file is an error. It writes no workflow file
 // (D11: the workflow waits for Action 4).
 type RepoInitCmd struct {
 	Dir string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
@@ -37,14 +35,10 @@ changes a version 3 policy.
                         tests, generated, owners from the origin remote,
                         and an exception for each error that exists today,
                         so the first check passes
-  Archfit 3 policy      converts .archfit.yaml version 2 and its files
-                        (.archfit-baseline.json, .archfit-labels.yaml,
-                        .archfit-app.yaml) into one version 3 policy,
-                        removes the old files, and says what it could not
-                        convert
   Version 3 policy      leaves it as it is
+  Any other policy      fails: archfit reads version 3 only
 
-Each case writes the five lines for agents between the archfit markers in
+Each case that succeeds writes the five lines for agents between the archfit markers in
 AGENTS.md; text outside the markers stays as it is.
 
 Then read .archfit.yaml and open a pull request with it.
@@ -74,7 +68,8 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	case isVersion3(data):
 		err = co.initBlock(&b)
 	default:
-		err = co.initConvert(ctx, &b)
+		_, err = policyfile.Decode(data)
+		err = fmt.Errorf("%s: %w", policy3.PolicyFile, err)
 	}
 	if err != nil {
 		return noVerdict(err)
@@ -94,26 +89,6 @@ func (co checkout) initFresh(ctx context.Context, b *strings.Builder) error {
 	writePolicySummary(b, "wrote", res.File)
 	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
 	writeUnread(b, res.Unknown)
-	b.WriteString(initNext + "\n")
-	return nil
-}
-
-// initConvert converts an Archfit 3 repository.
-func (co checkout) initConvert(ctx context.Context, b *strings.Builder) error {
-	conv, err := policy3.Convert(ctx, policy3.ConvertDeps{
-		Runner: co.runner,
-		Facts:  func(cfg checkfacts.Config) policy3.HeadFacts { return co.facts(cfg) },
-	}, co.root)
-	if err != nil {
-		return err
-	}
-	writePolicySummary(b, "converted", conv.File)
-	b.WriteString(conv.Text())
-	if len(conv.Removed) > 0 {
-		b.WriteString("removed: " + strings.Join(conv.Removed, ", ") + "\n")
-	}
-	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
-	writeUnread(b, conv.Unknown)
 	b.WriteString(initNext + "\n")
 	return nil
 }

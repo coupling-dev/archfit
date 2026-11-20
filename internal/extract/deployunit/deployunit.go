@@ -47,7 +47,7 @@ func Detect(ctx context.Context, root string, mm policy.ModuleMap, runner toolru
 }
 
 // DetectCorroborated is Detect with the source kind retained for each match.
-// Detect remains the compatibility surface used by config update; both paths
+// Detect returns only the unit names; both paths
 // execute the same single detector pass.
 func DetectCorroborated(ctx context.Context, root string, mm policy.ModuleMap, runner toolrun.Runner) map[string]evidence.CorroboratedDeployUnit {
 	return Discover(ctx, root, mm, runner, evidenceports.ExtractConfig{}).Units

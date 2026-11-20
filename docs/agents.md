@@ -163,7 +163,7 @@ do not. Each row links to the page that holds the detail.
 
 | Owner work | Command or page |
 | --- | --- |
-| Set up a repository, or convert an Archfit 3 one | `archfit init`. See [getting started](getting-started.md). |
+| Set up a repository | `archfit init`. See [getting started](getting-started.md). |
 | Read the policy as a worker sees it | `archfit rules`. See [commands](commands.md). |
 | Preview a policy change | `archfit check --policy <candidate>`. See [commands](commands.md#check). |
 | See the state of the repository | `archfit report`. See [commands](commands.md#report). |

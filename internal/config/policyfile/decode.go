@@ -26,10 +26,9 @@ const DurationPattern = `^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
 var durationRE = regexp.MustCompile(DurationPattern)
 
-// ErrVersion2 is the error of a version 2 file, the Archfit 3 policy format. The
-// check tells it from an invalid file: a target branch that still holds one is
-// waiting for its conversion pull request (design 14), not broken.
-var ErrVersion2 = errors.New(`version 2 is the Archfit 3 policy format: run "archfit init" to convert it to version 3`)
+// ErrVersion2 is the error of a version 2 file, the Archfit 3 policy format,
+// which this engine does not read.
+var ErrVersion2 = errors.New(`version 2 is not supported: archfit reads policy version 3; remove the file and run "archfit init" to write a fresh policy`)
 
 // Decode reads a schema 3 policy. Unknown keys, wrong types, values outside their
 // list or range, bad dates, missing required keys and a rule without exactly one
