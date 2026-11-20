@@ -1122,6 +1122,9 @@ func buildCrateGraph(crateRoots []graph.CrateRoot, edges []graph.Edge) *graph.Gr
 func TestAugmentCargoCrateNodes(t *testing.T) {
 	const (
 		crateAst   = "ruff_python_ast"
+		crateLint  = "ruff_linter"
+		dirAst     = "crates/ruff_python_ast"
+		dirLint    = "crates/ruff_linter"
 		crateTokio = "tokio"
 		crateUtil  = "tokio-util"
 		crateSolo  = "solo"
@@ -1134,14 +1137,14 @@ func TestAugmentCargoCrateNodes(t *testing.T) {
 	}
 
 	t.Run("path-glob config binds crate node and preserves attributes (ruff-like)", func(t *testing.T) {
-		e := crateEdge("ruff_linter", crateAst)
+		e := crateEdge(crateLint, crateAst)
 		g := buildCrateGraph([]graph.CrateRoot{
-			{Dir: "crates/ruff_linter", Name: "ruff_linter"},
-			{Dir: "crates/ruff_python_ast", Name: crateAst},
+			{Dir: dirLint, Name: crateLint},
+			{Dir: dirAst, Name: crateAst},
 		}, []graph.Edge{e})
 		cfg := map[string]policy.ModuleDef{
-			"ruff_linter": {Paths: []string{"crates/ruff_linter/**"}, Volatility: "high", Subdomain: subdomainCore},
-			crateAst:      {Paths: []string{"crates/ruff_python_ast/**"}, Volatility: "medium", Subdomain: "generic"},
+			crateLint: {Paths: []string{dirLint + "/**"}, Volatility: "high", Subdomain: subdomainCore},
+			crateAst:  {Paths: []string{dirAst + "/**"}, Volatility: "medium", Subdomain: "generic"},
 		}
 		mods := classify.AugmentCargoCrateNodes(g, cfg)
 		// Bare crate name appended to the dir-covering module, attributes preserved.
@@ -1159,6 +1162,35 @@ func TestAugmentCargoCrateNodes(t *testing.T) {
 		}
 		if cl.Distance == coupling.DistanceUnknown {
 			t.Error("cross-crate edge still distance-unknown after augmentation")
+		}
+	})
+
+	t.Run("a bound crate node joins the part of the surface that holds its directory", func(t *testing.T) {
+		e := crateEdge(crateLint, crateAst)
+		g := buildCrateGraph([]graph.CrateRoot{
+			{Dir: dirLint, Name: crateLint},
+			{Dir: dirAst, Name: crateAst},
+		}, []graph.Edge{e})
+		for _, tc := range []struct {
+			name          string
+			public, model []string
+			want          coupling.Strength
+		}{
+			// The resolved default: public is the module's paths.
+			{"public is the whole module", []string{dirAst + "/**"}, nil, coupling.StrengthContract},
+			{"public names the crate directory", []string{dirAst}, nil, coupling.StrengthContract},
+			{"model names the crate directory", nil, []string{dirAst}, coupling.StrengthModel},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				cfg := map[string]policy.ModuleDef{
+					crateLint: {Paths: []string{dirLint + "/**"}},
+					crateAst:  {Paths: []string{dirAst + "/**"}, Public: tc.public, Model: tc.model},
+				}
+				mods := classify.AugmentCargoCrateNodes(g, cfg)
+				if got := classify.Run(g, classify.Config{Modules: mods})[edgeKey(e)].Strength; got != tc.want {
+					t.Errorf("strength = %q, want %q: the bare crate node is in the declared part", got, tc.want)
+				}
+			})
 		}
 	})
 

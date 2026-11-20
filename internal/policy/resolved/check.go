@@ -163,7 +163,7 @@ func editDistance(a, b string) int {
 }
 
 // CheckTree checks the policy against the files of a tree: every path glob
-// must match a file, and no file may be owned by two modules at the same
+// must match a file, every model glob a file of its own module, and no file may be owned by two modules at the same
 // specificity, and no file may be in both the public and the model part of
 // its module. A public or model glob may also match a directory that holds a
 // file: public: [pkg/chaos] names a package directory. Every other glob is matched
@@ -175,6 +175,23 @@ func (p Policy) CheckTree(files []string) error {
 	for _, g := range p.pathGlobs() {
 		if !matchesAny(g.glob, files) && (!g.dirs || !matchesAny(g.glob, dirs)) {
 			m.add(g.key, "%q matches no file", g.glob)
+		}
+	}
+	// A model glob names a part of its own module: it must match a file of
+	// the module, or a directory that holds one.
+	for _, name := range slices.Sorted(maps.Keys(p.Modules)) {
+		if len(p.Modules[name].Model) == 0 {
+			continue
+		}
+		own := slices.DeleteFunc(slices.Clone(files), func(f string) bool {
+			owner, ok := p.ModuleOf(f)
+			return !ok || owner != name
+		})
+		ownDirs := directories(own)
+		for _, g := range p.Modules[name].Model {
+			if !matchesAny(g, own) && !matchesAny(g, ownDirs) {
+				m.add("modules."+name+".model", "%q matches no file of the module", g)
+			}
 		}
 	}
 	type overlap struct {
@@ -243,9 +260,6 @@ func (p Policy) pathGlobs() []keyedGlob {
 			for _, g := range m.Public {
 				globs = append(globs, keyedGlob{key: "modules." + name + ".public", glob: g, dirs: true})
 			}
-		}
-		for _, g := range m.Model {
-			globs = append(globs, keyedGlob{key: "modules." + name + ".model", glob: g, dirs: true})
 		}
 	}
 	for i, r := range p.Rules {

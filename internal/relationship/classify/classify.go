@@ -4,6 +4,7 @@ package classify
 
 import (
 	"maps"
+	gopath "path"
 	"sort"
 	"strings"
 
@@ -11,6 +12,7 @@ import (
 
 	"github.com/coupling-dev/archfit/internal/model/graph"
 	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 	"github.com/coupling-dev/archfit/internal/relationship/balance"
 	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 	"github.com/coupling-dev/archfit/internal/relationship/scoring"
@@ -40,7 +42,7 @@ const (
 // For each edge:
 //   - Strength: balance.StrengthOf over the declared surface of the
 //     module that owns the target (contract, model or intrusive); unknown when
-//     no module owns it.
+//     no module owns it or the edge stays inside one module.
 //   - Distance: same_module, or one of three tokens for a module boundary
 //     (cross_module / cross_module_different_owner / cross_deploy_unit) that all
 //     score at D=9. When either endpoint cannot be resolved to a module,
@@ -51,7 +53,7 @@ const (
 //     unknown otherwise.
 //   - Score: continuous EdgeScore from the production BookScorer.
 //     Applied to every known-distance edge; unknown-distance edges are zero.
-//     Same-module edges are scored (local_coupling report block) but keep
+//     A same-module edge has no strength, so its score abstains and it keeps
 //     SeverityNone — the advisory pipeline stays cross-boundary.
 func Run(g *graph.Graph, c Config) coupling.Index {
 	mm := buildModuleIndex(c.Modules)
@@ -63,10 +65,10 @@ func Run(g *graph.Graph, c Config) coupling.Index {
 
 	for _, e := range g.Edges() {
 		cl := classify(e, mm, c, effectiveVol, extSystems)
-		// Score every edge whose distance is known. Same-module edges score at
-		// the book's same-module rung (D=2) and surface the Ch10 local-complexity
-		// quadrant in the local_coupling report block; unknown-distance edges are
-		// not scored (zero EdgeScore). Abstain rules are identical at both levels.
+		// Score every edge whose distance is known; unknown-distance edges are
+		// not scored (zero EdgeScore). A same-module edge has no strength
+		// (resolveStrength), so the scorer abstains on it and the local_coupling
+		// block lists it as abstained.
 		// Severity is derived from cl.Score.Band so the book formula and the
 		// advisory severity are always identical — the single source of truth.
 		if cl.Distance != coupling.DistanceUnknown {
@@ -102,24 +104,18 @@ func pathFromID(id string) string {
 	return id
 }
 
-// moduleIndex is a sorted list of module names for deterministic glob matching.
-// Path→module resolution delegates to the shared policy.ModuleMap so there is a
-// single most-specific-match implementation; names/modules remain for the
-// public/internal glob strength scan in classifyStrength.
+// moduleIndex holds the module definitions for classification. Path→module
+// resolution delegates to the shared policy.ModuleMap so there is a single
+// most-specific-match implementation; modules gives the owner's declared
+// surface to resolveStrength.
 type moduleIndex struct {
-	names   []string
 	modules map[string]policy.ModuleDef
 	mm      policy.ModuleMap
 }
 
-// buildModuleIndex builds a sorted module name index from the Modules map.
+// buildModuleIndex builds the index from the Modules map.
 func buildModuleIndex(modules map[string]policy.ModuleDef) moduleIndex {
-	names := make([]string, 0, len(modules))
-	for n := range modules {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	return moduleIndex{names: names, modules: modules, mm: policy.BuildModuleMap(modules)}
+	return moduleIndex{modules: modules, mm: policy.BuildModuleMap(modules)}
 }
 
 // moduleFor returns the most-specific module name whose Paths globs match path,
@@ -278,10 +274,10 @@ func AugmentCargoCrateNodes(g *graph.Graph, modules map[string]policy.ModuleDef)
 				ensureClone()
 				def := out[modName]
 				def.Paths = append(append([]string{}, def.Paths...), name)
-				if matchesAnyGlob(dir+"/x", def.Public) {
+				if resolved.InPart(def.Public, dir, false) || namesFilesIn(def.Public, dir) {
 					def.Public = append(append([]string{}, def.Public...), name)
 				}
-				if matchesAnyGlob(dir+"/x", def.Model) {
+				if resolved.InPart(def.Model, dir, false) || namesFilesIn(def.Model, dir) {
 					def.Model = append(append([]string{}, def.Model...), name)
 				}
 				out[modName] = def
@@ -517,18 +513,51 @@ func resolveStrength(e graph.Edge, mi moduleIndex) coupling.Strength {
 	if from, ok := mi.moduleFor(pathFromID(e.From)); ok && from == owner {
 		return coupling.StrengthUnknown
 	}
-	return balance.StrengthOf(surfaceOf(mi.modules[owner], toPath))
+	return balance.StrengthOf(surfaceOf(mi.modules[owner], toPath, isFileNode(e.To)))
 }
 
-// surfaceOf places path in the declared surface of def. A module that
-// declares neither public nor model is public as a whole, as the policy
-// defaults say (resolved.Policy.WithDefaults); one that declares only model
-// has no public part.
-func surfaceOf(def policy.ModuleDef, path string) balance.Surface {
+// surfaceOf places a graph-node path in the declared surface of def, with
+// the matcher the check uses (resolved.InPart). A module that declares
+// neither public nor model is public as a whole, as the policy defaults say
+// (resolved.Policy.WithDefaults); so is a module the report adds on its own,
+// a Go workspace member or a Rust module, which declares nothing. A module
+// that declares only model has no public part.
+func surfaceOf(def policy.ModuleDef, path string, isFile bool) balance.Surface {
 	if len(def.Public) == 0 && len(def.Model) == 0 {
 		return balance.Surface{Public: true}
 	}
-	return balance.Surface{Public: matchesAnyGlob(path, def.Public), Model: matchesAnyGlob(path, def.Model)}
+	in := func(globs []string) bool {
+		return resolved.InPart(globs, path, isFile) || !isFile && namesFilesIn(globs, path)
+	}
+	return balance.Surface{Public: in(def.Public), Model: in(def.Model)}
+}
+
+// namesFilesIn reports whether a glob names files directly in dir, such as
+// pkg/api/*.go or pkg/api/api.go for the package pkg/api. The check counts a
+// package as in a part when one of its files is; the graph has no file list
+// for a package node, so the report reads the glob's directory instead. A
+// glob whose last segment has no dot and no wildcard names a directory
+// (pkg/api), not files in its parent. Limit: a wildcard directory
+// (pkg/*/api.go) counts for every package it names, also one without that
+// file.
+func namesFilesIn(globs []string, dir string) bool {
+	for _, g := range globs {
+		if !strings.ContainsAny(gopath.Base(g), ".*?[{") {
+			continue
+		}
+		if ok, _ := doublestar.Match(gopath.Dir(g), dir); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isFileNode reports whether a graph node id names a file. A package or a
+// project node names a directory or a unit, which the surface matches as a
+// whole.
+func isFileNode(id string) bool {
+	kind, _, _ := strings.Cut(id, ":")
+	return graph.NodeKind(kind) == graph.NodeKindFile
 }
 
 // classifyDistance names the boundary of an edge. A module boundary is the far

@@ -51,7 +51,7 @@ The partial results people hit first:
 
 `archfit check` always reads Go imports with the built-in standard parser. It never runs the typed loader or the Go toolchain, even when `go` is installed, and needs no installed module dependencies.
 
-`archfit report` uses `go/packages` when `go` is on `PATH`, adding type facts from `go/types` as evidence. They never set a strength: the declared surface does ([coupling](coupling.md)). Without `go`, it uses the same parser as the check and still emits file-to-package imports and workspace module information. The `go/packages` coverage row then discloses the parser fallback and missing type precision; it does not claim typed strength. An installed toolchain that fails to load packages still produces a load error or partial evidence, not a parser retry.
+`archfit report` uses `go/packages` when `go` is on `PATH`, adding type facts from `go/types`. They never set a strength: the declared surface does ([coupling](coupling.md)). Without `go`, it uses the same parser as the check and still emits file-to-package imports and workspace module information. The `go/packages` coverage row then discloses the parser fallback and missing type precision; it does not claim typed strength. An installed toolchain that fails to load packages still produces a load error or partial evidence, not a parser retry.
 
 Both paths read `go.work` when present, otherwise a root `go.mod`, then search below the analysis root for modules. They respect `GOOS`, `GOARCH`, build constraints, and tags in `GOFLAGS`. Run archfit under each platform or tag set that matters. `_test.go` files are not read for imports.
 
@@ -104,7 +104,7 @@ A dependency rule's `to:` matches an external node by its assembly name: `Micros
 
 Declare modules with path globs in `.archfit.yaml`. For .NET projects, set `languages.dotnet.enabled: auto` and `analyzers.roslyn.enabled: true` when you want Archfit to use the Roslyn helper.
 
-The extractor reads compiler symbols and emits type facts (hints) as evidence. It does not classify, and a hint never sets a strength: `internal/relationship` gives every dependency its strength from the declared surface of the target ([coupling](coupling.md)).
+The extractor reads compiler symbols and emits type facts (hints). It does not classify, and a hint never sets a strength: `internal/relationship` gives every dependency its strength from the declared surface of the target ([coupling](coupling.md)).
 
 | Reference from file A to a symbol in file B | Hint (evidence) |
 | --- | --- |
@@ -115,7 +115,7 @@ The extractor reads compiler symbols and emits type facts (hints) as evidence. I
 | Inherits a concrete class | `functional` |
 | Uses a symbol that is, or is nested in, `internal` or `private protected`, declared in another assembly | `intrusive` |
 
-The strongest use wins per file pair. Data uses (`model`, `dto`) also travel in a separate data channel. An `internal` member used through `InternalsVisibleTo` in a file under a `public` glob is listed as evidence; the dependency stays `contract`. Known gap: invoking a delegate stored in a field counts as a data use.
+The strongest use wins per file pair. Data uses (`model`, `dto`) also travel in a separate data channel. An `internal` member used through `InternalsVisibleTo` in a file under a `public` glob does not change the strength; the dependency stays `contract`. Known gap: invoking a delegate stored in a field counts as a data use.
 
 Only compiler-resolved type references become edges. Published-language coupling between services is not measured: integration-event records duplicated per service, a `.proto` file that another project compiles directly (eShop `WebApp` compiles `Basket.API`'s), and HTTP, gRPC, or YARP calls resolved at runtime produce no type edge. See [coupling](coupling.md#copies-and-limits).
 

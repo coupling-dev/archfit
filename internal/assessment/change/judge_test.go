@@ -422,6 +422,20 @@ func TestJudgeTextsUseOnlyDesignWords(t *testing.T) {
 	}
 }
 
+// A module that declares only model has no public part, so a module named
+// on its own means its model part, not a contract.
+func TestBalanceOfModelOnlyModuleNamedOnItsOwn(t *testing.T) {
+	p := policy()
+	tcMod := p.Modules[tc]
+	tcMod.Public, tcMod.Model = nil, []string{"pkg/tc"}
+	p.Modules[tc] = tcMod
+	got := change.BalanceOf(p, change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}})
+	want := &result.Balance{Value: 7, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityHigh}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("BalanceOf = %+v, want %+v", got, want)
+	}
+}
+
 // BalanceOf is the balance Judge puts on graph and coupling errors, and the
 // balance `archfit can` shows for an allowed dependency.
 func TestBalanceOf(t *testing.T) {

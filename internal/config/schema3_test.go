@@ -15,6 +15,7 @@ import (
 	"github.com/goccy/go-yaml"
 
 	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
 	"github.com/coupling-dev/archfit/internal/config"
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
@@ -44,6 +45,13 @@ func reportConfig(t *testing.T, path string) config.Config {
 	return cfg
 }
 
+const (
+	strContract  = string(coupling.StrengthContract)
+	strModel     = string(coupling.StrengthModel)
+	strIntrusive = string(coupling.StrengthIntrusive)
+	fileAA       = "a/a.go"
+)
+
 // The surface reaches the report through the real projection: a module that
 // declares neither public nor model is public as a whole, so every use of it
 // is contract (the default must not turn every edge intrusive). A declared
@@ -61,20 +69,70 @@ modules:
 		t.Fatal(err)
 	}
 	tests := []struct{ to, want string }{
-		{"b/deep/b.go", "contract"},
-		{"c/api/c.go", "contract"},
-		{"c/model/c.go", string(coupling.StrengthModel)},
-		{"c/impl/c.go", "intrusive"},
+		{"b/deep/b.go", strContract},
+		{"c/api/c.go", strContract},
+		{"c/model/c.go", strModel},
+		{"c/impl/c.go", strIntrusive},
 	}
 	for _, tt := range tests {
-		e := graph.Edge{From: "file:a/a.go", To: "file:" + tt.to, Kind: graph.EdgeKindImports, Language: graph.LangGo}
+		e := graph.Edge{From: "file:" + fileAA, To: "file:" + tt.to, Kind: graph.EdgeKindImports, Language: graph.LangGo}
 		g := graph.Build([]graph.Facts{{Nodes: []graph.Node{
-			{Kind: graph.NodeKindFile, Path: "a/a.go"}, {Kind: graph.NodeKindFile, Path: tt.to},
+			{Kind: graph.NodeKindFile, Path: fileAA}, {Kind: graph.NodeKindFile, Path: tt.to},
 		}, Edges: []graph.Edge{e}}})
 		cl := classify.Run(g, cfg.ForClassify())[e.From+"\x00"+e.To+"\x00"+string(e.Kind)]
 		if string(cl.Strength) != tt.want {
 			t.Errorf("a -> %s: strength %q, want %q", tt.to, cl.Strength, tt.want)
 		}
+	}
+}
+
+// The check and the report give one dependency one strength: the same policy
+// and the same use through change.BalanceOf and the report's classifier,
+// for directory globs with file targets and file globs with package targets.
+func TestCheckAndReportGiveOneStrength(t *testing.T) {
+	t.Parallel()
+	policy := []byte(`version: 1
+owners: [alexei-led]
+modules:
+  a: {paths: [a/**], depends_on: [c]}
+  c: {paths: [c/**], public: [c/api, c/pub/*.go], model: [c/models]}
+`)
+	check, err := policyfile.Resolve(policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.ReportConfig(policy)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct {
+		name string
+		to   change.End
+		node string
+		want string
+	}{
+		{"a file in a public directory", change.End{Path: "c/api/x.ts", IsFile: true}, "file:c/api/x.ts", strContract},
+		{"a file in a model directory", change.End{Path: "c/models/order.ts", IsFile: true}, "file:c/models/order.ts", strModel},
+		{"a package a public file glob names", change.End{Path: "c/pub", Files: []string{"c/pub/p.go"}}, "package:c/pub", strContract},
+		{"a package a model directory names", change.End{Path: "c/models"}, "package:c/models", strModel},
+		{"a file below a public directory", change.End{Path: "c/api/deep/y.ts", IsFile: true}, "file:c/api/deep/y.ts", strIntrusive},
+		{"a package past the surface", change.End{Path: "c/impl", Files: []string{"c/impl/i.go"}}, "package:c/impl", strIntrusive},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			b := change.BalanceOf(check, change.Use{From: change.End{Path: fileAA, IsFile: true}, To: tt.to})
+			if b == nil || string(b.Strength) != tt.want {
+				t.Fatalf("check: balance %+v, want strength %q", b, tt.want)
+			}
+			e := graph.Edge{From: "file:" + fileAA, To: tt.node, Kind: graph.EdgeKindImports, Language: graph.LangGo}
+			g := graph.Build([]graph.Facts{{Nodes: []graph.Node{
+				{Kind: graph.NodeKindFile, Path: fileAA}, {Kind: graph.NodeKind(strings.SplitN(tt.node, ":", 2)[0]), Path: tt.to.Path},
+			}, Edges: []graph.Edge{e}}})
+			cl := classify.Run(g, cfg.ForClassify())[e.From+"\x00"+e.To+"\x00"+string(e.Kind)]
+			if string(cl.Strength) != tt.want || cl.Score.Balance != b.Value {
+				t.Errorf("report: %s balance %d, check: %s balance %d", cl.Strength, cl.Score.Balance, b.Strength, b.Value)
+			}
+		})
 	}
 }
 
@@ -336,7 +394,7 @@ rules:
 var reportRepo = map[string]string{
 	".archfit.yaml": reportPolicy,
 	"go.mod":        "module example.com/report\n\ngo 1.22\n",
-	"a/a.go":        "package a\n\nimport (\n\t\"example.com/report/b\"\n\t\"example.com/report/b/api\"\n)\n\nfunc A() string { return b.B() + api.API() }\n",
+	fileAA:          "package a\n\nimport (\n\t\"example.com/report/b\"\n\t\"example.com/report/b/api\"\n)\n\nfunc A() string { return b.B() + api.API() }\n",
 	"b/b.go":        "package b\n\nimport \"example.com/report/b/api\"\n\nfunc B() string { return api.API() }\n",
 	"b/api/api.go":  "package api\n\nfunc API() string { return \"api\" }\n",
 }

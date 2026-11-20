@@ -219,7 +219,12 @@ func TestCheckTreeMessages(t *testing.T) {
 		{
 			"model matches no file",
 			func(p *resolved.Policy) { setChaosModel(p, "pkg/chaos/types") },
-			`modules.pkg_chaos.model: "pkg/chaos/types" matches no file`,
+			`modules.pkg_chaos.model: "pkg/chaos/types" matches no file of the module`,
+		},
+		{
+			"model in another module's files",
+			func(p *resolved.Policy) { setChaosModel(p, "pkg/tc") },
+			`modules.pkg_chaos.model: "pkg/tc" matches no file of the module`,
 		},
 		{
 			"a file in the public and the model part",

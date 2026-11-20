@@ -27,14 +27,19 @@ report use the same rule, so one dependency has one strength and one balance.
 
 - A path in `public` is `contract`, a path in `model` is `model`, and any other
   path of the module is `intrusive`.
-- A module that declares neither `public` nor `model` is public as a whole.
+- A module that declares neither `public` nor `model` is public as a whole. So
+  is a module the report adds on its own (a Go workspace member, a Rust module
+  that no policy module covers): it declares nothing.
+- A path matches a part as the check matches it: a glob covers the path, or,
+  for a file, the directory that holds it (`public: [pkg/api]` covers
+  `pkg/api/client.ts`, not `pkg/api/deep/x.ts`).
 - A dependency inside one module, or to a path in no module, has no strength:
   the report abstains.
 
 Type facts that an extractor reads (Go `go/types`, .NET Roslyn symbols, a
-Python private name) are evidence. They never set or change a strength, and
-connascence does not either. A C# `internal` member used through
-`InternalsVisibleTo` in a public file is listed as evidence; the use stays
+Python private name) never set or change a strength, and connascence does not
+either. The extractors still read them; the report does not show them. A C#
+`internal` member used through `InternalsVisibleTo` in a public file stays
 `contract`, because the check cannot see it and one dependency has one number.
 
 ### Distance

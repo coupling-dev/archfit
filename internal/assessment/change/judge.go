@@ -33,7 +33,8 @@ type End struct {
 	Module string
 	// Path is a repository-relative, slash-separated file or directory, or a
 	// library as imported. Empty when the end is a module named on its own,
-	// which as a target means its public part.
+	// which as a target means its public part (its model part when it
+	// declares only model).
 	Path string
 	// IsFile says Path is a file. A Go import names a package directory, a
 	// TypeScript or Python import a file.
@@ -141,7 +142,7 @@ func builtin(p resolved.Policy, u Use) []Error {
 // its strength from the declared surface of the target
 // (balance.StrengthOf), with the target's volatility (the surfaces
 // design 6.1). A use whose To is a module named on its own uses its public
-// part. nil when the use is not between two modules: an end in no module, one
+// part, or its model part when it declares only model. nil when the use is not between two modules: an end in no module, one
 // module, or a library. The graph and coupling errors of Judge carry this
 // balance; `archfit can` shows it for an allowed dependency. p has its
 // defaults.
@@ -173,10 +174,14 @@ func betweenModules(u Use) bool {
 
 // surfaceOf places a target end, its module resolved, in that module's
 // declared surface: its path, or, for a directory, one of its files. A module
-// named on its own means its public part.
+// named on its own means its public part, or its model part when it declares
+// only model.
 func surfaceOf(p resolved.Policy, to End) balance.Surface {
 	if to.Path == "" {
-		return balance.Surface{Public: true}
+		// A module that declares only model has no public part: naming it
+		// means its model part.
+		m := p.Modules[to.Module]
+		return balance.Surface{Public: len(m.Public) > 0, Model: len(m.Public) == 0 && len(m.Model) > 0}
 	}
 	in := func(part func(module, target string, isFile bool) bool) bool {
 		return part(to.Module, to.Path, to.IsFile) ||
