@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/extract/dynimports"
-	reportmodel "github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/extract/dynimports"
+	reportmodel "github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // writeFile writes content to root/rel, creating parent dirs.

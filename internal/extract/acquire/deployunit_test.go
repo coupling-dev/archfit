@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/extract/acquire"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/extract/acquire"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestCollectDeployUnitDiscoveryCompleteness(t *testing.T) {

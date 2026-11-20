@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/application/importcheck"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/application/importcheck"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 const (

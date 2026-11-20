@@ -5,8 +5,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // TestSelectorLanguages pins which languages a rule selector can address.

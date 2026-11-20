@@ -4,16 +4,16 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	"github.com/alexei-led/archfit/v4/internal/application/repostate"
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/output/jsonout"
-	"github.com/alexei-led/archfit/v4/internal/output/reporttext"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	reportports "github.com/alexei-led/archfit/v4/internal/report/ports"
+	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/application/repostate"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/output/jsonout"
+	"github.com/coupling-dev/archfit/internal/output/reporttext"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	reportports "github.com/coupling-dev/archfit/internal/report/ports"
 )
 
 // ReportCmd is `archfit report`: the repository-wide picture for owners. It

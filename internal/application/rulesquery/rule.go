@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // rule writes one rule in full, then its exceptions. id is a built-in rule

@@ -2,10 +2,10 @@
 package evidence
 
 import (
-	modevidence "github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/fileclass"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/model/symbol"
+	modevidence "github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/fileclass"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/symbol"
 )
 
 // Facts is the neutral, immutable observation bundle produced by acquisition:

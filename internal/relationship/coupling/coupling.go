@@ -1,6 +1,6 @@
 package coupling
 
-import "github.com/alexei-led/archfit/v4/internal/relationship"
+import "github.com/coupling-dev/archfit/internal/relationship"
 
 // Strength classifies how a dependency is expressed at the API boundary.
 // It is an alias of relationship.Strength so the coupling classification model

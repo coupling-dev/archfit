@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // globModuleA is the single-module path glob these projection fixtures share.

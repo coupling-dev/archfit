@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 const (

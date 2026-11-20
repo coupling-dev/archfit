@@ -51,8 +51,8 @@ Do not create the GitHub release by hand. The workflow owns that step.
 A release candidate uses a prerelease tag `vX.Y.Z-rc.N`, created and pushed the same way:
 
 ```sh
-git tag -a v4.0.0-rc.1 -F /tmp/archfit-release-notes.md
-git push origin v4.0.0-rc.1
+git tag -a v0.9.0-rc.1 -F /tmp/archfit-release-notes.md
+git push origin v0.9.0-rc.1
 ```
 
 The first job runs `scripts/release-channel.sh` on the tag. It gives `final` for `vX.Y.Z` and `prerelease` for
@@ -67,7 +67,7 @@ The first job runs `scripts/release-channel.sh` on the tag. It gives `final` for
 The workflow creates no moving major tag for either form.
 A tag of a different form stops the run in the first job, before anything is published.
 `make workflows` runs `scripts/tests/release_channel_test.sh`, the test of this rule.
-The Go module path uses `/v4`. Keep the major suffix in `go.mod` and imports for v4 releases.
+The Go module path has no major suffix while releases are v0 and v1. A v2 release needs a `/v2` suffix in `go.mod` and imports.
 
 ## Language contracts
 

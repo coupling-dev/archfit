@@ -1,10 +1,10 @@
 package evaluation
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/assessment/state"
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/state"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 type stateInput struct {

@@ -12,9 +12,9 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/configschema"
-	suppliedcoverage "github.com/alexei-led/archfit/v4/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/configschema"
+	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
 )
 
 const (

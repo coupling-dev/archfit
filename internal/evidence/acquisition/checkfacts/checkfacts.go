@@ -29,12 +29,12 @@ import (
 	"sync"
 	"time"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/registry"
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/registry"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // factsFormat is part of every cache key. Change it whenever what a tree's

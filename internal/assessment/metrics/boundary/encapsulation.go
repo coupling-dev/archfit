@@ -7,11 +7,11 @@ package boundary
 import (
 	"fmt"
 
-	assessmentresult "github.com/alexei-led/archfit/v4/internal/assessment/result"
+	assessmentresult "github.com/coupling-dev/archfit/internal/assessment/result"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics/internal/result"
-	signal "github.com/alexei-led/archfit/v4/internal/assessment/signals"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics/internal/result"
+	signal "github.com/coupling-dev/archfit/internal/assessment/signals"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 // ---------------------------------------------------------------------------

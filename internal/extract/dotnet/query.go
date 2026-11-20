@@ -9,9 +9,9 @@ import (
 	"slices"
 	"strings"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/syntax"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/syntax"
 )
 
 // csExt is the C# source extension, the only file type the helper reports.

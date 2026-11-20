@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/change"
-	"github.com/alexei-led/archfit/v4/internal/assessment/copies"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/initcfg/policy3"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
+	"github.com/coupling-dev/archfit/internal/assessment/copies"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const (

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/reportschema"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/reportschema"
 )
 
 const (

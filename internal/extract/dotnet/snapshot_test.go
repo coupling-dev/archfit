@@ -12,10 +12,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/extract/dotnet"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/scope"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/extract/dotnet"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/scope"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // subtreeDir is the scan root's directory below the repository root in the

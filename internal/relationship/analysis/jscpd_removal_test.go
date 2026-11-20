@@ -4,10 +4,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/fileclass"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/relationship/analysis"
+	"github.com/coupling-dev/archfit/internal/model/fileclass"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship/analysis"
 )
 
 func TestClonesDoNotChangeImportScoring(t *testing.T) {

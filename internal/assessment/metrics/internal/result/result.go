@@ -7,7 +7,7 @@ package result
 import (
 	"strings"
 
-	assessmentresult "github.com/alexei-led/archfit/v4/internal/assessment/result"
+	assessmentresult "github.com/coupling-dev/archfit/internal/assessment/result"
 )
 
 // Band name constants (spec §10.1).

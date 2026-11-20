@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/output/jsonout"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/output/jsonout"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const reportSnapshotChanged = "changed"

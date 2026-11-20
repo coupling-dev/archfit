@@ -8,16 +8,16 @@ import (
 	"path/filepath"
 	"slices"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/dotnet"
-	"github.com/alexei-led/archfit/v4/internal/extract/golang"
-	"github.com/alexei-led/archfit/v4/internal/extract/pyimports"
-	"github.com/alexei-led/archfit/v4/internal/extract/rust"
-	"github.com/alexei-led/archfit/v4/internal/extract/tsimports"
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/dotnet"
+	"github.com/coupling-dev/archfit/internal/extract/golang"
+	"github.com/coupling-dev/archfit/internal/extract/pyimports"
+	"github.com/coupling-dev/archfit/internal/extract/rust"
+	"github.com/coupling-dev/archfit/internal/extract/tsimports"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Tool names one external binary archfit can probe, with a one-line
@@ -103,7 +103,7 @@ type Descriptor struct {
 // order, and the engine golden test pins it. Append new languages; never reorder.
 // Primary analyzer and optional Rust tool names.
 const (
-	analyzerSetupURL = "https://github.com/alexei-led/archfit/blob/main/docs/languages.md#install-analyzers"
+	analyzerSetupURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md#install-analyzers"
 	dotnetSDKURL     = "https://dotnet.microsoft.com/download"
 	cmdDotNet        = "dotnet"
 

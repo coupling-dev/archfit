@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
 )
 
 const (

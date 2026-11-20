@@ -44,7 +44,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Kind says where an import resolved.

@@ -23,11 +23,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Events of `archfit hook run`.

@@ -65,6 +65,6 @@ ENV PATH="/opt/archfit/analyzers/node/node_modules/.bin:/opt/archfit/bin:/opt/ar
 USER 65532:65532
 LABEL org.opencontainers.image.title="archfit" \
       org.opencontainers.image.description="Architecture fitness checker for Go, TypeScript, JavaScript, Python, Rust and C#" \
-      org.opencontainers.image.source="https://github.com/alexei-led/archfit" \
+      org.opencontainers.image.source="https://github.com/coupling-dev/archfit" \
       org.opencontainers.image.licenses="Apache-2.0"
 ENTRYPOINT ["/usr/local/bin/archfit"]

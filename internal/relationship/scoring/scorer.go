@@ -1,6 +1,6 @@
 package scoring
 
-import "github.com/alexei-led/archfit/v4/internal/relationship/coupling"
+import "github.com/coupling-dev/archfit/internal/relationship/coupling"
 
 // Scorer computes a score for one classified relationship.
 type Scorer interface {

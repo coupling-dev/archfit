@@ -9,10 +9,10 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
-	"github.com/alexei-led/archfit/v4/internal/relationship/scoring"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/relationship/scoring"
 )
 
 // subdomain constants are the accepted Khononov subdomain values used throughout

@@ -6,8 +6,8 @@ package evaluation_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/evaluation"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/assessment/evaluation"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 const (

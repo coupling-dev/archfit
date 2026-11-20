@@ -3,7 +3,7 @@ package relationship_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 // TestSeamIDIsStableAndOrdered pins the frozen seam identity. A seam ID must be

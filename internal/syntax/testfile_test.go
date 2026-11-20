@@ -3,8 +3,8 @@ package syntax_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/syntax"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/syntax"
 )
 
 const (

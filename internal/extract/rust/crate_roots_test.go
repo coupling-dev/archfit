@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/graph"
 )
 
 const (

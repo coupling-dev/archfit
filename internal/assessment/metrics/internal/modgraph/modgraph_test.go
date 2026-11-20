@@ -6,7 +6,7 @@ package modgraph
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 const (

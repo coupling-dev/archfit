@@ -3,8 +3,8 @@ package analysis
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 const (

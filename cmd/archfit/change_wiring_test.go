@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestIsVersion3(t *testing.T) {
@@ -61,11 +61,11 @@ func TestProtectionNeedsAStepThatUsesTheAction(t *testing.T) {
 		name, workflow string
 		want           bool
 	}{
-		{"a step", "steps:\n  - uses: alexei-led/archfit-action@v4\n", true},
-		{"quoted", "steps:\n  - name: check\n    uses: \"alexei-led/archfit-action@v4\"\n", true},
-		{"commented out", "steps:\n  # - uses: alexei-led/archfit-action@v4\n", false},
-		{"a mention", "steps:\n  - run: echo alexei-led/archfit-action@v4\n", false},
-		{"another Action", "steps:\n  - uses: alexei-led/archfit-action-foo@v1\n", false},
+		{"a step", "steps:\n  - uses: coupling-dev/archfit-action@v4\n", true},
+		{"quoted", "steps:\n  - name: check\n    uses: \"coupling-dev/archfit-action@v4\"\n", true},
+		{"commented out", "steps:\n  # - uses: coupling-dev/archfit-action@v4\n", false},
+		{"a mention", "steps:\n  - run: echo coupling-dev/archfit-action@v4\n", false},
+		{"another Action", "steps:\n  - uses: coupling-dev/archfit-action-foo@v1\n", false},
 		{"no workflow", "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

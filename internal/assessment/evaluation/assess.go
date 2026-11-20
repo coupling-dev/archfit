@@ -3,15 +3,15 @@ package evaluation
 import (
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/assessment/score"
-	signal "github.com/alexei-led/archfit/v4/internal/assessment/signals"
-	modevidence "github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/fileclass"
-	"github.com/alexei-led/archfit/v4/internal/model/symbol"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/score"
+	signal "github.com/coupling-dev/archfit/internal/assessment/signals"
+	modevidence "github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/fileclass"
+	"github.com/coupling-dev/archfit/internal/model/symbol"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // Observations is the assessment-owned view of what the tools reported. It is

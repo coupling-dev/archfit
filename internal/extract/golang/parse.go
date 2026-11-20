@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
 )
 
 // ImportKind says where an import of a Go file lands.

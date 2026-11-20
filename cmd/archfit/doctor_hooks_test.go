@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // fixRepo is a git repository with no commit and the pre-commit hooks in its

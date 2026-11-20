@@ -41,4 +41,4 @@ formatters:
   settings:
     goimports:
       local-prefixes:
-        - github.com/alexei-led/archfit
+        - github.com/coupling-dev/archfit

@@ -11,11 +11,11 @@ package ports
 import (
 	"context"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/model/pattern"
-	"github.com/alexei-led/archfit/v4/internal/model/symbol"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/pattern"
+	"github.com/coupling-dev/archfit/internal/model/symbol"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 //go:generate moq -out extractor_moq.go . Extractor

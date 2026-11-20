@@ -49,7 +49,7 @@ archfit: unknown, no verdict
 - `balance` is shown only for a rule about coupling, as `n/10 (min m)`.
 - Dates show the days left, such as `2026-11-19 (9 days)`.
 - `(not from this change)` ends the status line when every error comes from an expired exception, not from the change.
-- `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `alexei-led/archfit-action`. The result is then a local guide, not change control.
+- `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `coupling-dev/archfit-action`. The result is then a local guide, not change control.
 - `--verbose` adds the policy path and digest, and the engine version, after the status line.
 
 `can` prints one answer and no status line:
@@ -155,4 +155,4 @@ The report `evidence` object contains the declared scope, bounded snapshot, comp
 
 The agent digest, console, Markdown, scorecard, and architecture-map renderers are removed. `check` and `can` use the text record by default; the check also supports JSON and SARIF through the record renderer. `report` keeps text and JSON. The report schema is now `archfit.report.schema.json`, including its `$id`; the old state-schema filename and agent-result schema are no longer published.
 
-For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/results.md). Current `check` requires a version 3 policy; a version 2 policy is an error.
+For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/results.md). Current `check` requires a version 3 policy; a version 2 policy is an error.

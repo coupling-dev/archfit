@@ -4,10 +4,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/relationship/analysis"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship/analysis"
 )
 
 func TestCouplingAdvisoryNeverCallsACriticalEdgeCheap(t *testing.T) {

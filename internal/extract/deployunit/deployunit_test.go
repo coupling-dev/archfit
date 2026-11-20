@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/extract/deployunit"
-	modevidence "github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/extract/deployunit"
+	modevidence "github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const (

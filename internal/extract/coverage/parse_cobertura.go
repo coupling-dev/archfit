@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // ErrMalformedCobertura identifies a Cobertura XML artifact that is not

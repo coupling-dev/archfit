@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 // TestStateSchemaVersionIsPinned pins the published contract identifier. It is

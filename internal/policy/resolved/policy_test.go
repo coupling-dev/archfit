@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 func TestDigest(t *testing.T) {

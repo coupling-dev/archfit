@@ -30,26 +30,26 @@ end
 puts <<~FORMULA
   class Archfit < Formula
     desc "Architecture-fitness checks for AI agents and CI"
-    homepage "https://github.com/alexei-led/archfit"
+    homepage "https://github.com/coupling-dev/archfit"
     version "#{version}"
     license "Apache-2.0"
 
     on_macos do
       if Hardware::CPU.arm?
-        url "https://github.com/alexei-led/archfit/releases/download/v\#{version}/archfit-v\#{version}-darwin-arm64"
+        url "https://github.com/coupling-dev/archfit/releases/download/v\#{version}/archfit-v\#{version}-darwin-arm64"
         sha256 "#{sha!(sums, version, "darwin-arm64")}"
       else
-        url "https://github.com/alexei-led/archfit/releases/download/v\#{version}/archfit-v\#{version}-darwin-amd64"
+        url "https://github.com/coupling-dev/archfit/releases/download/v\#{version}/archfit-v\#{version}-darwin-amd64"
         sha256 "#{sha!(sums, version, "darwin-amd64")}"
       end
     end
 
     on_linux do
       if Hardware::CPU.arm?
-        url "https://github.com/alexei-led/archfit/releases/download/v\#{version}/archfit-v\#{version}-linux-arm64"
+        url "https://github.com/coupling-dev/archfit/releases/download/v\#{version}/archfit-v\#{version}-linux-arm64"
         sha256 "#{sha!(sums, version, "linux-arm64")}"
       else
-        url "https://github.com/alexei-led/archfit/releases/download/v\#{version}/archfit-v\#{version}-linux-amd64"
+        url "https://github.com/coupling-dev/archfit/releases/download/v\#{version}/archfit-v\#{version}-linux-amd64"
         sha256 "#{sha!(sums, version, "linux-amd64")}"
       end
     end

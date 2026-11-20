@@ -7,16 +7,16 @@ This guide installs archfit, sets up a repository with `archfit init`, and shows
 On macOS or Linux, install the latest release with Homebrew:
 
 ```sh
-brew install alexei-led/tap/archfit
+brew install coupling-dev/tap/archfit
 ```
 
 Or install with Go:
 
 ```sh
-go install github.com/alexei-led/archfit/v4/cmd/archfit@v4.0.0
+go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
 ```
 
-You can also download a release binary from the [release page](https://github.com/alexei-led/archfit/releases). Check the file against `SHA256SUMS` before you install it.
+You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
 
 ## Check the tools
 
@@ -113,7 +113,7 @@ Fail the job on any exit code except `0`. See [CI](ci.md) for the workflow.
 The release image runs archfit with a bundled toolchain:
 
 ```sh
-docker run --rm -v "$(pwd):/src" ghcr.io/alexei-led/archfit:v4.0.0 \
+docker run --rm -v "$(pwd):/src" ghcr.io/coupling-dev/archfit:v0.9.0 \
   check
 ```
 

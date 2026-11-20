@@ -8,8 +8,8 @@ import (
 	"sort"
 	"testing"
 
-	goextract "github.com/alexei-led/archfit/v4/internal/extract/golang"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	goextract "github.com/coupling-dev/archfit/internal/extract/golang"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // archfitRepoRoot returns the absolute path of the archfit repository root by

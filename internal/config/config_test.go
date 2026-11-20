@@ -5,11 +5,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 const (

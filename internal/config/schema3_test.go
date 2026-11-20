@@ -14,13 +14,13 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
-	suppliedcoverage "github.com/alexei-led/archfit/v4/internal/extract/coverage"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
+	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func readFixture(t *testing.T, path string) []byte {

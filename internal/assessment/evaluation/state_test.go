@@ -7,9 +7,9 @@ package evaluation_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/evaluation"
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/assessment/state"
+	"github.com/coupling-dev/archfit/internal/assessment/evaluation"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/state"
 )
 
 // TestBuildStateOverNothingMeasuresNothing is the abstain-not-fake contract at

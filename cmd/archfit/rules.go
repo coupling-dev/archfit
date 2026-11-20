@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/application/rulesquery"
+	"github.com/coupling-dev/archfit/internal/application/rulesquery"
 )
 
 // RulesCmd is `archfit rules` (internal/application/rulesquery): the rules

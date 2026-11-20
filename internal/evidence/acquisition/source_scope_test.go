@@ -4,8 +4,8 @@ import (
 	"maps"
 	"testing"
 
-	evidencecontract "github.com/alexei-led/archfit/v4/internal/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/fileclass"
+	evidencecontract "github.com/coupling-dev/archfit/internal/evidence"
+	"github.com/coupling-dev/archfit/internal/model/fileclass"
 )
 
 func TestDeclaredOutOfScopeHonorsExclusionsAndSwitchedOffLanguages(t *testing.T) {

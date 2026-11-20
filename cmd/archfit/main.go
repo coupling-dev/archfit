@@ -16,8 +16,8 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Build-time variables injected by -ldflags.
@@ -56,10 +56,10 @@ const (
 )
 
 const (
-	docsURL          = "https://github.com/alexei-led/archfit/blob/main/docs/getting-started.md"
-	ciDocsURL        = "https://github.com/alexei-led/archfit/blob/main/docs/ci.md"
-	agentDocsURL     = "https://github.com/alexei-led/archfit/blob/main/docs/agents.md"
-	languagesDocsURL = "https://github.com/alexei-led/archfit/blob/main/docs/languages.md"
+	docsURL          = "https://github.com/coupling-dev/archfit/blob/main/docs/getting-started.md"
+	ciDocsURL        = "https://github.com/coupling-dev/archfit/blob/main/docs/ci.md"
+	agentDocsURL     = "https://github.com/coupling-dev/archfit/blob/main/docs/agents.md"
+	languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 )
 
 // cli exposes the seven public commands and the hidden hook entry point.

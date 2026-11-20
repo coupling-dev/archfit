@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/extract/acquire"
-	"github.com/alexei-led/archfit/v4/internal/extract/registry"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/extract/acquire"
+	"github.com/coupling-dev/archfit/internal/extract/registry"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestAcquisitionAndDoctorDoNotUseJscpd(t *testing.T) {

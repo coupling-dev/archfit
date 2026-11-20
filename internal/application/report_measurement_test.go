@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/score"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/assessment/score"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 func TestMeasurementCarriesOnlyDeterministicFields(t *testing.T) {

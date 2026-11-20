@@ -5,8 +5,8 @@ import (
 	"slices"
 	"testing"
 
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // TestTreeFiles lists the files of the working tree id: nested, untracked and

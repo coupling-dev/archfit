@@ -13,9 +13,9 @@ import (
 	"testing"
 	"time"
 
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // The record goldens of internal/output/record are written from design 8.1.
@@ -63,7 +63,7 @@ jobs:
   archfit:
     runs-on: ubuntu-latest
     steps:
-      - uses: alexei-led/archfit-action@v4
+      - uses: coupling-dev/archfit-action@v4
 `
 
 // Names the tests share.

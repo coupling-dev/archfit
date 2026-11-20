@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
 )
 
 const (

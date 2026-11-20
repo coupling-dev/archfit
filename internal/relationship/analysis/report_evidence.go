@@ -3,9 +3,9 @@ package analysis
 import (
 	"sort"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 func reportRelationships(set relationship.Set, modules map[string]policy.ModuleDef) evidence.ReportRelationships {

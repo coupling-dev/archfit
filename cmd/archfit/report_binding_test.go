@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	"github.com/alexei-led/archfit/v4/internal/config"
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/config"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestReportConsumedPolicySurvivesStableDiskReplacement(t *testing.T) {

@@ -42,11 +42,11 @@ import (
 	"slices"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/change"
-	"github.com/alexei-led/archfit/v4/internal/assessment/copies"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
+	"github.com/coupling-dev/archfit/internal/assessment/copies"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // RuleException is the rule id of an exception past its date.

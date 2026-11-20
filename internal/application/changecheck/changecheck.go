@@ -50,11 +50,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/repostate"
-	"github.com/alexei-led/archfit/v4/internal/assessment/count"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/application/repostate"
+	"github.com/coupling-dev/archfit/internal/assessment/count"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // PolicyPath is the policy file, relative to the repository root.
@@ -119,7 +119,7 @@ type Facts interface {
 }
 
 // Protection says whether the policy is protected. Milestone 1 (D6): true
-// when a workflow in .github/workflows/ uses alexei-led/archfit-action.
+// when a workflow in .github/workflows/ uses coupling-dev/archfit-action.
 type Protection interface {
 	Protected(ctx context.Context) (bool, error)
 }

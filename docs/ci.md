@@ -40,7 +40,7 @@ branch make that comparison a boundary.
 ## Go coverage workflow
 
 [The complete GitHub Actions example](../examples/ci-go.yaml) covers one Go
-module. It installs Archfit v4.0.0, runs the repository's Go tests with
+module. It installs Archfit v0.9.0, runs the repository's Go tests with
 coverage, writes a freshness sidecar, then runs the gate. It does not run
 repository tests through Archfit.
 
@@ -166,7 +166,7 @@ history instead. Missing comparison evidence gives `unknown`, not `pass`.
 
 ## Complete engine image and App adoption
 
-The v4.0.0 image bundles the Go, TypeScript/JavaScript, Python, Rust, and .NET producers and their runtime tools. It does not
+The v0.9.0 image bundles the Go, TypeScript/JavaScript, Python, Rust, and .NET producers and their runtime tools. It does not
 enable all optional analysis for every project. Use the [locked tool environment](languages.md#install-analyzers)
 and preserve target-specific limitations rather than treating missing evidence as zero.
 

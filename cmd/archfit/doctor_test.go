@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // runDoctorCmd runs DoctorCmd.Run in dir (chdir'd so it picks up dir/.archfit.yaml

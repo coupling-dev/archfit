@@ -14,11 +14,11 @@ import (
 
 	"github.com/invopop/jsonschema"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
 )
 
 const (
-	schemaID          = "https://raw.githubusercontent.com/alexei-led/archfit/main/archfit.schema.json"
+	schemaID          = "https://raw.githubusercontent.com/coupling-dev/archfit/main/archfit.schema.json"
 	schemaDraft       = "https://json-schema.org/draft/2020-12/schema"
 	schemaTitle       = "Archfit policy (schema 3)"
 	schemaDescription = "The Archfit policy, .archfit.yaml: modules, allowed dependencies, rules and exceptions. Archfit 4 reads it. Archfit 3 reads version 2 and uses the schema of tag v3.4.0."
@@ -26,7 +26,7 @@ const (
 	// commentBase is this package's import path. AddGoComments keys comments by
 	// path.Join(base, walked directory), so joining "../config/policyfile" onto it
 	// gives the policyfile import path the reflected types carry.
-	commentBase = "github.com/alexei-led/archfit/v4/internal/configschema"
+	commentBase = "github.com/coupling-dev/archfit/internal/configschema"
 
 	typeString = "string"
 )

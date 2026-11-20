@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // ReportSnapshotSource fingerprints a declared live subset, not build closure.

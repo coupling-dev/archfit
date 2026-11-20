@@ -10,7 +10,7 @@ New compiler export formats can exceed the analyzer's supported format.
 ## Build and run
 
 ```sh
-git clone https://github.com/alexei-led/archfit.git
+git clone https://github.com/coupling-dev/archfit.git
 cd archfit
 make setup-tools
 pre-commit install --install-hooks

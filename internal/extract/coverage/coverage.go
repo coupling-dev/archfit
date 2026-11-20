@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // ToolName is the analyzer-coverage row used to route a missing configured

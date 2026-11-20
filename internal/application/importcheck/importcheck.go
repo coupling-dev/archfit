@@ -19,11 +19,11 @@ import (
 	"slices"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/assessment/count"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/assessment/count"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // Policies reads the local policy. ok is false when there is none, or when

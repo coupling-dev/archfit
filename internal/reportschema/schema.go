@@ -17,11 +17,11 @@ import (
 
 	"github.com/invopop/jsonschema"
 
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 const (
-	schemaID    = "https://raw.githubusercontent.com/alexei-led/archfit/main/archfit.report.schema.json"
+	schemaID    = "https://raw.githubusercontent.com/coupling-dev/archfit/main/archfit.report.schema.json"
 	schemaDraft = "https://json-schema.org/draft/2020-12/schema"
 )
 
@@ -45,7 +45,7 @@ func Generate(srcDir string) ([]byte, error) {
 		ExpandedStruct: true,
 	}
 
-	if err := r.AddGoComments("github.com/alexei-led/archfit/v4/internal/model/report", srcDir); err != nil {
+	if err := r.AddGoComments("github.com/coupling-dev/archfit/internal/model/report", srcDir); err != nil {
 		return nil, fmt.Errorf("reportschema: AddGoComments: %w", err)
 	}
 

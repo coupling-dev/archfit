@@ -5,11 +5,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics/boundary"
-	assessmentresult "github.com/alexei-led/archfit/v4/internal/assessment/result"
-	signal "github.com/alexei-led/archfit/v4/internal/assessment/signals"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/testutil/metricstest"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics/boundary"
+	assessmentresult "github.com/coupling-dev/archfit/internal/assessment/result"
+	signal "github.com/coupling-dev/archfit/internal/assessment/signals"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/testutil/metricstest"
 )
 
 // Node path constants used across boundary metric tests.

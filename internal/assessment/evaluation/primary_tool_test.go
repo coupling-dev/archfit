@@ -3,7 +3,7 @@ package evaluation
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
 )
 
 func TestPrimaryToolForLanguageFollowsRegistryOrder(t *testing.T) {

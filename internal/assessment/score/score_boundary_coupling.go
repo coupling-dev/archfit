@@ -6,10 +6,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 const (

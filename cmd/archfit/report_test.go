@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 // TestReportIsNeverNamedReview keeps the report's own name off "review" in its

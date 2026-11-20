@@ -7,9 +7,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // Ensure, that ExtractorMock does implement Extractor.

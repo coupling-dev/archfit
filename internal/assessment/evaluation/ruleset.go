@@ -1,8 +1,8 @@
 package evaluation
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics"
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // Metricset holds the report metrics and hides their implementations from

@@ -150,7 +150,7 @@ The repository ships [`archfit.schema.json`](../archfit.schema.json), generated 
 It describes policy version 3, which Archfit 4 reads.
 Archfit 3 reads `version: 2` files, which this schema rejects.
 An Archfit 3 repository pins the schema from tag `v3.4.0`:
-`https://raw.githubusercontent.com/alexei-led/archfit/v3.4.0/archfit.schema.json`.
+`https://raw.githubusercontent.com/coupling-dev/archfit/v3.4.0/archfit.schema.json`.
 
 Copy the schema beside your policy, then add this comment for YAML language-server support:
 
@@ -178,20 +178,20 @@ The policy version is separate from the Archfit release version.
 
 ## Version 2 (Archfit 3)
 
-A version 2 file is the Archfit 3 format. No command reads it: each rejects it with an error that says to remove the file and run `archfit init` for a fresh version 3 policy. The full reference is the [Configuration page of v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/configuration.md). The starter configurations in [`examples/`](../examples) are version 2 files.
+A version 2 file is the Archfit 3 format. No command reads it: each rejects it with an error that says to remove the file and run `archfit init` for a fresh version 3 policy. The full reference is the [Configuration page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md). The starter configurations in [`examples/`](../examples) are version 2 files.
 
 ### AI provider
 
-No command uses a model. `archfit init` drops these settings during conversion. See [v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/configuration.md#ai-provider).
+No command uses a model. `archfit init` drops these settings during conversion. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#ai-provider).
 
 ### Labels and draft files
 
-Analysis ignores `.archfit-labels.yaml` and the value draft files at every policy version. Volatility and subdomain come from the policy. `archfit init` reads and removes the old labels file during conversion; it leaves unapproved value drafts untouched. See [v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/configuration.md#labels-and-draft-files).
+Analysis ignores `.archfit-labels.yaml` and the value draft files at every policy version. Volatility and subdomain come from the policy. `archfit init` reads and removes the old labels file during conversion; it leaves unapproved value drafts untouched. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#labels-and-draft-files).
 
 ### Module review
 
-Archfit 3 used `module_review` for module owners and review dates. Version 3 has no such key. See [v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/configuration.md#module-review).
+Archfit 3 used `module_review` for module owners and review dates. Version 3 has no such key. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#module-review).
 
 ### Metrics
 
-Archfit 3 used `metrics` for metric gates and baseline thresholds. Version 3 has no metric gates. See [v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/configuration.md#metrics).
+Archfit 3 used `metrics` for metric gates and baseline thresholds. Version 3 has no metric gates. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#metrics).

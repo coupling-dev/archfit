@@ -7,8 +7,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // githubHost is the host whose owners are GitHub logins.

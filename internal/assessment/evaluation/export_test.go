@@ -1,7 +1,7 @@
 package evaluation
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics"
 )
 
 // MetricsetOf builds a Metricset from explicit metric implementations.

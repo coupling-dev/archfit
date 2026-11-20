@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // ChangeSet holds the sorted list of files that differ between two refs.

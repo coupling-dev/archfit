@@ -18,19 +18,19 @@ import (
 	"github.com/goccy/go-yaml"
 	"golang.org/x/mod/modfile"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	"github.com/alexei-led/archfit/v4/internal/application/importcheck"
-	"github.com/alexei-led/archfit/v4/internal/application/rulesquery"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	"github.com/coupling-dev/archfit/internal/application/importcheck"
+	"github.com/coupling-dev/archfit/internal/application/rulesquery"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // This file is the composition root of `check`, `can` and `rules` on a
@@ -44,7 +44,7 @@ import (
 var lastFile = filepath.Join(cacheDirName, "last.json")
 
 // actionRepo is the Action a protecting workflow uses (D6).
-const actionRepo = "alexei-led/archfit-action"
+const actionRepo = "coupling-dev/archfit-action"
 
 // usesAction matches a step that uses the Action: a "uses:" key, quoted or
 // not, whose value is the Action at a ref. A comment, another key, or another

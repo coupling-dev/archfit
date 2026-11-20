@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 // writeEvidence prints only fixed vocabulary and counts, never untrusted paths.

@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/graph"
 )
 
 // IsTestFile reports whether path is a test file by language convention.

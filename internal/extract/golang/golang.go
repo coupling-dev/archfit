@@ -13,13 +13,13 @@ import (
 	"strings"
 	"sync"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
 
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/scope"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/scope"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // BC integration-strength labels used for StrengthHint on Go edges.

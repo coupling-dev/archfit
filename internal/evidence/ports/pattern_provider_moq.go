@@ -7,9 +7,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/pattern"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/pattern"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // Ensure, that PatternProviderMock does implement PatternProvider.

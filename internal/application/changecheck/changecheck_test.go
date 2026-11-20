@@ -12,14 +12,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	"github.com/alexei-led/archfit/v4/internal/application/request"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	"github.com/coupling-dev/archfit/internal/application/request"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 // The commits and the tree of the checkout. head and base are those of the

@@ -6,8 +6,8 @@ package score
 import (
 	"strconv"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // RubricVersion is the scorecard contract version.

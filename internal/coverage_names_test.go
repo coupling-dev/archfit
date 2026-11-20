@@ -6,11 +6,11 @@ package arch_test
 import (
 	"testing"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/dotnet"
-	goextract "github.com/alexei-led/archfit/v4/internal/extract/golang"
-	"github.com/alexei-led/archfit/v4/internal/extract/registry"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/dotnet"
+	goextract "github.com/coupling-dev/archfit/internal/extract/golang"
+	"github.com/coupling-dev/archfit/internal/extract/registry"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // Use adapter names so a rename cannot silently change coverage classification.

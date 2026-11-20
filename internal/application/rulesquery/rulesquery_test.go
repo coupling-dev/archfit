@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/rulesquery"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/application/rulesquery"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 const (
