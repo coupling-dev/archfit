@@ -69,6 +69,18 @@ A tag of a different form stops the run in the first job, before anything is pub
 `make workflows` runs `scripts/tests/release_channel_test.sh`, the test of this rule.
 The Go module path has no major suffix while releases are v0 and v1. A v2 release needs a `/v2` suffix in `go.mod` and imports.
 
+### Version rule
+
+Archfit restarted at 0.9.0 in its new home. While releases are 0.x:
+
+- A minor release (0.9 to 0.10) may break the policy file, the record, the exit codes, or the result JSON. Its notes say what breaks and what to change.
+- A patch release (0.9.0 to 0.9.1) never breaks any of them.
+- The engine, the image, the Action and the App carry the same number. The App manifest names the engine releases it accepts.
+
+1.0.0 freezes the policy file, the exit codes and record text of `check` and `can`, and the result JSON. The `report` JSON stays outside that promise.
+
+`make names` fails when a current file names the old repository, image or tap, or a module path with a major suffix. History under `docs/archived/` and `docs/plans/` is excluded. CI runs it in Lint.
+
 ## Language contracts
 
 Build the candidate and run the bounded real-tool fixtures:
