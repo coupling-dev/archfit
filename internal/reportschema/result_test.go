@@ -19,6 +19,9 @@ const (
 	resultGoldens    = "../model/result/testdata"
 	goldenCan        = "can"
 	goldenGraph      = "graph"
+	goldenCoupling   = "coupling"
+	surfacePublic    = "public"
+	surfaceModel     = "model"
 	goldenPass       = "pass"
 	goldenClean      = "repository_clean"
 	goldenDrift      = "repository_drift"
@@ -56,7 +59,7 @@ func TestResultSchemaAcceptsEveryGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{
-		goldenCan, "deny", "duplication", "expired_exception", goldenGraph, goldenPass, "policy_differs",
+		goldenCan, goldenCoupling, "deny", "duplication", "expired_exception", goldenGraph, goldenPass, "policy_differs",
 		goldenClean, goldenDrift, "repository_expired", "waiting",
 	}
 	names := make([]string, 0, len(paths))
@@ -96,6 +99,15 @@ func TestResultSchemaRejectsBrokenDocuments(t *testing.T) {
 		{"balance 11", goldenGraph, func(d map[string]any) { balance(firstError(d))["value"] = 11 }},
 		{"balance 0", goldenGraph, func(d map[string]any) { balance(firstError(d))["value"] = 0 }},
 		{"min_balance 0", goldenGraph, func(d map[string]any) { balance(firstError(d))["min"] = 0 }},
+		{"missing strength", goldenGraph, func(d map[string]any) { delete(balance(firstError(d)), "strength") }},
+		{"empty strength", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "" }},
+		{"unknown strength", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "symmetric" }},
+		{"the 4.0 strength functional", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "functional" }},
+		{"missing volatility", goldenGraph, func(d map[string]any) { delete(balance(firstError(d)), "volatility") }},
+		{"unknown volatility", goldenGraph, func(d map[string]any) { balance(firstError(d))["volatility"] = "core" }},
+		{"surface without model", goldenCoupling, func(d map[string]any) { delete(surface(firstError(d)), surfaceModel) }},
+		{"null surface public", goldenCoupling, func(d map[string]any) { surface(firstError(d))[surfacePublic] = nil }},
+		{"extra key in a surface", goldenCoupling, func(d map[string]any) { surface(firstError(d))["internal"] = []any{} }},
 		{"line 0", goldenGraph, func(d map[string]any) { firstError(d)["line"] = 0 }},
 		{"next kind ask", goldenGraph, func(d map[string]any) { firstError(d)["next"].(map[string]any)["kind"] = "ask" }},
 		{"bad digest", goldenGraph, func(d map[string]any) { d["policy"].(map[string]any)["digest"] = "md5:abc" }},
@@ -133,6 +145,30 @@ func TestResultSchemaRejectsBrokenDocuments(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestResultSchemaAcceptsEverySurfaceShape: a module may declare only a
+// model part, so its public list is empty (the surfaces design 6.1), and a
+// module may declare no model part.
+func TestResultSchemaAcceptsEverySurfaceShape(t *testing.T) {
+	compiled := compileSchema(t, resultSchemaFile, "archfit.result.schema.json")
+	for name, s := range map[string]map[string]any{
+		"public only": {surfacePublic: []any{"pkg/tc"}, surfaceModel: []any{}},
+		"model only":  {surfacePublic: []any{}, surfaceModel: []any{"pkg/tc/model"}},
+		"both":        {surfacePublic: []any{"pkg/tc"}, surfaceModel: []any{"pkg/tc/model"}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			doc := readJSON(t, filepath.Join(resultGoldens, goldenCoupling+".json")).(map[string]any)
+			firstError(doc)["surface"] = s
+			if err := compiled.Validate(doc); err != nil {
+				t.Errorf("schema rejected a valid surface:\n%v", err)
+			}
+		})
+	}
+}
+
+func surface(e map[string]any) map[string]any {
+	return e["surface"].(map[string]any)
 }
 
 // TestResultSchemaDeclaresTheStatuses pins the four statuses and that waiting

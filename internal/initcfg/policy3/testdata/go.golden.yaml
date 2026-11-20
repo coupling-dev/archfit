@@ -73,14 +73,17 @@ exceptions:
   - rule: duplication
     from: app
     to: util
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
   - rule: cycle
     from: app
     to: store
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
   - rule: cycle
     from: store
     to: app
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
 generated:
   - api/**

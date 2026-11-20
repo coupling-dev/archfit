@@ -9,7 +9,9 @@
       "to": "pkg_util",
       "balance": {
         "value": 9,
-        "min": 7
+        "min": 7,
+        "strength": "contract",
+        "volatility": "low"
       }
     }
   ],

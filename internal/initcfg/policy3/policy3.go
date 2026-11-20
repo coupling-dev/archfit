@@ -6,15 +6,14 @@
 // packages other modules use today), depends_on (the dependencies between
 // modules that exist), tests, generated, owners from the origin remote, an only
 // rule for each package set that only some modules use, and an exception for
-// each error the written policy reports on the head, so the first check
-// passes. depends_on, public and the only rules come from the rules of
+// each error the written policy reports on the head. With complete evidence,
+// the first check passes. depends_on, public and the only rules come from
 // internal/assessment/change, so the policy and the check agree by
 // construction. Init then writes the five lines of design 11.3 between markers
 // in AGENTS.md.
 //
 // Init never overwrites a policy file: converting an Archfit 3 policy is a
-// separate case. A missing tool stops Init before it writes anything, because a
-// policy written from missing evidence is wrong.
+// separate case. A missing tool leaves a draft with incomplete evidence.
 package policy3
 
 import (
@@ -24,7 +23,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
@@ -54,15 +53,14 @@ type Deps struct {
 	// Runner runs git, to read the origin remote.
 	Runner toolrun.Runner
 	Facts  HeadFacts
+	Now    func() time.Time
 }
 
 // Result is what Init wrote and what it could not read.
 type Result struct {
 	// File is the policy written to PolicyFile.
 	File policyfile.File
-	// Unknown are the items of the head facts that are not a missing tool,
-	// such as an import that does not resolve. Init writes the policy without
-	// them; the caller shows them.
+	// Unknown names the evidence the draft could not use; the caller shows it.
 	Unknown []evidence.UnknownItem
 }
 
@@ -94,11 +92,11 @@ func Init(ctx context.Context, deps Deps, root string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	unknown, err := withoutMissingTools(facts.Unknown)
-	if err != nil {
-		return Result{}, err
+	now := time.Now
+	if deps.Now != nil {
+		now = deps.Now
 	}
-	file, data, err := build(root, owner, facts)
+	file, data, err := build(root, owner, facts, now())
 	if err != nil {
 		return Result{}, err
 	}
@@ -113,7 +111,7 @@ func Init(ctx context.Context, deps Deps, root string) (Result, error) {
 		}
 		return Result{}, fmt.Errorf("%s: %w", AgentsFile, err)
 	}
-	return Result{File: file, Unknown: unknown}, nil
+	return Result{File: file, Unknown: facts.Unknown}, nil
 }
 
 // absent returns ErrPolicyExists when path exists.
@@ -143,23 +141,4 @@ func create(path string, data []byte) error {
 		return err
 	}
 	return f.Close()
-}
-
-// withoutMissingTools returns the unknown items that are not a missing or
-// failing tool, or an error that names each such tool and its fix.
-func withoutMissingTools(items []evidence.UnknownItem) ([]evidence.UnknownItem, error) {
-	var rest []evidence.UnknownItem
-	var missing []string
-	for _, u := range items {
-		if u.Cause == evidence.CauseTool {
-			missing = append(missing, fmt.Sprintf("  %s\n  next: %s", u.Reason, u.Fix))
-			continue
-		}
-		rest = append(rest, u)
-	}
-	if len(missing) > 0 {
-		return nil, fmt.Errorf("archfit init needs every fact of the code before it writes a policy:\n%s",
-			strings.Join(missing, "\n"))
-	}
-	return rest, nil
 }

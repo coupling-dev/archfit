@@ -69,7 +69,7 @@ func TestTailRiskKeepsWellBalancedEdges(t *testing.T) {
 		moduleB: {Paths: []string{globB}, Owner: teamB, DeployUnit: moduleB, Volatility: volLow},
 	}
 	got := analysis.Analyze(analysis.Input{
-		Graph:  graphWith(string(relationship.StrengthContract)),
+		Graph:  graphTo(fileB),
 		Policy: relationshipPolicy(modules),
 	})
 	s := got.Assessment.ClassifiedEdges
@@ -101,7 +101,7 @@ func TestDistanceCompressionCountsWellBalancedEdges(t *testing.T) {
 		moduleB: {Paths: []string{globB}, Owner: teamA, DeployUnit: teamA, Volatility: string(relationship.VolatilityFrozen)},
 	}
 	got := analysis.Analyze(analysis.Input{
-		Graph:  graphWith(string(relationship.StrengthContract)),
+		Graph:  graphTo(fileB),
 		Policy: relationshipPolicy(modules),
 	})
 	s := got.Assessment.ClassifiedEdges

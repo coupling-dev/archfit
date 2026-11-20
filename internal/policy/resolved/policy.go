@@ -109,9 +109,13 @@ type Policy struct {
 // Module is a named set of paths.
 type Module struct {
 	Paths []string
-	// Public are the globs other modules may use. With defaults: the module's
-	// paths when the file names none.
+	// Public are the globs other modules may use as a contract. With
+	// defaults: the module's paths when the file names neither public nor
+	// model. A module that names only model has no public part.
 	Public []string
+	// Model are the globs other modules may use as a shared model. A use of
+	// anything else in the module is intrusive.
+	Model []string
 	// Volatility with defaults: the declared value, else from Subdomain (core
 	// high; supporting and generic low), else high.
 	Volatility Volatility
@@ -190,7 +194,7 @@ func (p Policy) WithDefaults() Policy {
 }
 
 func (m Module) withDefaults() Module {
-	if m.Public == nil {
+	if m.Public == nil && m.Model == nil {
 		m.Public = slices.Clone(m.Paths)
 	}
 	if m.Volatility == "" {

@@ -22,10 +22,10 @@ func TestAnalyzeReadsVolatilityFromPolicy(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			modules := map[string]policy.ModuleDef{
 				moduleA: {Paths: []string{globA}, Volatility: volHigh},
-				moduleB: {Paths: []string{globB}, Subdomain: tc.subdomain, Volatility: tc.explicit},
+				moduleB: {Paths: []string{globB}, Model: []string{"b/model/**"}, Subdomain: tc.subdomain, Volatility: tc.explicit},
 			}
 			got := analysis.Analyze(analysis.Input{
-				Graph:  graphWith(string(relationship.StrengthModel)),
+				Graph:  graphTo(fileBModel),
 				Policy: relationshipPolicy(modules),
 			})
 			edge := onlyEdge(t, got)

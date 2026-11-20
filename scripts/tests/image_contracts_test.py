@@ -194,7 +194,7 @@ class ImageContractsTest(unittest.TestCase):
                 {
                     "from_module": "repository",
                     "to_module": "domain",
-                    "strength": "intrusive",
+                    "strength": "contract",
                 },
             ],
         }
@@ -239,8 +239,8 @@ class ImageContractsTest(unittest.TestCase):
                 {**state, "seams": [seam("model", target="contracts"), state["seams"][1]]},
                 stderr,
             ),
-            "weak intrusive": (
-                {**state, "seams": [state["seams"][0], seam("functional")]},
+            "a type hint sets the strength": (
+                {**state, "seams": [state["seams"][0], seam("intrusive")]},
                 stderr,
             ),
             "test edge": (
@@ -545,7 +545,7 @@ class ImageContractsTest(unittest.TestCase):
                     {
                         "from_module": "repository",
                         "to_module": "domain",
-                        "strength": "intrusive",
+                        "strength": "contract",
                     },
                 ],
             }

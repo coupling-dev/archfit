@@ -33,7 +33,8 @@ type End struct {
 	Module string
 	// Path is a repository-relative, slash-separated file or directory, or a
 	// library as imported. Empty when the end is a module named on its own,
-	// which as a target means its public part.
+	// which as a target means its public part (its model part when it
+	// declares only model).
 	Path string
 	// IsFile says Path is a file. A Go import names a package directory, a
 	// TypeScript or Python import a file.
@@ -118,8 +119,11 @@ func builtin(p resolved.Policy, u Use) []Error {
 	}
 	if p.Builtin.Coupling != resolved.ModeOff && bal.Value < p.Builtin.MinBalance {
 		phrase := "reaches past the public part"
-		if publicUse(p, u.To) {
+		switch bal.Strength {
+		case result.StrengthContract:
 			phrase = "uses the public part"
+		case result.StrengthModel:
+			phrase = "uses the model part"
 		}
 		errs = append(errs, dependency(resolved.RuleCoupling, p.Builtin.Coupling,
 			fmt.Sprintf("%s -> %s %s of %s", from, to, phrase, to), phrase,
@@ -134,20 +138,31 @@ func builtin(p resolved.Policy, u Use) []Error {
 	return errs
 }
 
-// BalanceOf is the balance a use between two modules has, or would have: of
-// a use of the public part, or past it (design 6.2). A use whose To is a
-// module named on its own uses its public part. nil when the use is not
-// between two modules: an end in no module, one module, or a library. The
-// graph and coupling errors of Judge carry this balance; `archfit can` shows
-// it for an allowed dependency. p has its defaults.
+// BalanceOf is the balance a use between two modules has, or would have:
+// its strength from the declared surface of the target
+// (balance.StrengthOf), with the target's volatility (the surfaces
+// design 6.1). A use whose To is a module named on its own uses its public
+// part, or its model part when it declares only model. nil when the use is not between two modules: an end in no module, one
+// module, or a library. The graph and coupling errors of Judge carry this
+// balance; `archfit can` shows it for an allowed dependency. p has its
+// defaults.
 func BalanceOf(p resolved.Policy, u Use) *result.Balance {
 	u.From.Module = moduleOf(p, u.From)
 	u.To.Module = moduleOf(p, u.To)
 	if !betweenModules(u) {
 		return nil
 	}
-	value := balanceOf(publicUse(p, u.To), p.Modules[u.From.Module].Volatility, p.Modules[u.To.Module].Volatility)
-	return &result.Balance{Value: value, Min: p.Builtin.MinBalance}
+	strength := balance.StrengthOf(surfaceOf(p, u.To))
+	target := p.Modules[u.To.Module].Volatility
+	// Contract, model and intrusive always score and take the target's
+	// volatility, so the abstain flag is never false here;
+	// TestJudgeCouplingMatrix reads the balance of every cell and checks that
+	// the named inputs give the same value.
+	value, _ := balance.Of(strength, relationship.Volatility(p.Modules[u.From.Module].Volatility), relationship.Volatility(target))
+	return &result.Balance{
+		Value: value, Min: p.Builtin.MinBalance,
+		Strength: result.Strength(strength), Volatility: result.Volatility(target),
+	}
 }
 
 // betweenModules reports whether a use, its modules resolved, crosses from
@@ -157,33 +172,22 @@ func betweenModules(u Use) bool {
 	return from != "" && to != "" && from != to && !u.To.Library
 }
 
-// publicUse reports whether a target end, its module resolved, is in that
-// module's public part. A module named on its own means its public part.
-func publicUse(p resolved.Policy, to End) bool {
-	return to.Path == "" || isPublic(p, to.Module, to)
-}
-
-// balanceOf is the balance of a use of the public part (contract strength,
-// the target's volatility) or past it (functional strength, the higher of the
-// two volatilities): design 6.2, computed by the book formula.
-func balanceOf(public bool, from, to resolved.Volatility) int {
-	strength := relationship.StrengthFunctional
-	if public {
-		strength = relationship.StrengthContract
+// surfaceOf places a target end, its module resolved, in that module's
+// declared surface: its path, or, for a directory, one of its files. A module
+// named on its own means its public part, or its model part when it declares
+// only model.
+func surfaceOf(p resolved.Policy, to End) balance.Surface {
+	if to.Path == "" {
+		// A module that declares only model has no public part: naming it
+		// means its model part.
+		m := p.Modules[to.Module]
+		return balance.Surface{Public: len(m.Public) > 0, Model: len(m.Public) == 0 && len(m.Model) > 0}
 	}
-	// Contract and functional always score, so the abstain flag is never false
-	// here; TestJudgeCouplingMatrix reads the balance of every cell.
-	value, _ := balance.Of(strength, relationship.Volatility(from), relationship.Volatility(to))
-	return value
-}
-
-// isPublic reports whether an end is in the public part of module: its path,
-// or, for a directory, one of its files.
-func isPublic(p resolved.Policy, module string, e End) bool {
-	if p.IsPublic(module, e.Path, e.IsFile) {
-		return true
+	in := func(part func(module, target string, isFile bool) bool) bool {
+		return part(to.Module, to.Path, to.IsFile) ||
+			slices.ContainsFunc(to.Files, func(f string) bool { return part(to.Module, f, true) })
 	}
-	return slices.ContainsFunc(e.Files, func(f string) bool { return p.IsPublic(module, f, true) })
+	return balance.Surface{Public: in(p.IsPublic), Model: in(p.IsModel)}
 }
 
 // covers reports whether a path glob covers an end: its path, or, for a

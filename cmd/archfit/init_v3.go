@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -18,12 +19,13 @@ const agentLines = policy3.Lines
 
 // RepoInitCmd is `archfit init` (internal/initcfg/policy3): set up a
 // repository. It writes what is missing and never changes a version 1
-// policy: a fresh repository gets a version 1 policy and the instruction
-// block for agents; a repository with a version 1 policy gets only a missing
-// block; any other policy file is an error. It writes no workflow file
+// policy: a fresh repository gets a version 1 policy. A repository with any
+// other policy version is an error. Successful setup writes the instruction
+// block and, unless disabled, the agent hooks. It writes no workflow file
 // (D11: the workflow waits for Action 4).
 type RepoInitCmd struct {
-	Dir string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
+	NoHooks bool   `name:"no-hooks" help:"Do not install the Claude Code and Codex hooks."`
+	Dir     string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
 }
 
 func (*RepoInitCmd) Help() string {
@@ -33,13 +35,19 @@ changes a version 1 policy.
   No .archfit.yaml      writes a version 1 policy from the code: modules,
                         public, depends_on as the dependencies that exist,
                         tests, generated, owners from the origin remote,
-                        and an exception for each error that exists today,
-                        so the first check passes
+                        and a dated exception for each error that exists today,
+                        when the evidence is complete
   Version 1 policy      leaves it as it is
   Any other policy      fails: archfit reads version 1 only
 
 Each case that succeeds writes the five lines for agents between the archfit markers in
 AGENTS.md; text outside the markers stays as it is.
+
+Init writes a draft if some evidence is missing and lists what it could not read.
+It adds .archfit-cache/ to .gitignore.
+
+Init installs Claude Code and Codex hooks unless you use --no-hooks.
+It does not install the git pre-commit hook.
 
 Then read .archfit.yaml and open a pull request with it.
 
@@ -50,6 +58,8 @@ Exit codes:
 
 // initNext is the last line of init: the owner's step.
 const initNext = "next: read " + policy3.PolicyFile + ", then open a pull request with it"
+
+const initAgentHooksByDefault = true
 
 func (c *RepoInitCmd) Run(deps *appDeps) error {
 	ctx := deps.runContext()
@@ -62,9 +72,10 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 		return noVerdict(err)
 	}
 	var b strings.Builder
+	var draft policy3.Result
 	switch {
 	case !found:
-		err = co.initFresh(ctx, &b)
+		draft, err = co.initFresh(ctx, &b)
 	case isVersion1(data):
 		err = co.initBlock(&b)
 	default:
@@ -74,6 +85,17 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	if err != nil {
 		return noVerdict(err)
 	}
+	if err := ignoreInitCache(ctx, co.runner, co.root); err != nil {
+		fmt.Fprintf(&b, "warning: could not ignore %s/: %v\n", cacheDirName, err)
+	}
+	if initAgentHooksByDefault && !c.NoHooks {
+		installInitHooks(ctx, deps, co.root, &b)
+	}
+	if !found {
+		writeUnread(&b, draft.Unknown)
+		writeExceptionDecisions(&b, draft.File.Exceptions)
+		b.WriteString(initNext + "\n")
+	}
 	if _, err := io.WriteString(deps.Stdout, b.String()); err != nil {
 		return noVerdict(err)
 	}
@@ -81,20 +103,40 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 }
 
 // initFresh writes the first policy of a repository.
-func (co checkout) initFresh(ctx context.Context, b *strings.Builder) error {
-	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig())}, co.root)
+func (co checkout) initFresh(ctx context.Context, b *strings.Builder) (policy3.Result, error) {
+	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig()), Now: co.now}, co.root)
 	if err != nil {
-		return err
+		return policy3.Result{}, err
 	}
 	writePolicySummary(b, "wrote", res.File)
 	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
-	writeUnread(b, res.Unknown)
-	b.WriteString(initNext + "\n")
-	return nil
+	return res, nil
 }
 
-// initBlock is init in a repository with a version 1 policy: only the
-// instruction block can be missing.
+// installInitHooks is best effort: the repository setup is usable even when
+// hook settings need manual repair. Init only writes inside the checkout.
+func installInitHooks(ctx context.Context, deps *appDeps, root string, b *strings.Builder) {
+	for _, harness := range []string{harnessClaude, harnessCodex} {
+		rel := harnessConfigFile(harness)
+		if !within(root, filepath.Join(root, rel)) {
+			fmt.Fprintf(b, "warning: skipped %s: resolves outside the repository\n", rel)
+			continue
+		}
+		if _, err := installHarnessHooks(root, harness); err != nil {
+			fmt.Fprintf(b, "warning: could not install hooks in %s: %v\n", rel, err)
+			continue
+		}
+		fmt.Fprintf(b, "installed hooks: %s\n", rel)
+		if gitIgnores(ctx, deps, root, rel) {
+			b.WriteString("  " + ignoredWarning(rel) + "\n")
+		}
+		if harness == harnessCodex {
+			b.WriteString("  " + codexTrustNotice + "\n")
+		}
+	}
+}
+
+// initBlock adds the agent instructions without changing an existing policy.
 func (co checkout) initBlock(b *strings.Builder) error {
 	wrote, err := policy3.WriteBlock(co.root)
 	if err != nil {
@@ -109,8 +151,7 @@ func (co checkout) initBlock(b *strings.Builder) error {
 	return nil
 }
 
-// writePolicySummary writes what the policy holds, then its exceptions: the
-// errors that exist today, which an owner reads before the pull request.
+// writePolicySummary counts what the policy holds.
 func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 	deps := 0
 	for _, m := range f.Modules {
@@ -119,7 +160,14 @@ func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 	fmt.Fprintf(b, "%s %s: %s, %s, %s, %s\n", verb, policy3.PolicyFile,
 		count(len(f.Modules), "module"), count(deps, "allowed dependency"),
 		count(len(f.Rules), "rule"), count(len(f.Exceptions), "exception"))
-	for _, x := range f.Exceptions {
+}
+
+func writeExceptionDecisions(b *strings.Builder, exceptions []policyfile.Exception) {
+	if len(exceptions) == 0 {
+		return
+	}
+	b.WriteString("exceptions for the owner to review:\n")
+	for _, x := range exceptions {
 		place := x.From
 		if x.To != "" {
 			place += " -> " + x.To
@@ -132,18 +180,28 @@ func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 	}
 }
 
-// writeUnread lists the places of the code archfit could not read. The
-// policy is written without them.
+// writeUnread discloses unavailable evidence. Source paths found by inventory
+// can still appear in the draft policy.
 func writeUnread(b *strings.Builder, items []evidence.UnknownItem) {
+	if len(items) == 0 {
+		return
+	}
+	b.WriteString("draft policy: some evidence was not read\n")
+	seenFixes := map[string]bool{}
+	var fixes []string
 	for _, u := range items {
 		b.WriteString("not read: ")
 		if u.File != "" {
 			b.WriteString(location(u.File, u.Line) + ": ")
 		}
 		b.WriteString(u.Reason + "\n")
-		if u.Fix != "" {
-			b.WriteString("  fix: " + u.Fix + "\n")
+		if u.Fix != "" && !seenFixes[u.Fix] {
+			seenFixes[u.Fix] = true
+			fixes = append(fixes, u.Fix)
 		}
+	}
+	for _, fix := range fixes {
+		b.WriteString("  fix: " + fix + "\n")
 	}
 }
 

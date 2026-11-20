@@ -133,11 +133,16 @@ func TestDoctorCmd_RoslynHelperRow(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			chdirIsolated(t, t.TempDir())
+			dir := t.TempDir()
+			writeFixtureFile(t, dir, "App.csproj", dotnetDoctorProject)
+			chdirIsolated(t, dir)
 			var buf bytes.Buffer
 			runner := &toolrun.RunnerMock{
 				DetectFunc: func(context.Context, string) (toolrun.ToolInfo, bool) { return toolrun.ToolInfo{}, false },
-				RunFunc: func(context.Context, toolrun.ToolCmd) (toolrun.Output, error) {
+				RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+					if !slices.Contains(cmd.Args, "--version") {
+						return toolrun.Output{ExitCode: 128}, nil
+					}
 					return toolrun.Output{Stdout: []byte(helperIdentity + "\n")}, nil
 				},
 			}
@@ -155,6 +160,8 @@ func TestDoctorCmd_RoslynHelperRow(t *testing.T) {
 	}
 }
 
+const dotnetDoctorProject = "<Project Sdk=\"Microsoft.NET.Sdk\"/>"
+
 const helperIdentity = "archfit-roslyn 1.0.0; Microsoft.CodeAnalysis 5.6.0; SDK 10.0.403"
 
 // doctorRow matches one doctor table row: the name, then the status, the
@@ -167,7 +174,9 @@ func doctorRow(name, status, detail string) *regexp.Regexp {
 // starts STATUS, FOR and the detail at the header's columns, the longest tool
 // name included.
 func TestDoctorCmd_ColumnsAlign(t *testing.T) {
-	out := runDoctorCmd(t, t.TempDir())
+	dir := t.TempDir()
+	writeFixtureFile(t, dir, "App.csproj", dotnetDoctorProject)
+	out := runDoctorCmd(t, dir)
 	lines := strings.Split(out, "\n")
 	var titles []string
 	for i, line := range lines {
@@ -216,6 +225,7 @@ func TestDoctorCmd_DotNetSDKVersion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dir := t.TempDir()
+			writeFixtureFile(t, dir, "App.csproj", dotnetDoctorProject)
 			chdirIsolated(t, dir)
 			t.Setenv("ARCHFIT_DOTNET_ROSLYN", "")
 			if err := os.Unsetenv("ARCHFIT_DOTNET_ROSLYN"); err != nil {

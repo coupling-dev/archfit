@@ -75,6 +75,30 @@ const (
 	CauseImport Cause = "import"
 )
 
+// Strength is the strength of a dependency that a balance is computed with.
+type Strength string
+
+// The strengths of a balance: where the target is declared in the surface of
+// its module (the surfaces design 6.1).
+const (
+	// StrengthContract: a use of the target's public part.
+	StrengthContract Strength = "contract"
+	// StrengthModel: a use of the target's model part.
+	StrengthModel Strength = "model"
+	// StrengthIntrusive: a use past the target's surface.
+	StrengthIntrusive Strength = "intrusive"
+)
+
+// Volatility is the declared volatility a balance is computed with.
+type Volatility string
+
+// The volatilities of a module, from the policy.
+const (
+	VolatilityLow    Volatility = "low"
+	VolatilityMedium Volatility = "medium"
+	VolatilityHigh   Volatility = "high"
+)
+
 // Reply is the answer of `archfit can`.
 type Reply string
 
@@ -140,6 +164,9 @@ type Error struct {
 	// Balance is the balance of the dependency, when the rule is about
 	// coupling.
 	Balance *Balance `json:"balance,omitempty"`
+	// Surface is the declared surface of the target module, for a coupling
+	// error of a use past it. Not set by the engine of this version.
+	Surface *Surface `json:"surface,omitempty"`
 	// Next is the one step to take.
 	Next Next `json:"next"`
 	// From is the module the dependency starts in.
@@ -169,6 +196,22 @@ type Balance struct {
 	Value int `json:"value"`
 	// Min is the policy's min_balance, 1 to 10.
 	Min int `json:"min"`
+	// Strength is the strength the balance is computed with.
+	Strength Strength `json:"strength"`
+	// Volatility is the declared volatility the balance is computed with:
+	// the target's, for every strength.
+	Volatility Volatility `json:"volatility"`
+}
+
+// Surface is the part of a module that other modules may use, as the policy
+// declares it.
+type Surface struct {
+	// Public are the globs of the public part. A module that declares
+	// neither public nor model has its paths here: the whole module is
+	// public. A module that declares only model has none.
+	Public []string `json:"public"`
+	// Model are the globs of the model part, or none.
+	Model []string `json:"model"`
 }
 
 // Next is the one step a record names.
@@ -310,6 +353,9 @@ type CanAnswer struct {
 	Instead string `json:"instead,omitempty"`
 	// Balance is the balance the dependency would have.
 	Balance *Balance `json:"balance,omitempty"`
+	// Surface is the declared surface of the target module, when the answer
+	// is no for a use past it. Not set by the engine of this version.
+	Surface *Surface `json:"surface,omitempty"`
 	// Next is the one step to take, when the answer is not yes.
 	Next *Next `json:"next,omitempty"`
 	// Policy names the policy that gave the answer.

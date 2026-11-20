@@ -53,8 +53,12 @@ func ValidRole(r Role) bool {
 
 // ModuleDef defines a module's path ownership and metadata.
 type ModuleDef struct {
-	Paths      []string  `yaml:"paths"`
-	Public     []string  `yaml:"public"`
+	Paths  []string `yaml:"paths"`
+	Public []string `yaml:"public"`
+	// Model are the globs of the module's shared model part. With Public
+	// they are the module's surface: relationship/balance.StrengthOf gives contract
+	// for Public, model for Model, and intrusive for the rest of the module.
+	Model      []string  `yaml:"model"`
 	Internal   []string  `yaml:"internal"`
 	Layer      string    `yaml:"layer"`
 	Subdomain  string    `yaml:"subdomain"`

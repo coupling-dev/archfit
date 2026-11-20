@@ -237,6 +237,7 @@ func TestCompareDirection(t *testing.T) {
 			p.Rules[0].Why = "b"
 		}, resolved.Tightens},
 		{"loosens", func(p *resolved.Policy) { p.Builtin.MinBalance = 6 }, resolved.Loosens},
+		{"adds a model part: loosens", func(p *resolved.Policy) { setChaosModel(p, "pkg/chaos/types") }, resolved.Loosens},
 		{"both kinds loosens", func(p *resolved.Policy) {
 			p.Builtin.MinBalance = 8
 			p.Builtin.Cycle = resolved.ModeOff
@@ -250,6 +251,15 @@ func TestCompareDirection(t *testing.T) {
 				t.Errorf("Direction = %q, want %q", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCompareModelRemovalTightens(t *testing.T) {
+	before, after := comparePolicy(), comparePolicy()
+	setChaosModel(&before, "pkg/chaos/types")
+	d := resolved.Compare(before, after)
+	if d.Direction != resolved.Tightens {
+		t.Errorf("Direction = %q, want %q: %+v", d.Direction, resolved.Tightens, d)
 	}
 }
 

@@ -14,6 +14,8 @@ import (
 
 const smallestPolicy = "version: 1\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [cmd/**, pkg/**]\n"
 
+const pkgGlob = "pkg/**"
+
 // withModule is the smallest policy with the module app replaced by body.
 func withModule(body string) string {
 	return "version: 1\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [pkg/**]\n" + body
@@ -42,7 +44,7 @@ func TestResolveDefaults(t *testing.T) {
 			}
 		}},
 		{"public absent: the whole module", smallestPolicy, func(t *testing.T, p resolved.Policy) {
-			if got := p.Modules[modApp].Public; !reflect.DeepEqual(got, []string{cmdGlob, "pkg/**"}) {
+			if got := p.Modules[modApp].Public; !reflect.DeepEqual(got, []string{cmdGlob, pkgGlob}) {
 				t.Errorf("Public = %v, want the paths", got)
 			}
 		}},
@@ -116,6 +118,29 @@ func wantVolatility(want resolved.Volatility) func(*testing.T, resolved.Policy) 
 		if got := p.Modules[modApp].Volatility; got != want {
 			t.Errorf("Volatility = %q, want %q", got, want)
 		}
+	}
+}
+
+// TestResolveModel pins how the surface of a module resolves: model is
+// projected, and public defaults to the paths only when neither key is named.
+func TestResolveModel(t *testing.T) {
+	tests := []struct {
+		name   string
+		module string
+		public []string
+		model  []string
+	}{
+		{"neither: the whole module is public", "", []string{pkgGlob}, nil},
+		{"public and model", "    public: [pkg]\n    model: [pkg/model]\n", []string{"pkg"}, []string{"pkg/model"}},
+		{"model alone: no public part", "    model: [pkg/model]\n", nil, []string{"pkg/model"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := resolve(t, withModule(tt.module)).Modules[modApp]
+			if !reflect.DeepEqual(m.Public, tt.public) || !reflect.DeepEqual(m.Model, tt.model) {
+				t.Errorf("public %v, model %v; want %v, %v", m.Public, m.Model, tt.public, tt.model)
+			}
+		})
 	}
 }
 

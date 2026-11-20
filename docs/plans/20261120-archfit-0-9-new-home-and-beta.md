@@ -201,32 +201,36 @@ Done when `v0.9.0-rc.1` is installable from the new home and gives the baseline 
 Done when a visitor understands the problem, the value and the loop without scrolling twice.
 Starts after task 1.3.
 
-- [ ] **2.1 Hero.** One animated SVG of the Pumba loop: change, check fails, request, owner
+- [x] **2.1 Hero.** One animated SVG of the Pumba loop: change, check fails, request, owner
       answers, one policy line, check passes, the next change does not ask. Animation by CSS
       only, colours for light and dark, a static last frame for reduced motion. Test how GitHub
-      renders it on a branch before the README depends on it. Fallback: a Mermaid diagram.
-- [ ] **2.2 README.** In this order: the problem in one sentence; the value ("ask once, and the
+      renders it on a branch before the README depends on it. Fallback: a Mermaid diagram. #5: the animated SVG ships.
+- [x] **2.2 README.** In this order: the problem in one sentence; the value ("ask once, and the
       answer is remembered for the next change"); the hero with links to Pumba #414, #415 and
       #418 under it; one real record of `archfit check`; a start in three commands; what
       Archfit is and is not, beside ArchUnit and import-linter; links. The Docker paragraph and
-      the migration links leave the README.
+      the migration links leave the README. #6. The record is a probe on the engine; task 3.2 refreshes it.
 - [ ] **2.3 Other front pages.** The Action README and the App README use the same sentence and
-      the same names. The "input contract" paragraph leaves the App README.
-- [ ] **2.4 Onboarding design.** One document for the engine and the App, written while
+      the same names. The "input contract" paragraph leaves the App README. Action: archfit-action #2. App: after App #231 (task 5.1).
+- [x] **2.4 Onboarding design.** One document for the engine and the App, written while
       epics 1 and 3 run and accepted before task 3.8. It uses the count of task 0.4. It names
       the route, the three rungs, each command and page, what `init` and the hooks do by
       default, and what the result and the manifest must already carry in 0.9.0 so that 0.10.0
       breaks nothing. Epic 8 is built from it after the reset. HUMAN to accept.
+      `docs/plans/20261120-archfit-onboarding-design.md`, #8. Accepted by the owner on 2026-11-20,
+      with O1 amended (see task 8.9). The `v0.9.0` tag no longer waits for it; the App part of
+      task 0.4 (O3) stays open.
 
 ### Epic 3. Engine fixes for 0.9.0
 
 Done when the engine is tagged `v0.9.0` and every number that differs from the baseline is
 explained. Tasks 3.1 to 3.4 are from the 4.1 design; its sections are named.
 
-- [ ] **3.0 Contracts first.** One pull request with no behaviour: the policy key `model` in
+- [x] **3.0 Contracts first.** One pull request with no behaviour: the policy key `model` in
       the schema; the result with the two balance inputs and the `surface` field; golden files.
       The App lane starts task 5.2 from this commit. Section 6.6 of the surfaces design lists
-      the contracts; the judge parts are left out.
+      the contracts; the judge parts are left out. #7: the strength enum already lists `model` and
+      `intrusive`; `surface` is not filled until 3.3; contract ids stay `v1`.
 - [ ] **3.1 One strength function** (4.1 design 6.1 and 6.2, tasks 1.1 and 1.2). One function
       returns the strength of a dependency from the declared surface of its target. `check`,
       `can`, the request preview and the report call it. The strength that the report guesses
@@ -241,14 +245,18 @@ explained. Tasks 3.1 to 3.4 are from the 4.1 design; its sections are named.
       should this package be part of the surface? `coupling` stays `deny` for everything else.
 - [ ] **3.4 Exceptions with dates** (4.1 design section 2). `init` writes `expires` on every
       exception it creates and ends with the list of them as decisions for the owner. The
-      engine's own 30 exceptions get a date or leave.
+      engine's own 30 exceptions get a date or leave. The repository's `AGENTS.md` tells agents never to
+      edit `.archfit.yaml`, so the engine's own exceptions change in a separate policy pull request
+      that the owner approves.
 - [ ] **3.5 Hooks by default.** `init` installs the agent hooks unless a flag says no.
       `doctor` reports when they are missing.
 - [ ] **3.6 A first run that cannot end in an error.** `init` writes a policy for the code it
       can read and lists the paths it could not, with one install line. `init` adds
       `.archfit-cache/` to `.gitignore`. `doctor` shows only the tools for the languages found
       and one line "the local engine matches the workflow pin". The text of `report` uses the
-      word list of the design. `request` and its guide agree.
+      word list of the design. `request` and its guide agree. `doctor` reads the pinned version from the
+      `# vX` comment at the end of the Action's `uses:` line, with no network call; a missing comment is
+      "cannot tell", never a mismatch.
 - [ ] **3.7 Explain the numbers.** Run the fixed engine on the four repositories and compare
       with the baseline. Every changed balance, status and count has a written reason.
 - [ ] **3.8 Release.** A new `CHANGELOG.md` that starts at 0.9.0. Tag `v0.9.0`. Check Go,
@@ -258,7 +266,8 @@ explained. Tasks 3.1 to 3.4 are from the 4.1 design; its sections are named.
 
 Done when the Action is tagged and its commit is recorded. Depends on 3.8.
 
-- [ ] **4.1 History.** Push `main` without tags to the new repository. CONFIRM.
+- [x] **4.1 History.** Push `main` without tags to the new repository. CONFIRM. Done 2026-11-20:
+      `main` at `9669571`, no tags; the local checkout keeps the old home as remote `old`.
 - [ ] **4.2 Pin and rename.** One pull request: the image repository, the engine version and
       the two digests in `scripts/lib.sh`; the vendored result contract; the test fixtures made
       again from the 0.9.0 image; `schema/SCHEMA_SOURCE` when it names the old owner; `action.yml`, the README and `CLAUDE.md`; the guard of task
@@ -271,15 +280,27 @@ Done when the App is deployed with the 0.9.0 manifest. Tasks 5.1 and 5.2 can sta
 
 - [ ] **5.1 Rename.** One mechanical pull request: the Go module path; the constant
       `ActionRepository`; the onboarding template; `Setup.svelte`; the README; the Action URL
-      in `ci.yaml`; file names that carry a "4"; the guard of task 1.6.
+      in `ci.yaml`; file names that carry a "4"; the guard of task 1.6. Found 2026-11-20: this is not
+      free of behaviour. The App releases on every push to `main` (`RELEASE_ON_PUSH`), and its gate
+      matches the workflow's `uses:` line against `ActionRepository`. So 5.1 renames code names only;
+      `ActionRepository`, the onboarding `uses:` line and the install lines of `Setup.svelte` move in
+      5.3. App #231.
 - [ ] **5.2 Contracts.** The result with balance inputs; policy `version: 1` and the key
       `model`, also in the onboarding template and the policy edit path; the balance with its
       inputs on the request and pull-request pages; the answers to a surface request on the request page (declare as public, declare as model,
-      allow until a date, reject with `instead`).
+      allow until a date, reject with `instead`). The App reads `gate` only from a version 3 policy today;
+      5.2 reads it from version 1 and keeps `# request #N` in the version 1 policy writer. The App
+      writes no policy template, so "the onboarding template" needs no policy change. Its
+      `parseAnswer` rejects the 0.9.0 balance and `surface:` lines today; 5.2 accepts them.
 - [ ] **5.3 Manifest.** One entry: engine `v0.9.0`, its two digests, the Action commit of 4.3.
       First check whether the App can accept the old and the new result together. If it can,
       keep the v4.0.0 entry until task 6.5. If it cannot, epic 6 is a window with a merge
-      freeze.
+      freeze. 5.3 also moves the runtime references left by 5.1, accepts both Action repositories
+      until task 6.5, and makes the onboarding template write `# vX` after the Action commit.
+      Answered 2026-11-20 (5.2): it can. The App accepts the v4.0.0 and the 0.9.0 result, and policy
+      version 3 and version 1, side by side until 6.5: one decoder checks the shape of each
+      `balance` object, and a result that mixes both shapes is refused. This departs from the
+      surfaces design 6.6 ("not accepted side by side"); the owner confirmed it. No merge freeze.
 - [ ] **5.4 Deploy.** Record the running revision for rollback. Deploy. Tag `v0.9.0`. CONFIRM.
 
 ### Epic 6. Move the onboarded repositories
@@ -297,7 +318,10 @@ turn it into a surface declaration, or fix the code.
 - [ ] **6.4 `pumba`.** The gate is required and the policy is read from the target branch, so
       the migration pull request may not be able to pass its own check. The owner relaxes the
       ruleset for that one merge and restores it. HUMAN.
-- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Deploy. CONFIRM.
+- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Remove with them the App's
+      side-by-side path of task 5.2: the v4.0.0 result shape and corpus, the version 3 policy
+      reading, and the old Action repository (`internal/wire/result/module.md` names the code).
+      Deploy. CONFIRM.
 
 ### Epic 7. Close the old home
 
@@ -350,6 +374,8 @@ App:
 - [ ] **8.9 One setup page.** The page shows the state of one repository and one next action.
       It never asks the user to copy a workflow by hand. The last action is "Make it
       required": the approval of task 8.1, the first approval and the ruleset belong there.
+      Before the first approval, the page lists every policy change since the setup pull
+      request, with who merged it and its request (onboarding design, O1).
 - [ ] **8.10 Welcome and digest.** A comment on the setup pull request: how to ask, what
       happens next. After seven days: checked, quiet, asked.
 
@@ -406,14 +432,15 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Item | Value | Task |
 | --- | --- | --- |
 | Baseline commits of the four repositories | `~/Workspace/archfit.reset-evidence/baseline/` (README there). archfit-4-mechanics `1f95386e`, archfit `301c6b23`, ccgram `c672b31f`, pumba `23968548`. Engine v5.0.0: all four checks pass; report clean on three, drift with 2 errors on archfit. | 0.2 |
-| Steps and minutes of the cold run today | | 0.4 |
+| Steps and minutes of the cold run today | Terminal part, measured by `archfit-76` on 2026-11-20 with `v0.9.0-rc.1` on a fresh clone of `nektos/act`: 4 commands, about 10 s of machine time. `doctor` lists cargo, cargo-modules, archfit-roslyn and dotnet in a Go-only repository; hooks not installed; `init` writes a 151-line policy with 3 exceptions, none with `expires`; `check` passes; `.archfit-cache/` is not ignored. ast-grep was installed, so the review's `init` failure was not reproduced (task 3.6 reproduces it). App part: not measured; the review's 11 steps in 4 places stand until it is. | 0.4 |
 | Issues to open again in the new home | None. | 0.1 |
-| Engine `v0.9.0-rc.1` commit | | 1.8 |
+| Engine `v0.9.0-rc.1` commit | `cebdbc57` (tag object `e8c4a284`). | 1.8 |
 | Engine `v0.9.0` commit | | 3.8 |
 | Image digest `linux/amd64` | | 3.8 |
 | Image digest `linux/arm64` | | 3.8 |
+| Action history in the new home | `main` at `9669571`, pushed 2026-11-20 without tags. | 4.1 |
 | Action `v0.9.0` commit | | 4.3 |
 | App revision before the deploy (rollback) | | 5.4 |
 | App revision of 0.9.0 | | 5.4 |
-| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). | as found |
+| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). The owner set it to `false` on 2026-11-20 (16:42 UTC) until after epic 6; task 5.4 releases by `workflow_dispatch`. `init` fails without ast-grep, as the review says: a Go repository with one JavaScript file exits 2 and writes no policy (reproduced on `5bd583e7` in a container; task 3.6 fixes it). | as found |
 

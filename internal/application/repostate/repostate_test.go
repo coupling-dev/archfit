@@ -215,6 +215,12 @@ func TestEvaluateExpiringNeedsAnError(t *testing.T) {
 	}
 }
 
+// contract is the balance of a use of the public part of a module of
+// volatility v.
+func contract(minBalance int, v result.Volatility) result.Balance {
+	return result.Balance{Value: 9, Min: minBalance, Strength: result.StrengthContract, Volatility: v}
+}
+
 // A use of the public part is contract strength: 9 at every volatility
 // (design 6.2), as `archfit can` shows it. A repeated depends_on entry is one
 // allowed dependency.
@@ -225,9 +231,9 @@ func TestEvaluateBalances(t *testing.T) {
 		minBalance int
 		want       result.Balance
 	}{
-		{name: "a low target", volatility: resolved.VolatilityLow, want: result.Balance{Value: 9, Min: 7}},
-		{name: "a high target", volatility: resolved.VolatilityHigh, want: result.Balance{Value: 9, Min: 7}},
-		{name: "the policy's min_balance", volatility: resolved.VolatilityLow, minBalance: 8, want: result.Balance{Value: 9, Min: 8}},
+		{name: "a low target", volatility: resolved.VolatilityLow, want: contract(7, result.VolatilityLow)},
+		{name: "a high target", volatility: resolved.VolatilityHigh, want: contract(7, result.VolatilityHigh)},
+		{name: "the policy's min_balance", volatility: resolved.VolatilityLow, minBalance: 8, want: contract(8, result.VolatilityLow)},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -241,7 +247,7 @@ func TestEvaluateBalances(t *testing.T) {
 			}.WithDefaults()
 			r := evaluate(p, facts(nil, nil), today)
 			want := []repostate.Balance{
-				{From: chaos, To: tc, Balance: result.Balance{Value: 9, Min: c.want.Min}},
+				{From: chaos, To: tc, Balance: contract(c.want.Min, result.VolatilityHigh)},
 				{From: chaos, To: util, Balance: c.want},
 				{From: tc, To: util, Balance: c.want},
 			}

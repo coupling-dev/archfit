@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	"github.com/coupling-dev/archfit/internal/model/result"
@@ -24,6 +25,7 @@ func TestGoldensMatchTheTypes(t *testing.T) {
 		{name: "pass", status: result.StatusPass},
 		{name: "deny", status: result.StatusFail, errors: 1},
 		{name: "graph", status: result.StatusFail, errors: 1},
+		{name: "coupling", status: result.StatusFail, errors: 1},
 		{name: "duplication", status: result.StatusFail, errors: 1},
 		{name: "policy_differs", status: result.StatusUnknown, causes: []result.Cause{result.CausePolicy}},
 		{name: "expired_exception", status: result.StatusFail, errors: 1},
@@ -57,6 +59,21 @@ func TestGoldensMatchTheTypes(t *testing.T) {
 			assertReencodes(t, raw, got)
 		})
 	}
+
+	// The coupling example carries the inputs of its balance and the
+	// surface of the target, which the engine of this version leaves out.
+	t.Run("coupling inputs and surface", func(t *testing.T) {
+		var got result.Result
+		decodeStrict(t, readGolden(t, "coupling"), &got)
+		e := got.Errors[0]
+		wantBalance := result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}
+		if e.Balance == nil || *e.Balance != wantBalance {
+			t.Errorf("balance = %+v, want %+v", e.Balance, wantBalance)
+		}
+		if e.Surface == nil || !slices.Equal(e.Surface.Public, []string{"pkg/tc"}) || e.Surface.Model == nil || len(e.Surface.Model) != 0 {
+			t.Errorf("surface = %+v, want public [pkg/tc] and an empty model list", e.Surface)
+		}
+	})
 
 	t.Run("can", func(t *testing.T) {
 		raw := readGolden(t, "can")

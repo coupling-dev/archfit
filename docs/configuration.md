@@ -56,7 +56,7 @@ An author needs four ideas for a first policy: module, `depends_on`, `public`, a
 
 | Key | Type | When absent | Purpose |
 | --- | --- | --- | --- |
-| `version` | `3` | Required. | The policy schema version. |
+| `version` | `1` | Required. | The policy schema version. |
 | `owners` | list of GitHub logins | Required, at least one. | The people who write the policy and answer requests. |
 | `gate` | `advisory` or `required` | `advisory`: the check reports and does not block. | Whether the check blocks a pull request. |
 | `layers` | list of names | No layer rule. | The layers, inner first. |
@@ -82,14 +82,17 @@ A file belongs to the one module whose `paths` match it. Two modules that own th
 | Module key | Type | When absent |
 | --- | --- | --- |
 | `paths` | list of globs | Required, at least one. |
-| `public` | list of globs | The whole module is public. Add `public` to protect its inside. |
+| `public` | list of globs | The whole module is public, unless `model` is present: then the module has no public part. Add `public` to protect its inside. |
+| `model` | list of globs | No model part. |
 | `volatility` | `low`, `medium`, or `high` | Taken from `subdomain` when it is present (`core` is high; `supporting` and `generic` are low). Otherwise `high`. |
 | `subdomain` | `core`, `supporting`, or `generic` | No business role is recorded. |
 | `layer` | a name from `layers` | The module has no layer. |
 | `depends_on` | list of module names | The module may depend on no other module. |
 
 - `depends_on` lists the allowed dependencies. The built-in rule `graph` reports any other dependency between modules.
-- `public` is the part of a module that other modules may use. The built-in rule `coupling` gives a use past it a lower balance.
+- `public` and `model` are the surface of a module: what other modules may use. A use of the public part is `contract`, a use of the model part is `model`, and a use of anything else in the module is `intrusive`. The built-in rule `coupling`, `archfit can` and the report all read the strength this way; see [coupling](coupling.md).
+- `model` is the part of a module that other modules may use as a shared model. A use of it has balance 7 or 8, so it passes at `min_balance: 7`; with `min_balance: 8` it passes only into a `low` module.
+- A path is in `public` or in `model`, not in both. The same glob in both keys, or a file that both keys match, is a policy error. A `public` glob that matches no file, or a `model` glob that matches no file of its own module, is a policy error too.
 - `volatility` is how often the module is expected to change. When both are present, `volatility` decides and `subdomain` describes.
 - `layers` lists the layer names, inner first. The built-in rule `layers` reports a dependency from an inner layer to an outer one.
 

@@ -297,15 +297,15 @@ package internal/model/report
   type internal/model/report.UnreadPlace struct{Path string "json:\"path,omitempty\""; Line int "json:\"line,omitempty\""; Reason string "json:\"reason\""; Fix string "json:\"fix,omitempty\""}
   type internal/model/report.VolatilityProvenance struct{Declared int "json:\"declared\""; Inherited int "json:\"inherited\""; Cascade int "json:\"cascade\""; Undeclared int "json:\"undeclared\""}
 package internal/model/result
-  type internal/model/result.Balance struct{Value int "json:\"value\""; Min int "json:\"min\""}
-  type internal/model/result.CanAnswer struct{Schema string "json:\"schema\""; From string "json:\"from\""; To string "json:\"to\""; Answer internal/model/result.Reply "json:\"answer\""; Rule string "json:\"rule,omitempty\""; What string "json:\"what,omitempty\""; Why string "json:\"why,omitempty\""; Instead string "json:\"instead,omitempty\""; Balance *internal/model/result.Balance "json:\"balance,omitempty\""; Next *internal/model/result.Next "json:\"next,omitempty\""; Policy internal/model/result.Policy "json:\"policy\""; Head string "json:\"head,omitempty\""; Date string "json:\"date\""; Engine string "json:\"engine\""}
+  type internal/model/result.Balance struct{Value int "json:\"value\""; Min int "json:\"min\""; Strength internal/model/result.Strength "json:\"strength\""; Volatility internal/model/result.Volatility "json:\"volatility\""}
+  type internal/model/result.CanAnswer struct{Schema string "json:\"schema\""; From string "json:\"from\""; To string "json:\"to\""; Answer internal/model/result.Reply "json:\"answer\""; Rule string "json:\"rule,omitempty\""; What string "json:\"what,omitempty\""; Why string "json:\"why,omitempty\""; Instead string "json:\"instead,omitempty\""; Balance *internal/model/result.Balance "json:\"balance,omitempty\""; Surface *internal/model/result.Surface "json:\"surface,omitempty\""; Next *internal/model/result.Next "json:\"next,omitempty\""; Policy internal/model/result.Policy "json:\"policy\""; Head string "json:\"head,omitempty\""; Date string "json:\"date\""; Engine string "json:\"engine\""}
   const internal/model/result.CanSchemaVersion untyped string
   type internal/model/result.Cause string
   const internal/model/result.CauseBase internal/model/result.Cause
   const internal/model/result.CauseImport internal/model/result.Cause
   const internal/model/result.CausePolicy internal/model/result.Cause
   const internal/model/result.CauseTool internal/model/result.Cause
-  type internal/model/result.Error struct{Path string "json:\"path\""; Line int "json:\"line,omitempty\""; Rule string "json:\"rule\""; What string "json:\"what\""; Why string "json:\"why,omitempty\""; Instead string "json:\"instead,omitempty\""; Balance *internal/model/result.Balance "json:\"balance,omitempty\""; Next internal/model/result.Next "json:\"next\""; From string "json:\"from,omitempty\""; To string "json:\"to,omitempty\""; Key string "json:\"key\""; FromChange bool "json:\"from_change\""; Exception *internal/model/result.Exception "json:\"exception,omitempty\""}
+  type internal/model/result.Error struct{Path string "json:\"path\""; Line int "json:\"line,omitempty\""; Rule string "json:\"rule\""; What string "json:\"what\""; Why string "json:\"why,omitempty\""; Instead string "json:\"instead,omitempty\""; Balance *internal/model/result.Balance "json:\"balance,omitempty\""; Surface *internal/model/result.Surface "json:\"surface,omitempty\""; Next internal/model/result.Next "json:\"next\""; From string "json:\"from,omitempty\""; To string "json:\"to,omitempty\""; Key string "json:\"key\""; FromChange bool "json:\"from_change\""; Exception *internal/model/result.Exception "json:\"exception,omitempty\""}
   type internal/model/result.Exception struct{Rule string "json:\"rule\""; Expires string "json:\"expires\""}
   type internal/model/result.ExpiringException struct{Rule string "json:\"rule\""; From string "json:\"from\""; To string "json:\"to,omitempty\""; Expires string "json:\"expires\""; Why string "json:\"why,omitempty\""}
   type internal/model/result.Next struct{Kind internal/model/result.NextKind "json:\"kind\""; Text string "json:\"text\""; Note string "json:\"note,omitempty\""}
@@ -331,8 +331,17 @@ package internal/model/result
   const internal/model/result.StatusPass internal/model/result.Status
   const internal/model/result.StatusUnknown internal/model/result.Status
   const internal/model/result.StatusWaiting internal/model/result.Status
+  type internal/model/result.Strength string
+  const internal/model/result.StrengthContract internal/model/result.Strength
+  const internal/model/result.StrengthIntrusive internal/model/result.Strength
+  const internal/model/result.StrengthModel internal/model/result.Strength
+  type internal/model/result.Surface struct{Public []string "json:\"public\""; Model []string "json:\"model\""}
   type internal/model/result.Unknown struct{Path string "json:\"path,omitempty\""; Line int "json:\"line,omitempty\""; Cause internal/model/result.Cause "json:\"cause\""; What string "json:\"what\""; Why string "json:\"why,omitempty\""; Next internal/model/result.Next "json:\"next\""}
   type internal/model/result.UnreadPlace struct{Path string "json:\"path,omitempty\""; Line int "json:\"line,omitempty\""; Reason string "json:\"reason\""; Fix string "json:\"fix,omitempty\""}
+  type internal/model/result.Volatility string
+  const internal/model/result.VolatilityHigh internal/model/result.Volatility
+  const internal/model/result.VolatilityLow internal/model/result.Volatility
+  const internal/model/result.VolatilityMedium internal/model/result.Volatility
 package internal/model/rule
   func internal/model/rule.IsMetricRatchet(ruleID string) bool
   const internal/model/rule.RuleIDBCImbalancedCoupling untyped string

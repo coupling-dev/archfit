@@ -22,7 +22,9 @@ const (
 // TestRun_ExternalSystems covers the D=10 rung (book Ch10 Example 1): an edge
 // whose target resolves to no module but matches a declared `external_systems:`
 // entry classifies at declared_external distance with the entry's volatility
-// (default low) and ENTERS scoring. The match runs on the classified edge
+// (default low). It has no declared surface, so it has no strength and
+// abstains: schema 1 has no external_systems key, and a type hint never sets a
+// strength (the surfaces design 6.1). The match runs on the classified edge
 // target and is language-independent — one fixture edge per language exercises
 // the glob against the target form its extractor emits: a Go import path, a TS
 // resolved package path, a Python dotted module, and a Rust crate name.
@@ -33,11 +35,10 @@ func TestRun_ExternalSystems(t *testing.T) {
 	}
 
 	tests := []struct {
-		name        string
-		systems     map[string]policy.ExternalSystemDef
-		edge        graph.Edge
-		wantVol     coupling.Volatility
-		wantBalance int
+		name    string
+		systems map[string]policy.ExternalSystemDef
+		edge    graph.Edge
+		wantVol coupling.Volatility
 	}{
 		{
 			name:    "go import path target",
@@ -46,8 +47,7 @@ func TestRun_ExternalSystems(t *testing.T) {
 				From: extFromGo, To: extToAwsS3,
 				Kind: graph.EdgeKindImports, Language: "go", StrengthHint: hintFunctional,
 			},
-			wantVol:     coupling.VolatilityLow, // default: book generic-subdomain guidance
-			wantBalance: 8,                      // S=8, D=10, V=3: max(|8-10|, 10-3)+1
+			wantVol: coupling.VolatilityLow, // default: book generic-subdomain guidance
 		},
 		{
 			name:    "typescript resolved package path target",
@@ -56,8 +56,7 @@ func TestRun_ExternalSystems(t *testing.T) {
 				From: "file:services/a/impl.ts", To: "external:node_modules/@aws-sdk/client-s3/dist/index.js",
 				Kind: graph.EdgeKindImports, Language: "typescript", StrengthHint: hintFunctional,
 			},
-			wantVol:     coupling.VolatilityMedium,
-			wantBalance: 5, // S=8, D=10, V=6: max(2, 4)+1
+			wantVol: coupling.VolatilityMedium,
 		},
 		{
 			name:    "python dotted module target",
@@ -66,8 +65,7 @@ func TestRun_ExternalSystems(t *testing.T) {
 				From: "file:services/a/impl.py", To: "external:boto3.session",
 				Kind: graph.EdgeKindImports, Language: "python", StrengthHint: "model",
 			},
-			wantVol:     coupling.VolatilityLow,
-			wantBalance: 8, // S=3, D=10, V=3: max(7, 7)+1
+			wantVol: coupling.VolatilityLow,
 		},
 		{
 			name:    "rust crate name target",
@@ -76,8 +74,7 @@ func TestRun_ExternalSystems(t *testing.T) {
 				From: "file:services/a/lib.rs", To: "package:serde",
 				Kind: graph.EdgeKindDependsOn, Language: langRust, StrengthHint: hintFunctional,
 			},
-			wantVol:     coupling.VolatilityHigh,
-			wantBalance: 3, // S=8, D=10, V=10: max(2, 0)+1
+			wantVol: coupling.VolatilityHigh,
 		},
 	}
 
@@ -96,17 +93,11 @@ func TestRun_ExternalSystems(t *testing.T) {
 			if cl.Volatility != tt.wantVol {
 				t.Errorf("Volatility = %q, want %q", cl.Volatility, tt.wantVol)
 			}
-			if !cl.Score.Scored {
-				t.Fatal("Score.Scored = false, want true — a declared external edge enters scoring")
-			}
-			if cl.Score.Breakdown.DistanceVal != 10 {
-				t.Errorf("Breakdown.DistanceVal = %d, want 10", cl.Score.Breakdown.DistanceVal)
-			}
-			if cl.Score.Balance != tt.wantBalance {
-				t.Errorf("Balance = %d, want %d", cl.Score.Balance, tt.wantBalance)
-			}
-			if cl.Severity != cl.Score.Band {
-				t.Errorf("Severity = %q, want the score band %q", cl.Severity, cl.Score.Band)
+			// A declared external target is in no module, so it has no
+			// declared surface and no strength: the type hint is evidence
+			// only, and the edge abstains (missing evidence is not zero).
+			if cl.Strength != coupling.StrengthUnknown || cl.Score.Scored {
+				t.Errorf("strength %q, scored %v: want unknown and abstained", cl.Strength, cl.Score.Scored)
 			}
 		})
 	}

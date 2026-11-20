@@ -38,6 +38,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"maps"
 	"os"
 	"path"
@@ -73,7 +74,7 @@ type Import struct {
 
 // Facts are the imports of a tree.
 type Facts struct {
-	Sources []string          // the module files read, sorted
+	Sources []string          // the discovered module files, sorted
 	Imports []Import          // sorted by file, line and module
 	Modules map[string]string // source file to dotted module, for report projection
 }
@@ -121,6 +122,37 @@ var noIgnore = func() []string {
 	return args
 }()
 
+// HasSources reports whether Python has files to read after exclusions.
+func HasSources(root string, cfg Config) bool {
+	fsys := os.DirFS(root)
+	read, _, err := packages(fsys, cfg.Package)
+	if err != nil {
+		return true
+	}
+	modules, err := packageFiles(fsys, read)
+	if err != nil {
+		return true
+	}
+	for _, file := range modules {
+		if !excludedSource(cfg.Exclude, file) {
+			return true
+		}
+	}
+	return false
+}
+
+func packageFiles(fsys fs.FS, read []string) (map[string]string, error) {
+	modules := map[string]string{} // module to file
+	for _, pkg := range read {
+		files, err := sourceFiles(fsys, pkg)
+		if err != nil {
+			return nil, err
+		}
+		maps.Copy(modules, files)
+	}
+	return modules, nil
+}
+
 // Extract reads and resolves the imports of every module of the Python
 // packages under root. A tree without modules needs no ast-grep.
 func Extract(ctx context.Context, runner toolrun.Runner, root string, cfg Config) (Facts, error) {
@@ -135,13 +167,9 @@ func Extract(ctx context.Context, runner toolrun.Runner, root string, cfg Config
 			roots[p] = true
 		}
 	}
-	modules := map[string]string{} // module to file
-	for _, pkg := range read {
-		files, err := sourceFiles(fsys, pkg)
-		if err != nil {
-			return Facts{}, err
-		}
-		maps.Copy(modules, files)
+	modules, err := packageFiles(fsys, read)
+	if err != nil {
+		return Facts{}, err
 	}
 	moduleOf := map[string]string{} // source file to module
 	for mod, file := range modules {
@@ -154,7 +182,7 @@ func Extract(ctx context.Context, runner toolrun.Runner, root string, cfg Config
 		return Facts{}, nil
 	}
 	if _, ok := runner.Detect(ctx, astGrep); !ok {
-		return Facts{}, ErrNoAstGrep
+		return Facts{Sources: sources}, ErrNoAstGrep
 	}
 	parsed, err := parse(ctx, runner, root, sources)
 	if err != nil {

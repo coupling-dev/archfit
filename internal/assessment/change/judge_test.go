@@ -8,6 +8,8 @@ import (
 	"github.com/coupling-dev/archfit/internal/assessment/change"
 	"github.com/coupling-dev/archfit/internal/model/result"
 	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship/balance"
 	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
@@ -111,7 +113,8 @@ func TestJudgeGraphExample(t *testing.T) {
 		From: tc, To: util,
 		What: "pkg_tc -> pkg_util is not an allowed dependency", Phrase: "not an allowed dependency",
 		Why:     "a new dependency between modules needs an owner",
-		Balance: &result.Balance{Value: 9, Min: 7}, Next: requestStep(),
+		Balance: &result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow},
+		Next:    requestStep(),
 	}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Judge =\n%+v\nwant\n%+v", got, want)
@@ -127,7 +130,7 @@ func TestJudgeAllowedDependency(t *testing.T) {
 func TestJudgeModuleNamedAsTarget(t *testing.T) {
 	use := change.Use{From: change.End{Module: tc}, To: change.End{Module: util}}
 	got, ok := byRule(change.Judge(policy(), use), resolved.RuleGraph)
-	if !ok || got.Key.Symbol != util || *got.Balance != (result.Balance{Value: 9, Min: 7}) {
+	if !ok || got.Key.Symbol != util || *got.Balance != (result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}) {
 		t.Errorf("a module name means its public part: got %+v, %v", got, ok)
 	}
 }
@@ -161,44 +164,47 @@ func TestJudgeModes(t *testing.T) {
 	}
 }
 
-// Design 6.2: a use of the public part passes at every volatility; a use
-// past it takes the higher volatility of the two and passes only into low.
+// The surfaces design 6.1: the declared surface of the target gives the
+// strength, and every strength takes the target's volatility. A use of the
+// public part passes at every volatility, a use of the model part passes at
+// a min of 7, and a use past the surface passes only into low.
 func TestJudgeCouplingMatrix(t *testing.T) {
 	volatilities := []resolved.Volatility{resolved.VolatilityLow, resolved.VolatilityMedium, resolved.VolatilityHigh}
+	modelBalance := map[resolved.Volatility]int{resolved.VolatilityLow: 8, resolved.VolatilityMedium: 7, resolved.VolatilityHigh: 7}
 	pastBalance := map[resolved.Volatility]int{resolved.VolatilityLow: 8, resolved.VolatilityMedium: 5, resolved.VolatilityHigh: 2}
-	higher := func(a, b resolved.Volatility) resolved.Volatility {
-		if a == resolved.VolatilityHigh || b == resolved.VolatilityHigh {
-			return resolved.VolatilityHigh
-		}
-		if a == resolved.VolatilityMedium || b == resolved.VolatilityMedium {
-			return resolved.VolatilityMedium
-		}
-		return resolved.VolatilityLow
-	}
 	for _, source := range volatilities {
 		for _, target := range volatilities {
 			p := resolved.Policy{Modules: map[string]resolved.Module{
 				"src": {Paths: []string{"src/**"}, Volatility: source, DependsOn: []string{"dst"}},
-				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api"}, Volatility: target},
+				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api"}, Model: []string{"dst/model"}, Volatility: target},
 			}}.WithDefaults()
+			v := result.Volatility(target)
 			for _, tt := range []struct {
 				name, target string
-				want         int
+				want         result.Balance
 			}{
-				{"public", "dst/api", 9},
-				{"past", "dst/store", pastBalance[higher(source, target)]},
+				{"public", "dst/api", result.Balance{Value: 9, Min: 10, Strength: result.StrengthContract, Volatility: v}},
+				{"model", "dst/model", result.Balance{Value: modelBalance[target], Min: 10, Strength: result.StrengthModel, Volatility: v}},
+				{"past", "dst/store", result.Balance{Value: pastBalance[target], Min: 10, Strength: result.StrengthIntrusive, Volatility: v}},
 			} {
 				t.Run(fmt.Sprintf("%s %s to %s", tt.name, source, target), func(t *testing.T) {
 					_, ok := byRule(change.Judge(p, fileUse("src/a.go", tt.target)), resolved.RuleCoupling)
-					if failed := tt.want < resolved.DefaultMinBalance; ok != failed {
-						t.Fatalf("coupling error = %v, want %v (balance %d)", ok, failed, tt.want)
+					if failed := tt.want.Value < resolved.DefaultMinBalance; ok != failed {
+						t.Fatalf("coupling error = %v, want %v (balance %d)", ok, failed, tt.want.Value)
 					}
 					// At a min of 10 every cell is an error, so its balance can be read.
 					strict := p
 					strict.Builtin.MinBalance = 10
 					got, _ := byRule(change.Judge(strict, fileUse("src/a.go", tt.target)), resolved.RuleCoupling)
-					if got.Balance == nil || got.Balance.Value != tt.want {
-						t.Errorf("balance = %+v, want %d", got.Balance, tt.want)
+					if got.Balance == nil || *got.Balance != tt.want {
+						t.Fatalf("balance = %+v, want %+v", got.Balance, tt.want)
+					}
+					// The named inputs alone give the value: they are the
+					// inputs the formula used, not a description of them.
+					v := relationship.Volatility(got.Balance.Volatility)
+					if value, _ := balance.Of(relationship.Strength(got.Balance.Strength), v, v); value != got.Balance.Value {
+						t.Errorf("inputs %s, %s give %d, want the balance %d",
+							got.Balance.Strength, got.Balance.Volatility, value, got.Balance.Value)
 					}
 				})
 			}
@@ -213,7 +219,8 @@ func TestJudgeCouplingText(t *testing.T) {
 		From: cmd, To: tc,
 		What: "cmd -> pkg_tc reaches past the public part of pkg_tc", Phrase: "reaches past the public part",
 		Why:     "new knowledge across a module boundary needs a balance of at least 7",
-		Balance: &result.Balance{Value: 2, Min: 7}, Next: fixStep(),
+		Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
+		Next:    fixStep(),
 	}
 	if !ok || !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, %v\nwant %+v", got, ok, want)
@@ -223,6 +230,13 @@ func TestJudgeCouplingText(t *testing.T) {
 	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc")), resolved.RuleCoupling)
 	if got.What != "cmd -> pkg_tc uses the public part of pkg_tc" || got.Phrase != "uses the public part" {
 		t.Errorf("a public use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
+	}
+	tcMod := p.Modules[tc]
+	tcMod.Model = []string{"pkg/tc/netem"}
+	p.Modules[tc] = tcMod
+	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc/netem")), resolved.RuleCoupling)
+	if got.What != "cmd -> pkg_tc uses the model part of pkg_tc" || got.Phrase != "uses the model part" {
+		t.Errorf("a model use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
 	}
 }
 
@@ -408,6 +422,20 @@ func TestJudgeTextsUseOnlyDesignWords(t *testing.T) {
 	}
 }
 
+// A module that declares only model has no public part, so a module named
+// on its own means its model part, not a contract.
+func TestBalanceOfModelOnlyModuleNamedOnItsOwn(t *testing.T) {
+	p := policy()
+	tcMod := p.Modules[tc]
+	tcMod.Public, tcMod.Model = nil, []string{"pkg/tc"}
+	p.Modules[tc] = tcMod
+	got := change.BalanceOf(p, change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}})
+	want := &result.Balance{Value: 7, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityHigh}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("BalanceOf = %+v, want %+v", got, want)
+	}
+}
+
 // BalanceOf is the balance Judge puts on graph and coupling errors, and the
 // balance `archfit can` shows for an allowed dependency.
 func TestBalanceOf(t *testing.T) {
@@ -416,10 +444,12 @@ func TestBalanceOf(t *testing.T) {
 		use  change.Use
 		want *result.Balance
 	}{
-		{"a use of the public part of a low module", fileUse("pkg/chaos/chaos.go", "pkg/util"), &result.Balance{Value: 9, Min: 7}},
-		{"a use past the public part of a high module", fileUse("cmd/main.go", "pkg/tc/netem"), &result.Balance{Value: 2, Min: 7}},
+		{"a use of the public part of a low module", fileUse("pkg/chaos/chaos.go", "pkg/util"), &result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
+		{"a use past the public part of a high module", fileUse("cmd/main.go", "pkg/tc/netem"),
+			&result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}},
 		{"a module named on its own means its public part",
-			change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}}, &result.Balance{Value: 9, Min: 7}},
+			change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}},
+			&result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityHigh}},
 		{"one module", fileUse("pkg/tc/tc.go", "pkg/tc/netem"), nil},
 		{"an importer in no module", fileUse("tools/gen.go", "pkg/util"), nil},
 		{"a target in no module", fileUse("pkg/tc/tc.go", "vendor/x"), nil},

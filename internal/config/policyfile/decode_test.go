@@ -39,7 +39,7 @@ func TestDecodeValidFixtures(t *testing.T) {
 		"smallest": {
 			Version: 1,
 			Owners:  []string{owner},
-			Modules: map[string]policyfile.Module{modApp: {Paths: []string{cmdGlob, "pkg/**"}}},
+			Modules: map[string]policyfile.Module{modApp: {Paths: []string{cmdGlob, pkgGlob}}},
 		},
 		"typical": {
 			Version: 1,
@@ -90,6 +90,7 @@ func TestDecodeValidFixtures(t *testing.T) {
 			Modules: map[string]policyfile.Module{
 				core: {
 					Paths: []string{"internal/core/**"}, Public: []string{"internal/core"},
+					Model:     []string{"internal/core/model"},
 					Subdomain: policyfile.SubdomainCore, Layer: "domain", DependsOn: []string{},
 				},
 				modStore: {
@@ -173,7 +174,7 @@ func TestDecodeKeepsAbsentKeysZero(t *testing.T) {
 	}
 	app := got.Modules[modApp]
 	if got.Gate != "" || got.Layers != nil || got.Builtin != (policyfile.Builtin{}) ||
-		app.Public != nil || app.Volatility != "" || app.Subdomain != "" || app.DependsOn != nil {
+		app.Public != nil || app.Model != nil || app.Volatility != "" || app.Subdomain != "" || app.DependsOn != nil {
 		t.Errorf("absent keys decoded to values: %+v", got)
 	}
 }
@@ -208,6 +209,7 @@ var invalidFixtures = map[string][]string{
 	"modules-missing":      {"modules: required: declare at least one module"},
 	"paths-missing":        {"modules.app.paths: required: list at least one glob"},
 	"public-empty":         {"modules.app.public: empty: list at least one glob, or remove the key"},
+	"model-empty":          {"modules.app.model: empty: list at least one glob, or remove the key"},
 	"module-duplicate":     {`"app"`, "already defined"},
 	"layers-duplicate":     {`layers: "core" is listed twice`},
 	"why-missing":          {"rules[0] (no-why).why: required: give the reason for the rule"},
