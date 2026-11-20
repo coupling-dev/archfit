@@ -146,8 +146,9 @@ func BalanceOf(p resolved.Policy, u Use) *result.Balance {
 	if !betweenModules(u) {
 		return nil
 	}
-	value := balanceOf(publicUse(p, u.To), p.Modules[u.From.Module].Volatility, p.Modules[u.To.Module].Volatility)
-	return &result.Balance{Value: value, Min: p.Builtin.MinBalance}
+	b := balanceOf(publicUse(p, u.To), p.Modules[u.From.Module].Volatility, p.Modules[u.To.Module].Volatility)
+	b.Min = p.Builtin.MinBalance
+	return &b
 }
 
 // betweenModules reports whether a use, its modules resolved, crosses from
@@ -163,18 +164,25 @@ func publicUse(p resolved.Policy, to End) bool {
 	return to.Path == "" || isPublic(p, to.Module, to)
 }
 
+// volatilities are the declared volatilities, lowest first.
+var volatilities = []resolved.Volatility{resolved.VolatilityLow, resolved.VolatilityMedium, resolved.VolatilityHigh}
+
 // balanceOf is the balance of a use of the public part (contract strength,
 // the target's volatility) or past it (functional strength, the higher of the
-// two volatilities): design 6.2, computed by the book formula.
-func balanceOf(public bool, from, to resolved.Volatility) int {
-	strength := relationship.StrengthFunctional
+// two volatilities): design 6.2, computed by the book formula. It names the
+// strength and the volatility it used; Min is the caller's.
+func balanceOf(public bool, from, to resolved.Volatility) result.Balance {
+	strength, volatility := relationship.StrengthFunctional, to
 	if public {
 		strength = relationship.StrengthContract
+	} else if slices.Index(volatilities, from) > slices.Index(volatilities, to) {
+		volatility = from
 	}
 	// Contract and functional always score, so the abstain flag is never false
-	// here; TestJudgeCouplingMatrix reads the balance of every cell.
+	// here; TestJudgeCouplingMatrix reads the balance of every cell and checks
+	// that the named inputs give the same value.
 	value, _ := balance.Of(strength, relationship.Volatility(from), relationship.Volatility(to))
-	return value
+	return result.Balance{Value: value, Strength: result.Strength(strength), Volatility: result.Volatility(volatility)}
 }
 
 // isPublic reports whether an end is in the public part of module: its path,

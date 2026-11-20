@@ -439,6 +439,32 @@ func TestNoKeepsTheStepOfItsRule(t *testing.T) {
 	}
 }
 
+// A no names the inputs of its balance: the strength and the volatility the
+// formula used. The surface is not filled by the engine of this version.
+func TestNoNamesTheInputsOfItsBalance(t *testing.T) {
+	tests := []struct {
+		name     string
+		from, to string
+		want     result.Balance
+	}{
+		{"past the public part of a high module", cmdFile, netemDir,
+			result.Balance{Value: 2, Min: 7, Strength: result.StrengthFunctional, Volatility: result.VolatilityHigh}},
+		{"a graph error on the public part of a low module", tc, util,
+			result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := ask(t, policy(), tt.from, tt.to)
+			if a.Answer != result.ReplyNo || a.Balance == nil || *a.Balance != tt.want {
+				t.Errorf("answer %s, balance %+v; want no with %+v", a.Answer, a.Balance, tt.want)
+			}
+			if a.Surface != nil {
+				t.Errorf("surface = %+v, want none until the engine fills it", a.Surface)
+			}
+		})
+	}
+}
+
 func TestPortErrorsComeBack(t *testing.T) {
 	errPort := errors.New("port")
 	tests := []struct {
