@@ -1,6 +1,6 @@
 # Archfit onboarding design
 
-Status: proposed, 2026-11-20. The owner accepts it before task 3.8 of the beta plan. Epic 8
+Status: accepted by the owner on 2026-11-20, with open point O1 amended (section 8). Epic 8
 (release 0.10.0) is built from it.
 
 Sources:
@@ -144,7 +144,7 @@ request merges.
 | Welcome comment                | 2    | On the setup pull request: how to ask, what happens next.                                                                                              | 8.10          |
 | Digest                         | 2    | After seven days: pull requests checked, quiet, asked.                                                                                                 | 8.10          |
 | Request page                   | 2–3  | The request, the balance with its inputs, the surface answers (declare as public, declare as model, allow until a date, reject with `instead`).        | 5.2           |
-| "Make it required"             | 3    | The first approval with a passkey (D6 default), the policy pull request that sets `gate: required`, the ruleset file and its `gh api` line.            | 8.1, 8.6, 8.9 |
+| "Make it required"             | 3    | Every policy change since the setup pull request, each with who merged it and its request, before anything else. Then the first approval with a passkey (D6 default), the policy pull request that sets `gate: required`, the ruleset file and its `gh api` line. | 8.1, 8.6, 8.9 |
 
 One page in the documents, "Try it on your pull request", tells the route once: the Pumba story,
 two expected results, the fork limit. The engine guide, the Action README and the App guide link
@@ -233,7 +233,7 @@ The owner accepts them with this document.
 
 | Id  | Question                                                                      | Default                                                                                                                                                                                                                              |
 | --- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| O1  | How does an owner answer a request in rung 2, before any passkey?             | The request page prepares the one-line policy pull request; the owner merges it on GitHub with no passkey, because nothing is enforced yet. The first approval in rung 3 covers the policy as it is then. Linked to D6 and task 8.1. |
+| O1  | How does an owner answer a request in rung 2, before any passkey?             | The request page prepares the one-line policy pull request; the owner merges it on GitHub with no passkey, because nothing is enforced yet. The first approval in rung 3 covers the policy as it is then. Linked to D6 and task 8.1. **Amended by the owner, 2026-11-20:** before the first passkey approval, the "Make it required" page lists every policy change since the setup pull request, with who merged it and its request, so the owner never approves loosening that accumulated unseen. |
 | O2  | The `expires` date `init` writes.                                             | 90 days. Task 3.4 follows the owner's answer.                                                                                                                                                                                        |
 | O3  | The minutes and steps of the App part of task 0.4.                            | Not measured. The numbers marked provisional above are replaced when they are.                                                                                                                                                       |
 | O4  | Does `setup` open the pull request with `gh`, or only print the compare link? | `gh` when it is signed in; else the link. `setup` reads no GitHub token itself; it calls `gh`.                                                                                                                                       |
