@@ -156,10 +156,12 @@ func (l lastReader) Last(context.Context) (request.Last, bool, error) {
 	}
 	var head struct {
 		Schema string `json:"schema"`
+		Engine string `json:"engine"`
 	}
 	// A file another version wrote, or one cut short, is not usable: the
-	// worker runs check again.
-	if json.Unmarshal(data, &doc) != nil || json.Unmarshal(doc.Output, &head) != nil {
+	// worker runs check again. The schema id alone does not tell versions
+	// apart, since a 0.x minor release may add fields to the same id.
+	if json.Unmarshal(data, &doc) != nil || json.Unmarshal(doc.Output, &head) != nil || head.Engine != l.co.engine {
 		return request.Last{}, false, nil
 	}
 	last := request.Last{Tree: doc.Tree}
