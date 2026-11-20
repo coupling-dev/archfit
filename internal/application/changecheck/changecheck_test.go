@@ -749,7 +749,7 @@ func TestStoredResultBuildsTheRequest(t *testing.T) {
 		Reason: "netem needs the shared parser",
 		Errors: []request.Error{{
 			Path: tcNetem, Line: 12, Rule: "graph", From: "pkg_tc", To: "pkg_util",
-			Balance: &result.Balance{Value: 9, Min: 7},
+			Balance: &result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow},
 		}},
 		Head: headSHA, Base: baseSHA, PolicyDigest: w.policies.local[changecheck.PolicyPath].Digest,
 	}

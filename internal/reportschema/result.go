@@ -29,6 +29,7 @@ const (
 	defUnknown   = "Unknown"
 	defNext      = "Next"
 	defBalance   = "Balance"
+	defSurface   = "Surface"
 	defException = "Exception"
 	defPolicy    = "Policy"
 	defRepo      = "Repository"
@@ -125,6 +126,9 @@ func patchResultDefinitions(defs jsonschema.Definitions) error {
 	enum(defNext, "kind", string(result.NextFix), string(result.NextCommand), string(result.NextWait), string(result.NextRestore))
 	between(defBalance, "value", 1, 10)
 	between(defBalance, "min", 1, 10)
+	enum(defBalance, "strength", string(result.StrengthContract), string(result.StrengthModel),
+		string(result.StrengthIntrusive), string(result.StrengthFunctional))
+	enum(defBalance, "volatility", string(result.VolatilityLow), string(result.VolatilityMedium), string(result.VolatilityHigh))
 	pattern(defException, "expires", datePattern)
 	pattern(defPolicy, "digest", digestPattern)
 	enum(defRepo, "state", string(result.RepositoryClean), string(result.RepositoryDrift), string(result.RepositoryExpired))
@@ -132,6 +136,7 @@ func patchResultDefinitions(defs jsonschema.Definitions) error {
 	property(defUnread, "line").Minimum = "1"
 
 	one := uint64(1)
+	property(defSurface, "public").MinItems = &one
 	for _, f := range [][2]string{
 		{defResult, "summary"}, {defResult, "engine"}, {defCanAnswer, "from"}, {defCanAnswer, "to"}, {defCanAnswer, "engine"},
 		{defError, "path"}, {defError, propRule}, {defError, "what"}, {defError, "key"},

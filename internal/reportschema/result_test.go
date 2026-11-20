@@ -56,7 +56,7 @@ func TestResultSchemaAcceptsEveryGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := []string{
-		goldenCan, "deny", "duplication", "expired_exception", goldenGraph, goldenPass, "policy_differs",
+		goldenCan, "coupling", "deny", "duplication", "expired_exception", goldenGraph, goldenPass, "policy_differs",
 		goldenClean, goldenDrift, "repository_expired", "waiting",
 	}
 	names := make([]string, 0, len(paths))
