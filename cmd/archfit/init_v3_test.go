@@ -85,9 +85,9 @@ func TestInitAFreshRepository(t *testing.T) {
 	}
 }
 
-// TestInitWithAVersion3Policy: init leaves the policy as it is and writes
+// TestInitWithAVersion1Policy: init leaves the policy as it is and writes
 // only a missing block; a second run writes nothing. Both exit 0.
-func TestInitWithAVersion3Policy(t *testing.T) {
+func TestInitWithAVersion1Policy(t *testing.T) {
 	t.Parallel()
 	dir := initRepo(t, fixtureFiles())
 	before := readText(t, filepath.Join(dir, defaultConfigPath))

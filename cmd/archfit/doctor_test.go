@@ -64,7 +64,7 @@ func TestDoctorCmdRejectsVersion2(t *testing.T) {
 	}
 }
 
-func TestDoctorCmdLoadsVersion3(t *testing.T) {
+func TestDoctorCmdLoadsVersion1(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.WriteFile(filepath.Join(dir, defaultConfigPath), []byte("version: 1\nowners: [owner]\nmodules:\n  app: {paths: ['**']}\n"), 0o600); err != nil {
 		t.Fatal(err)

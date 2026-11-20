@@ -863,7 +863,7 @@ def run_change_stages(
     assert_result(
         result,
         "fixture policy uses schema 1",
-        re.search(r"(?m)^version:\s*3\s*$", contract.policy) is not None,
+        re.search(r"(?m)^version:\s*1\s*$", contract.policy) is not None,
         contract.policy.splitlines()[:1],
     )
 

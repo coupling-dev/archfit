@@ -11,7 +11,7 @@ import (
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
-func TestIsVersion3(t *testing.T) {
+func TestIsVersion1(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		data string
