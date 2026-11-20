@@ -140,18 +140,18 @@ Order: 0 → 1 → 3 → 4 → 5 → 6 → 7 → 8 → 9. Section 4.3 says what 
 
 Done when the old repositories are quiet and a baseline exists.
 
-- [ ] **0.0 The plan travels.** Merge this plan and the surfaces design (today an uncommitted
+- [x] **0.0 The plan travels.** Merge this plan and the surfaces design (today an uncommitted
       file on branch `docs/archfit-4-1-design`) into `main` of the old engine repository, so
-      both move with the history in task 1.3. CONFIRM.
-- [ ] **0.1 Freeze.** Merge or close the open pull requests and branches in the three old
+      both move with the history in task 1.3. CONFIRM. #217 (old repository).
+- [x] **0.1 Freeze.** Merge or close the open pull requests and branches in the three old
       repositories (three dependabot pull requests; branches `feat/ratchet-check-inventory`
       and `ci/archfit-4-report`). List the open issues of the two old repositories (the engine
       has #210 drift on main, #205 and #118): each is closed, or written down in section 8 to
-      be opened again in the new home. Issues do not move. CONFIRM for each merge.
-- [ ] **0.2 Baseline.** For `archfit-4-mechanics`, `archfit`, `ccgram` and `pumba` at recorded
+      be opened again in the new home. Issues do not move. CONFIRM for each merge. Done 2026-11-20: dependabot #195 and #191 merged, App #169 closed, issues #210, #205, #118 closed with a pointer here, six stale branches deleted.
+- [x] **0.2 Baseline.** For `archfit-4-mechanics`, `archfit`, `ccgram` and `pumba` at recorded
       commits: the policy, the workflow, the gate mode, the ruleset, and the v5.0.0 output of
       `archfit check --format json` and `archfit report`. Stored outside the repositories, in
-      `~/Workspace/archfit.reset-evidence/`.
+      `~/Workspace/archfit.reset-evidence/`. Done 2026-11-20; see section 8.
 - [x] **0.3 Decisions.** Made on 2026-11-20; see section 2.
 - [ ] **0.4 Count the steps today.** One cold run of the current path on a scratch repository:
       install v5.0.0, `init`, the workflow, the App, the first verdict. Record each step, each
@@ -162,27 +162,27 @@ Done when the old repositories are quiet and a baseline exists.
 
 Done when `v0.9.0-rc.1` is installable from the new home and gives the baseline verdicts.
 
-- [ ] **1.1 Repositories.** Create `coupling-dev/archfit`, `coupling-dev/archfit-action` and
-      `coupling-dev/homebrew-tap`, public and empty. CONFIRM.
-- [ ] **1.2 Organization.** Allow public container packages. Create a token that can write
-      only to the new tap, and store it as `TAP_GITHUB_TOKEN` on the engine repository. HUMAN.
-- [ ] **1.3 History.** Push `main` without tags. Point the local checkout at the new origin,
+- [x] **1.1 Repositories.** Create `coupling-dev/archfit`, `coupling-dev/archfit-action` and
+      `coupling-dev/homebrew-tap`, public and empty. CONFIRM. Done 2026-11-20.
+- [x] **1.2 Organization.** Allow public container packages. Create a token that can write
+      only to the new tap, and store it as `TAP_GITHUB_TOKEN` on the engine repository. HUMAN. Done 2026-11-20 by the owner.
+- [x] **1.3 History.** Push `main` without tags. Point the local checkout at the new origin,
       keep the old one as a remote that fetches no tags, and delete the 57 local tags. The
       repository's own `archfit.yaml` workflow is off until task 6.2: it pins the old Action,
       which runs engine v4.0.0. Copy the settings: description and topics, branch protection on `main` with the six checks
       that exist (Lint, Test, four builds), dependabot, the docs workflow. Open the issues kept
       in task 0.1. Done when `git ls-remote --tags origin` prints nothing and a pull request
-      cannot merge red. CONFIRM.
-- [ ] **1.4 Delete.** One pull request: `docs/migration.md`, the Archfit 3 conversion in
+      cannot merge red. CONFIRM. Done 2026-11-20. CI did not start on the first push; it started on the first pull request.
+- [x] **1.4 Delete.** One pull request: `docs/migration.md`, the Archfit 3 conversion in
       `init`, the `archfit config update` hints, and the old `CHANGELOG.md` moved to
       `docs/archived/`. The design names of section 2 are applied here. Less text to rename in
-      the next task.
-- [ ] **1.5 Rename.** One mechanical pull request, no behaviour change: the module path in
+      the next task. #2.
+- [x] **1.5 Rename.** One mechanical pull request, no behaviour change: the module path in
       `go.mod` and all Go files; the three schema `$id` values; `Makefile`; `release.yaml`;
       `scripts/update_homebrew_formula.rb`; the source label in `Dockerfile`; the constant
       `actionRepo` in `cmd/archfit/change_wiring.go`; the policy version in `archfit.schema.json`, its golden
       contract and `.archfit.yaml`; every install line in the user documents and the shipped
-      skill. Done when `make all` passes and no golden file changed except by the new names.
+      skill. Done when `make all` passes and no golden file changed except by the new names. #3.
 - [ ] **1.6 Guard.** A CI step that fails when a file outside `docs/archived/` names the old
       owner, a `/vN` module path, or a version that is not in the table of section 3. The rule
       for 0.x is written in `docs/development.md`.
@@ -405,9 +405,9 @@ Filled in as tasks finish. A later task reads its inputs here.
 
 | Item | Value | Task |
 | --- | --- | --- |
-| Baseline commits of the four repositories | | 0.2 |
+| Baseline commits of the four repositories | `~/Workspace/archfit.reset-evidence/baseline/` (README there). archfit-4-mechanics `1f95386e`, archfit `301c6b23`, ccgram `c672b31f`, pumba `23968548`. Engine v5.0.0: all four checks pass; report clean on three, drift with 2 errors on archfit. | 0.2 |
 | Steps and minutes of the cold run today | | 0.4 |
-| Issues to open again in the new home | | 0.1 |
+| Issues to open again in the new home | None. | 0.1 |
 | Engine `v0.9.0-rc.1` commit | | 1.8 |
 | Engine `v0.9.0` commit | | 3.8 |
 | Image digest `linux/amd64` | | 3.8 |
@@ -415,5 +415,5 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Action `v0.9.0` commit | | 4.3 |
 | App revision before the deploy (rollback) | | 5.4 |
 | App revision of 0.9.0 | | 5.4 |
-| Answers to the open points of section 7 | | as found |
+| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). | as found |
 
