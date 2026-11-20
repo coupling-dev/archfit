@@ -119,6 +119,21 @@ func wantVolatility(want resolved.Volatility) func(*testing.T, resolved.Policy) 
 	}
 }
 
+// TestResolveAcceptsModelWithoutEffect pins the 0.9.0 contract step: the
+// policy accepts model, and the resolved policy, which every rule reads, is
+// the same with and without it. Only the digest of the file bytes differs.
+func TestResolveAcceptsModelWithoutEffect(t *testing.T) {
+	without := resolve(t, withModule("    public: [pkg]\n"))
+	with := resolve(t, withModule("    public: [pkg]\n    model: [pkg/model]\n"))
+	if with.Digest == without.Digest {
+		t.Errorf("Digest = %q for both, want the digest of each file", with.Digest)
+	}
+	with.Digest, without.Digest = "", ""
+	if !reflect.DeepEqual(with, without) {
+		t.Errorf("resolved policy with model = %+v\nwant %+v", with, without)
+	}
+}
+
 func TestResolveEveryKey(t *testing.T) {
 	data, err := os.ReadFile("testdata/valid/every-key.yaml")
 	if err != nil {

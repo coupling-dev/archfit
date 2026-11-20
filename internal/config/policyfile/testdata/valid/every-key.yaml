@@ -6,6 +6,7 @@ modules:
   core:
     paths: [internal/core/**]
     public: [internal/core]
+    model: [internal/core/model]
     subdomain: core
     layer: domain
     depends_on: []

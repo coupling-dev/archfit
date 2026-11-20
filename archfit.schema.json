@@ -441,6 +441,15 @@
           "minItems": 1,
           "description": "Globs other modules may use. Absent: the whole module is public. Add public to protect its inside."
         },
+        "model": {
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": "array",
+          "minItems": 1,
+          "description": "Globs inside paths that other modules may use as a shared model. Absent: no model part."
+        },
         "volatility": {
           "type": "string",
           "enum": [

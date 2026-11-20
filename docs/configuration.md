@@ -56,7 +56,7 @@ An author needs four ideas for a first policy: module, `depends_on`, `public`, a
 
 | Key | Type | When absent | Purpose |
 | --- | --- | --- | --- |
-| `version` | `3` | Required. | The policy schema version. |
+| `version` | `1` | Required. | The policy schema version. |
 | `owners` | list of GitHub logins | Required, at least one. | The people who write the policy and answer requests. |
 | `gate` | `advisory` or `required` | `advisory`: the check reports and does not block. | Whether the check blocks a pull request. |
 | `layers` | list of names | No layer rule. | The layers, inner first. |
@@ -83,6 +83,7 @@ A file belongs to the one module whose `paths` match it. Two modules that own th
 | --- | --- | --- |
 | `paths` | list of globs | Required, at least one. |
 | `public` | list of globs | The whole module is public. Add `public` to protect its inside. |
+| `model` | list of globs | No model part. |
 | `volatility` | `low`, `medium`, or `high` | Taken from `subdomain` when it is present (`core` is high; `supporting` and `generic` are low). Otherwise `high`. |
 | `subdomain` | `core`, `supporting`, or `generic` | No business role is recorded. |
 | `layer` | a name from `layers` | The module has no layer. |
@@ -90,6 +91,7 @@ A file belongs to the one module whose `paths` match it. Two modules that own th
 
 - `depends_on` lists the allowed dependencies. The built-in rule `graph` reports any other dependency between modules.
 - `public` is the part of a module that other modules may use. The built-in rule `coupling` gives a use past it a lower balance.
+- `model` is the part of a module that other modules may use as a shared model. The policy accepts the key; it has no effect on the check yet.
 - `volatility` is how often the module is expected to change. When both are present, `volatility` decides and `subdomain` describes.
 - `layers` lists the layer names, inner first. The built-in rule `layers` reports a dependency from an inner layer to an outer one.
 

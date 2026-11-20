@@ -149,6 +149,9 @@ func (m Module) check(p *problems, path string) {
 	if m.Public != nil && len(m.Public) == 0 {
 		p.add(path+".public", "empty: list at least one glob, or remove the key to make the whole module public")
 	}
+	if m.Model != nil && len(m.Model) == 0 {
+		p.add(path+".model", "empty: list at least one glob, or remove the key")
+	}
 	checkEnum(p, path+".volatility", m.Volatility, Volatilities)
 	checkEnum(p, path+".subdomain", m.Subdomain, Subdomains)
 }
