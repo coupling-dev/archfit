@@ -448,7 +448,7 @@ func TestNoNamesTheInputsOfItsBalance(t *testing.T) {
 		want     result.Balance
 	}{
 		{"past the public part of a high module", cmdFile, netemDir,
-			result.Balance{Value: 2, Min: 7, Strength: result.StrengthFunctional, Volatility: result.VolatilityHigh}},
+			result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}},
 		{"a graph error on the public part of a low module", tc, util,
 			result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
 	}

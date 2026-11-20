@@ -78,10 +78,8 @@ const (
 // Strength is the strength of a dependency that a balance is computed with.
 type Strength string
 
-// The strengths of a balance. The engine of this version emits contract and
-// functional, the 4.0 formula. Model and intrusive replace functional when
-// the strength comes from the declared surface of the target (the surfaces
-// design 6.1); functional then leaves the contract.
+// The strengths of a balance: where the target is declared in the surface of
+// its module (the surfaces design 6.1).
 const (
 	// StrengthContract: a use of the target's public part.
 	StrengthContract Strength = "contract"
@@ -89,9 +87,6 @@ const (
 	StrengthModel Strength = "model"
 	// StrengthIntrusive: a use past the target's surface.
 	StrengthIntrusive Strength = "intrusive"
-	// StrengthFunctional: a use past the target's public part, by the 4.0
-	// formula.
-	StrengthFunctional Strength = "functional"
 )
 
 // Volatility is the declared volatility a balance is computed with.
@@ -204,8 +199,7 @@ type Balance struct {
 	// Strength is the strength the balance is computed with.
 	Strength Strength `json:"strength"`
 	// Volatility is the declared volatility the balance is computed with:
-	// the target's for a use of its public part, else the higher of the
-	// two modules'.
+	// the target's, for every strength.
 	Volatility Volatility `json:"volatility"`
 }
 

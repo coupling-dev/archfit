@@ -21,7 +21,7 @@ func TestClonesDoNotChangeImportScoring(t *testing.T) {
 		modules[name] = module
 	}
 	in := analysis.Input{
-		Graph:  exampleGraph(exampleEdge{fromFile: fileAPIX, toFile: fileAPIY, hint: hintInterface}),
+		Graph:  exampleGraph(exampleEdge{fromFile: fileAPIX, toFile: fileAPIY}),
 		Policy: relationshipPolicy(modules),
 	}
 	// Before removal, inject the old producer's facts. Afterwards the input has

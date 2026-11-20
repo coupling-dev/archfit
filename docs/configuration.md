@@ -82,7 +82,7 @@ A file belongs to the one module whose `paths` match it. Two modules that own th
 | Module key | Type | When absent |
 | --- | --- | --- |
 | `paths` | list of globs | Required, at least one. |
-| `public` | list of globs | The whole module is public. Add `public` to protect its inside. |
+| `public` | list of globs | The whole module is public, unless `model` is present: then the module has no public part. Add `public` to protect its inside. |
 | `model` | list of globs | No model part. |
 | `volatility` | `low`, `medium`, or `high` | Taken from `subdomain` when it is present (`core` is high; `supporting` and `generic` are low). Otherwise `high`. |
 | `subdomain` | `core`, `supporting`, or `generic` | No business role is recorded. |
@@ -90,8 +90,9 @@ A file belongs to the one module whose `paths` match it. Two modules that own th
 | `depends_on` | list of module names | The module may depend on no other module. |
 
 - `depends_on` lists the allowed dependencies. The built-in rule `graph` reports any other dependency between modules.
-- `public` is the part of a module that other modules may use. The built-in rule `coupling` gives a use past it a lower balance.
-- `model` is the part of a module that other modules may use as a shared model. The policy accepts the key; it has no effect on the check yet.
+- `public` and `model` are the surface of a module: what other modules may use. A use of the public part is `contract`, a use of the model part is `model`, and a use of anything else in the module is `intrusive`. The built-in rule `coupling`, `archfit can` and the report all read the strength this way; see [coupling](coupling.md).
+- `model` is the part of a module that other modules may use as a shared model. A use of it has balance 7 or 8, so it passes at `min_balance: 7`; with `min_balance: 8` it passes only into a `low` module.
+- A path is in `public` or in `model`, not in both. The same glob in both keys, or a file that both keys match, is a policy error. A `public` glob that matches no file, or a `model` glob that matches no file of its own module, is a policy error too.
 - `volatility` is how often the module is expected to change. When both are present, `volatility` decides and `subdomain` describes.
 - `layers` lists the layer names, inner first. The built-in rule `layers` reports a dependency from an inner layer to an outer one.
 

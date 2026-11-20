@@ -944,12 +944,24 @@ var fixtureModules = map[string]policy.ModuleDef{
 	"legacy":         {Paths: []string{"Legacy/**"}},
 }
 
-func TestTypeGraph_DataOnlyConcreteUseClassifiesAsModel(t *testing.T) {
+// A data-only use of a concrete type is a type fact: it stays on the edge as
+// evidence, and the strength comes from the declared surface of the target
+// (the surfaces design 6.1). Domain declares no surface, so it is contract.
+func TestTypeGraph_DataOnlyConcreteUseIsEvidence(t *testing.T) {
 	g := graph.Build([]graph.Facts{dataOnlyFacts(t)})
-	idx := classify.Run(g, classify.Config{Modules: fixtureModules})
 	key := "file:" + contractsCS + "\x00file:" + domainCS + "\x00" + string(graph.EdgeKindImports)
-	if got := idx[key].Strength; got != coupling.StrengthModel {
-		t.Errorf("strength = %q, want model: no public selector, so the hint decides", got)
+	var hint string
+	for _, e := range g.Edges() {
+		if e.From+"\x00"+e.To+"\x00"+string(e.Kind) == key {
+			hint = e.DataStrengthHint
+		}
+	}
+	if hint != string(coupling.StrengthModel) {
+		t.Errorf("data hint = %q, want model kept as evidence", hint)
+	}
+	idx := classify.Run(g, classify.Config{Modules: fixtureModules})
+	if got := idx[key].Strength; got != coupling.StrengthContract {
+		t.Errorf("strength = %q, want contract: the declared surface decides, not the hint", got)
 	}
 }
 

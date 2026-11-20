@@ -23,32 +23,33 @@ func TestCouplingAdvisoryNeverCallsACriticalEdgeCheap(t *testing.T) {
 	}
 }
 
+// A use past the surface takes the target's volatility (the surfaces design
+// 6.1): a high source never raises it, and the why names the volatility that
+// applied without attributing it to the source.
 func TestCouplingAdvisoryExplainsEffectiveVolatility(t *testing.T) {
 	modules := twoModules()
-	target := modules[moduleB]
-	target.Volatility = volLow
-	modules[moduleB] = target
+	source := modules[moduleA]
+	source.Volatility = volLow
+	modules[moduleA] = source
 	got := analysis.Analyze(analysis.Input{
-		Graph: graphWith(string(relationship.StrengthFunctional)), Policy: relationshipPolicy(modules),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(modules),
 	})
 	if edge := onlyEdge(t, got); edge.Volatility != relationship.VolatilityHigh {
-		t.Fatalf("effective volatility = %s, want high from source", edge.Volatility)
+		t.Fatalf("effective volatility = %s, want high from the target", edge.Volatility)
 	}
 	if len(got.Assessment.AdvisoryCandidates) != 1 {
 		t.Fatalf("advisories = %d, want 1", len(got.Assessment.AdvisoryCandidates))
 	}
 	why := got.Assessment.AdvisoryCandidates[0].Why
-	for _, want := range []string{"high effective volatility", "higher of source and target"} {
-		if !strings.Contains(why, want) {
-			t.Errorf("why = %q, want %q", why, want)
-		}
+	if !strings.Contains(why, "high effective volatility") || strings.Contains(why, "higher of source and target") {
+		t.Errorf("why = %q, want the target's high effective volatility only", why)
 	}
 	if strings.Contains(why, "volatile target") || strings.Contains(why, "forces a change") {
 		t.Errorf("why overclaims target volatility or certain propagation: %s", why)
 	}
 }
 
-func TestCouplingAdvisoryExternalVolatilityUsesTarget(t *testing.T) {
+func TestCouplingAdvisoryExternalEdgeAbstains(t *testing.T) {
 	g := graph.Build([]graph.Facts{{
 		Nodes: []graph.Node{
 			{Kind: graph.NodeKindFile, Path: fileA, Language: graph.LangGo},
@@ -66,14 +67,16 @@ func TestCouplingAdvisoryExternalVolatilityUsesTarget(t *testing.T) {
 		"vendor": {Targets: []string{"vendor.example/**"}, Volatility: volHigh},
 	}
 	got := analysis.Analyze(analysis.Input{Graph: g, Policy: p})
-	if edge := onlyEdge(t, got); edge.Distance != relationship.DistanceExternal || edge.Volatility != relationship.VolatilityHigh {
+	edge := onlyEdge(t, got)
+	if edge.Distance != relationship.DistanceExternal || edge.Volatility != relationship.VolatilityHigh {
 		t.Fatalf("external distance/volatility = %s/%s, want declared_external/high", edge.Distance, edge.Volatility)
 	}
-	if len(got.Assessment.AdvisoryCandidates) != 1 {
-		t.Fatalf("advisories = %d, want 1", len(got.Assessment.AdvisoryCandidates))
+	// A declared external target has no declared surface, so it has no
+	// strength: the edge abstains and raises no advisory (not a clean score).
+	if edge.Strength != relationship.StrengthUnknown || edge.Classified.Score.Scored {
+		t.Fatalf("external strength %q, scored %v: want unknown and abstained", edge.Strength, edge.Classified.Score.Scored)
 	}
-	why := got.Assessment.AdvisoryCandidates[0].Why
-	if !strings.Contains(why, "high effective volatility") || strings.Contains(why, "higher of source and target") {
-		t.Fatalf("external why must not attribute volatility to the source: %s", why)
+	if len(got.Assessment.AdvisoryCandidates) != 0 {
+		t.Fatalf("advisories = %d, want 0 for an abstained edge", len(got.Assessment.AdvisoryCandidates))
 	}
 }

@@ -12,15 +12,13 @@ func (p Policy) Covers(glob, path string) bool {
 }
 
 // IsPublic reports whether target, a file or a directory, is in the public
-// part of module. A public glob covers the target itself, or, when the target
-// is a file, the directory that holds it: public: [pkg/chaos] names the package
-// pkg/chaos, so the file pkg/chaos/chaos.go is public and the package
-// pkg/chaos/netem is not. A Go import names a package directory; a TypeScript
-// or Python import names a file. target is in module, as ModuleOf or the
-// caller decided. p has its defaults (WithDefaults): a module that names no
-// public is public as a whole, so every target in it is public, even a package
-// directory its file globs (pkg/foo/*.go) do not match. False for a name that
-// is not a module.
+// part of module, by the rule of InPart. A Go import names a package
+// directory; a TypeScript or Python import names a file. target is in module,
+// as ModuleOf or the caller decided. p has its defaults (WithDefaults): a
+// module that names neither public nor model is public as a whole, so every
+// target in it is public, even a package directory its file globs
+// (pkg/foo/*.go) do not match. A module that names only model has no public
+// part. False for a name that is not a module.
 func (p Policy) IsPublic(module, target string, isFile bool) bool {
 	m, ok := p.Modules[module]
 	if !ok {
@@ -29,7 +27,24 @@ func (p Policy) IsPublic(module, target string, isFile bool) bool {
 	if wholeModule(m) {
 		return true
 	}
-	for _, glob := range m.Public {
+	return InPart(m.Public, target, isFile)
+}
+
+// IsModel reports whether target, a file or a directory, is in the model part
+// of module, by the rule of InPart. False for a name that is not a module,
+// and for a module with no model part.
+func (p Policy) IsModel(module, target string, isFile bool) bool {
+	return InPart(p.Modules[module].Model, target, isFile)
+}
+
+// InPart reports whether target is in the part of a surface that globs
+// declare: a glob covers the target itself, or, when the target is a file,
+// the directory that holds it. public: [pkg/chaos] names the package
+// pkg/chaos, so the file pkg/chaos/chaos.go is in the part and the package
+// pkg/chaos/netem is not. The check and the report's classifier both place a
+// target with it.
+func InPart(globs []string, target string, isFile bool) bool {
+	for _, glob := range globs {
 		if matchGlob(glob, target) || isFile && matchGlob(glob, path.Dir(target)) {
 			return true
 		}

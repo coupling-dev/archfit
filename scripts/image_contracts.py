@@ -447,10 +447,12 @@ def dotnet_extraction_failures(state: dict[str, Any], stderr: str) -> list[str]:
         (s.get("from_module"), s.get("to_module")): s.get("strength")
         for s in state.get("seams", [])
     }
-    # A DTO used across schema 1 public is a contract; an internal-member hint stays intrusive.
+    # The declared surface gives the strength; a type hint never does (surfaces
+    # design 6.1). The fixture's modules declare no surface, so both uses are
+    # contract: the DTO, and the internal member Roslyn reports as intrusive.
     for edge, strength in {
         ("repository", "contracts"): "contract",
-        ("repository", "domain"): "intrusive",
+        ("repository", "domain"): "contract",
     }.items():
         if seams.get(edge) != strength:
             failures.append(f"seam {edge} must be {strength}: {seams.get(edge)}")

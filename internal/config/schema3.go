@@ -28,7 +28,9 @@ import (
 // do not own modules.
 //
 // The report retains its measurement views, not a second policy decoder.
-// Internal module globs stay empty: without a strength hint, scoring abstains.
+// Public and Model carry the declared surface, with the defaults of design
+// 6.1, so the report classifies a dependency with the same strength function
+// as the check. Internal module globs stay empty.
 func ReportConfig(data []byte) (Config, error) {
 	p, err := policyfile.Resolve(data)
 	if err != nil {
@@ -51,6 +53,7 @@ func reportConfig(f policyfile.File, p resolved.Policy) Config {
 		cfg.Modules[name] = policy.ModuleDef{
 			Paths:      m.Paths,
 			Public:     m.Public,
+			Model:      m.Model,
 			Layer:      m.Layer,
 			Subdomain:  string(m.Subdomain),
 			Volatility: string(m.Volatility),

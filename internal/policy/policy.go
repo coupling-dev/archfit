@@ -138,6 +138,7 @@ func cloneTopology(in TopologyView) TopologyView {
 	for name, def := range in.Modules {
 		def.Paths = slices.Clone(def.Paths)
 		def.Public = slices.Clone(def.Public)
+		def.Model = slices.Clone(def.Model)
 		def.Internal = slices.Clone(def.Internal)
 		// slices.Clone keeps nil nil: an absent allowlist stays unconstrained.
 		def.DependsOn = slices.Clone(def.DependsOn)
@@ -190,6 +191,12 @@ func ModelHash(modules map[string]ModuleDef) string {
 			sorted := append([]string(nil), globs...)
 			sort.Strings(sorted)
 			_, _ = io.WriteString(h, strings.Join(sorted, "\x01")+"\x00")
+		}
+		// A model part moves edges between strengths. It is hashed only when
+		// declared, so a model without one keeps the hash it had before the key.
+		if len(def.Model) > 0 {
+			sorted := slices.Sorted(slices.Values(def.Model))
+			_, _ = io.WriteString(h, "model\x01"+strings.Join(sorted, "\x01")+"\x00")
 		}
 		for _, field := range []string{def.Layer, def.Subdomain, def.Volatility, def.Owner, def.DeployUnit, string(def.Role)} {
 			_, _ = io.WriteString(h, field+"\x00")

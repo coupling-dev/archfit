@@ -3,8 +3,9 @@ package classify_test
 // Tests for the inferred-volatility cascade (book Ch9).
 //
 // The cascade raises a module's effective volatility to high when it is
-// strongly coupled (strength ≥ functional) to a high-effective-volatility module.
-// Weak coupling (contract/model) does not propagate. The pass runs to a
+// strongly coupled (strength ≥ functional; from the declared surface, only
+// intrusive) to a high-effective-volatility module. Weak coupling
+// (contract/model) does not propagate. The pass runs to a
 // deterministic fixpoint and is config-gated (VolatilityCascadeEnabled).
 
 import (
@@ -17,7 +18,9 @@ import (
 )
 
 const (
-	cascadeFilePayment       = "payment/svc.go"
+	cascadeFilePayment       = "payment/svc.go" // past payment's surface: intrusive
+	cascadePaymentAPI        = "payment/api/svc.go"
+	cascadePaymentModel      = "payment/model/svc.go"
 	cascadeFileNotifications = "notifications/svc.go"
 	cascadeFileGateway       = "gateway/svc.go"
 	cascadeProbeFile         = "probe/x.go"
@@ -59,7 +62,10 @@ func probeKey(to string) string {
 // cascadeModules is the module map used across TestVolatilityCascade cases.
 // subdomainCore/Supporting/Generic constants are declared in classify_test.go (same package).
 var cascadeModules = map[string]policy.ModuleDef{
-	"payment":       {Paths: []string{"payment/**"}, Subdomain: subdomainCore},             // high
+	"payment": {
+		Paths: []string{"payment/**"}, Public: []string{"payment/api/**"}, Model: []string{"payment/model/**"},
+		Subdomain: subdomainCore, // high
+	},
 	"notifications": {Paths: []string{"notifications/**"}, Subdomain: subdomainSupporting}, // medium
 	"gateway":       {Paths: []string{"gateway/**"}, Subdomain: subdomainGeneric},          // low
 	"unknown":       {Paths: []string{"unknown/**"}},                                       // undeclared
@@ -88,7 +94,7 @@ func TestVolatilityCascade(t *testing.T) {
 			wantVol:        coupling.VolatilityLow, // supporting→low (book Table 9.1)
 		},
 		{
-			name:           "enabled functional: supporting raised to high",
+			name:           "enabled, past the surface: supporting raised to high",
 			cascadeEnabled: true,
 			from:           cascadeFileNotifications,
 			to:             cascadeFilePayment,
@@ -97,28 +103,19 @@ func TestVolatilityCascade(t *testing.T) {
 			wantVol:        coupling.VolatilityHigh,
 		},
 		{
-			name:           "enabled symmetric: supporting raised to high",
+			name:           "enabled, a type hint is evidence: an intrusive hint on the public part does not propagate",
 			cascadeEnabled: true,
 			from:           cascadeFileNotifications,
-			to:             cascadeFilePayment,
-			hint:           string(coupling.StrengthSymmetric),
-			probeTarget:    cascadeFileNotifications,
-			wantVol:        coupling.VolatilityHigh,
-		},
-		{
-			name:           "enabled intrusive: supporting raised to high",
-			cascadeEnabled: true,
-			from:           cascadeFileNotifications,
-			to:             cascadeFilePayment,
+			to:             cascadePaymentAPI,
 			hint:           string(coupling.StrengthIntrusive),
 			probeTarget:    cascadeFileNotifications,
-			wantVol:        coupling.VolatilityHigh,
+			wantVol:        coupling.VolatilityLow,
 		},
 		{
 			name:           "enabled contract: does NOT propagate",
 			cascadeEnabled: true,
 			from:           cascadeFileNotifications,
-			to:             cascadeFilePayment,
+			to:             cascadePaymentAPI,
 			hint:           string(coupling.StrengthContract),
 			probeTarget:    cascadeFileNotifications,
 			wantVol:        coupling.VolatilityLow, // supporting→low (book Table 9.1); contract does not cascade
@@ -127,7 +124,7 @@ func TestVolatilityCascade(t *testing.T) {
 			name:           "enabled model: does NOT propagate",
 			cascadeEnabled: true,
 			from:           cascadeFileNotifications,
-			to:             cascadeFilePayment,
+			to:             cascadePaymentModel,
 			hint:           string(coupling.StrengthModel),
 			probeTarget:    cascadeFileNotifications,
 			wantVol:        coupling.VolatilityLow, // supporting→low (book Table 9.1); model does not cascade
@@ -144,7 +141,7 @@ func TestVolatilityCascade(t *testing.T) {
 			wantVol:        coupling.VolatilityHigh,
 		},
 		{
-			name:           "generic raised to high via functional to core",
+			name:           "generic raised to high via a use past the surface of core",
 			cascadeEnabled: true,
 			from:           cascadeFileGateway,
 			to:             cascadeFilePayment,
@@ -153,7 +150,7 @@ func TestVolatilityCascade(t *testing.T) {
 			wantVol:        coupling.VolatilityHigh,
 		},
 		{
-			name:           "undeclared raised to high via functional to core",
+			name:           "undeclared raised to high via a use past the surface of core",
 			cascadeEnabled: true,
 			from:           "unknown/svc.go",
 			to:             cascadeFilePayment,
@@ -194,10 +191,10 @@ func TestVolatilityCascade_UsesResolvedStrength(t *testing.T) {
 		to   string
 	}{
 		{
-			name: "config internal glob",
+			name: "past the declared public part",
 			cfg: classify.Config{
 				Modules: map[string]policy.ModuleDef{
-					"payment":       {Paths: []string{"payment/**"}, Internal: []string{"payment/internal/**"}, Subdomain: subdomainCore},
+					"payment":       {Paths: []string{"payment/**"}, Public: []string{"payment/api/**"}, Subdomain: subdomainCore},
 					"notifications": {Paths: []string{"notifications/**"}, Subdomain: subdomainSupporting},
 				},
 				VolatilityCascadeEnabled: true,
@@ -229,9 +226,9 @@ func TestVolatilityCascade_UsesResolvedStrength(t *testing.T) {
 // volatility. This is the book Ch9 cascade shape; it used to stop at one hop.
 func TestVolatilityCascade_TransitiveFixpoint(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
-		modNameA: {Paths: []string{"a/**"}, Subdomain: subdomainSupporting}, // low base (book Table 9.1)
-		modNameB: {Paths: []string{"b/**"}, Subdomain: subdomainSupporting}, // low base (book Table 9.1)
-		"modC":   {Paths: []string{"c/**"}, Subdomain: subdomainCore},       // high base
+		modNameA: {Paths: []string{"a/**"}, Subdomain: subdomainSupporting},                               // low base (book Table 9.1)
+		modNameB: {Paths: []string{"b/**"}, Public: []string{"b/api/**"}, Subdomain: subdomainSupporting}, // low base
+		"modC":   {Paths: []string{"c/**"}, Public: []string{"c/api/**"}, Subdomain: subdomainCore},       // high base
 	}
 	const (
 		fileA = "a/x.go"
@@ -240,8 +237,8 @@ func TestVolatilityCascade_TransitiveFixpoint(t *testing.T) {
 	)
 	probe := cascadeProbeFile
 	g := buildGraph([][3]string{
-		{fileA, fileB, string(coupling.StrengthFunctional)}, // A→B: A raised after B is raised
-		{fileB, fileC, string(coupling.StrengthFunctional)}, // B→C: B raised by core C
+		{fileA, fileB, ""}, // A→B past B's surface: A raised after B is raised
+		{fileB, fileC, ""}, // B→C past C's surface: B raised by core C
 		{probe, fileA, ""},
 		{probe, fileB, ""},
 	})

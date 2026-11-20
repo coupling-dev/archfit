@@ -66,6 +66,7 @@ func (f File) project() resolved.Policy {
 		p.Modules[name] = resolved.Module{
 			Paths:      m.Paths,
 			Public:     m.Public,
+			Model:      m.Model,
 			Volatility: resolved.Volatility(m.Volatility),
 			Subdomain:  resolved.Subdomain(m.Subdomain),
 			Layer:      m.Layer,

@@ -56,9 +56,9 @@ func TestComputeVolatilityProvenance(t *testing.T) {
 	t.Run("cascade-raised module counted on top of its base source", func(t *testing.T) {
 		declared := map[string]policy.ModuleDef{
 			"caller": {Paths: []string{pathsA}, Owner: ownerTeamX, Volatility: cfgVolLow},
-			"core":   {Paths: []string{pathsB}, Owner: ownerTeamX, Volatility: extVolHigh},
+			"core":   {Paths: []string{pathsB}, Public: []string{publicB}, Owner: ownerTeamX, Volatility: extVolHigh},
 		}
-		e := graph.Edge{
+		e := graph.Edge{ // past core's public part: intrusive, which cascades
 			From:         "package:services/a/x",
 			To:           "package:services/b/y",
 			Kind:         graph.EdgeKindDependsOn,

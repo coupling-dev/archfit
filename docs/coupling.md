@@ -13,28 +13,34 @@ report fields.
 Strength measures how much knowledge crosses a boundary. Lower ordinals mean
 weaker coupling.
 
-| Strength     | Ordinal | Meaning                                                          |
-| ------------ | ------: | ---------------------------------------------------------------- |
-| `contract`   |       1 | The dependency uses an interface or declared `public:` contract. |
-| `model`      |       3 | The dependency uses a shared data model.                         |
-| `functional` |       8 | The dependency calls a non-public module surface.                |
-| `symmetric`  |       9 | Both modules contain duplicated knowledge.                       |
-| `intrusive`  |      10 | The dependency reaches a target declared `internal:`.            |
+| Strength     | Ordinal | Meaning                                                           |
+| ------------ | ------: | ----------------------------------------------------------------- |
+| `contract`   |       1 | The dependency uses the target's public part (`public`).          |
+| `model`      |       3 | The dependency uses the target's model part (`model`).            |
+| `functional` |       8 | Shared business responsibility. An import does not show it.       |
+| `symmetric`  |       9 | Both modules hold the same knowledge: a copy (`duplication`).     |
+| `intrusive`  |      10 | The dependency uses anything else in the target: past its surface. |
 
-Strength follows declared surfaces and extractor evidence.
-An `internal:` match is authoritative and means `intrusive`. A `public:` match
-means at least `contract`.
-Connascence does not set strength.
+One rule gives a dependency between two modules its strength: where the target
+is declared in the surface of its module. The check, `can`, a request and the
+report use the same rule, so one dependency has one strength and one balance.
 
-A callable hint does not raise a `public:` target above `contract`. Data evidence
-can raise it to `model` for a concrete non-DTO type, field, variable, constant,
-or method on a concrete receiver. A DTO remains `contract`. An `intrusive` hint
-raises it to `intrusive`: a C# `internal` member used through
-`InternalsVisibleTo`. Intrusive coupling integrates through details not meant for
-integration. A `public:` glob declares a file's intended surface, so it cannot
-make such a use a contract. An
-`internal:` match stays `intrusive` regardless of hints. Without sufficient evidence, strength is
-unknown and the scorer abstains.
+- A path in `public` is `contract`, a path in `model` is `model`, and any other
+  path of the module is `intrusive`.
+- A module that declares neither `public` nor `model` is public as a whole. So
+  is a module the report adds on its own (a Go workspace member, a Rust module
+  that no policy module covers): it declares nothing.
+- A path matches a part as the check matches it: a glob covers the path, or,
+  for a file, the directory that holds it (`public: [pkg/api]` covers
+  `pkg/api/client.ts`, not `pkg/api/deep/x.ts`).
+- A dependency inside one module, or to a path in no module, has no strength:
+  the report abstains.
+
+Type facts that an extractor reads (Go `go/types`, .NET Roslyn symbols, a
+Python private name) never set or change a strength, and connascence does not
+either. The extractors still read them; the report does not show them. A C#
+`internal` member used through `InternalsVisibleTo` in a public file stays
+`contract`, because the check cannot see it and one dependency has one number.
 
 ### Distance
 
@@ -59,15 +65,13 @@ Volatility measures the expected rate of change. The ordinals are `frozen` 1,
 remains unrated. Reports identify this gap and can recommend `declare_volatility`.
 
 Explicit `volatility:` takes precedence over `subdomain:`. `core` means high,
-`supporting` and `generic` mean low. Contract, model, and intrusive edges use the
-target module's volatility. Functional and symmetric edges use the higher
+`supporting` and `generic` mean low. Every dependency uses the target module's
+volatility: the upstream module decides. A copy (`symmetric`) uses the higher
 volatility of both modules. The optional cascade propagates volatility through the module graph to
 a fixed point.
 
 Finding explanations use **effective volatility**, not a claim about target churn.
-For internal functional and symmetric coupling, a high-volatility source can produce a
-high-volatility edge even when its target is declared low. Declared external systems
-use their own target volatility. Cascade can also raise
+Declared external systems use their own target volatility. Cascade can also raise
 a declared value. `State.evidence.components` distinguishes asserted, assumed,
 assessed, and unknown component origins. These origins are not attestations or a
 per-seam provenance scalar. A seam aggregates edges, so its
@@ -83,8 +87,8 @@ balance = max(|S − D|, 10 − V) + 1
 ```
 
 The result is an integer from 1 to 10. Higher values mean better balance.
-Unknown strength or distance abstains. Same-module edges appear in
-`local_coupling`. They do not enter `coupling_balance`.
+Unknown strength or distance abstains. Same-module edges have no strength, so
+they abstain in `local_coupling` and do not enter `coupling_balance`.
 
 The score maps to these severity bands:
 
@@ -98,13 +102,14 @@ The score maps to these severity bands:
 
 ### Examples
 
-An interface call across a module boundary has S=1, D=9, and V=10. Its balance
-is 9, with band `none`.
+A use of the public part of a module across its boundary has S=1, D=9, and
+V=10. Its balance is 9, with band `none`.
 
-A call into an internal package across a module boundary has S=10, D=9, and
-V=10. Its balance is 2, with band `critical`.
+A use past the surface of a module with V=10 has S=10, D=9. Its balance is 2,
+with band `critical`.
 
-The same internal call into a module with V=3 has balance 8, with band `low`.
+The same use past the surface of a module with V=3 has balance 8, with band
+`low`.
 
 ## The `coupling` rule
 
@@ -113,30 +118,24 @@ is not released yet. The rule judges a dependency a change adds: new knowledge
 across a module boundary needs a balance of at least 7. The balance uses the
 formula above at D=9 and is shown as `9/10 (min 7)`.
 
-| Volatility that applies | Use of the public part | Use past the public part | Copy |
-| ----------------------- | ---------------------: | -----------------------: | ---: |
-| `low`                   |                 9 or 8 |                        8 |    8 |
-| `medium`                |                 9 or 7 |                      5 ✗ |  5 ✗ |
-| `high`                  |                 9 or 7 |                      2 ✗ |  1 ✗ |
+| Target volatility | Public part (`contract`) | Model part (`model`) | Past the surface (`intrusive`) | Copy |
+| ----------------- | -----------------------: | -------------------: | -----------------------------: | ---: |
+| `low`             |                        9 |                    8 |                              8 |    8 |
+| `medium`          |                        9 |                    7 |                            5 ✗ |  5 ✗ |
+| `high`            |                        9 |                    7 |                            2 ✗ |  1 ✗ |
 
-- A use of the public part is `contract` (9) or `model` (8 or 7). A use past it
-  is `functional`, a copy `symmetric`.
-- The volatility that applies is the target's for a use of the public part, and
-  the higher of the two modules for a use past it and for a copy.
-- An `intrusive` use reaches past the public part, so it also takes the higher
-  of the two: a high-volatility source into a low target gives 2. This differs
-  from the report's edge classification above, which keeps the target's
-  volatility for intrusive edges. The rule lets a use past the public part
-  happen only into a stable module, so a volatile source counts too.
+- The strength comes from the declared surface of the target, as above.
+- The volatility that applies is the target's for every use, and the higher of
+  the two modules for a copy.
 - The rule uses the declared volatility. The cascade is not used, because with
   it one new dependency changes the balance of code the change did not touch.
-- The `public` globs alone tell a use of the public part from a use past it. Both
-  kinds of public use pass at every volatility, so the check needs no type
-  analysis.
+- The `public` and `model` globs alone tell the three uses apart, so the check
+  needs no type analysis. With `min_balance: 8`, a use of the model part passes
+  only into a `low` module.
 
-In words: a module may use the public part of a module it is allowed to depend
-on. It may reach past the public part only when neither module is more volatile
-than `low`.
+In words: a module may use the public part and the model part of a module it
+is allowed to depend on. It may reach past the surface only into a `low`
+module.
 
 ## Distributed-monolith seam measurements
 
@@ -144,12 +143,12 @@ The report groups dependencies into ordered module pairs, called seams. One
 seam can contain many dependency edges. A seam qualifies as a distributed-monolith
 measurement when at least one import edge meets all of these conditions:
 
-- Its strength is `functional`, `intrusive`, or `symmetric`.
+- Its strength is `intrusive`.
 - It crosses a module boundary.
 - Its effective volatility is `high` and comes from a declaration, inheritance,
   or the enabled cascade.
-- Its source is not a `composition_root`, `generated`, or `test` role, unless
-  the edge is intrusive.
+- Its source role does not matter: a `composition_root`, `generated`, or `test`
+  role never excuses an intrusive use.
 
 Medium volatility does not qualify. Qualification is separate from
 the balance score. Owner and deploy labels do not change D=9 or make a seam
@@ -165,15 +164,16 @@ measurements. See [metrics](metrics.md#deltas-and-gates) and [rules](rules.md).
 The `duplication` rule checks identical literals added across module boundaries.
 It is separate from import-edge scoring. See [rules](rules.md) for its limits.
 
-Go uses `go/types` data for report hints. .NET uses Roslyn compiler symbols from the `archfit-roslyn` helper.
+Go reads `go/types` data and .NET reads Roslyn compiler symbols from the
+`archfit-roslyn` helper. Both are evidence on the edge; neither sets a strength.
 
 Published-language coupling between services has no type edge and is not
 measured in any language: message records duplicated in each service, a
 `.proto` that another project compiles directly, and HTTP or YARP runtime calls.
 These stay outside the dependency graph.
 
-TypeScript and Python imports have unknown strength unless declared `public:`
-or `internal:` surfaces classify the target. Runtime async evidence is report-only. It does not
+Every language gets its strength from the declared surface; a declared
+external system has none and abstains. Runtime async evidence is report-only. It does not
 change distance or gate results. Unknown facts can lower confidence or leave a
 dimension partial. See [evidence](evidence.md) for claim boundaries and
 [configuration](configuration.md) for policy and extractor settings.
