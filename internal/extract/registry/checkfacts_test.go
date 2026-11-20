@@ -212,7 +212,7 @@ func TestReadCheckTypeScriptAndPython(t *testing.T) {
 }
 
 // TestReadCheckWithoutAstGrep: TypeScript, Python and their literals are
-// unknown items of cause tool, about the whole tree; Go is read in full.
+// unknown items of cause tool; Go is read in full.
 func TestReadCheckWithoutAstGrep(t *testing.T) {
 	t.Parallel()
 	root := t.TempDir()
@@ -225,22 +225,18 @@ func TestReadCheckWithoutAstGrep(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	reasons := make([]string, 0, len(got.Unknown))
+	var paths []string
 	for _, u := range got.Unknown {
-		if u.File != "" || u.Cause != evidence.CauseTool || u.Fix != fixAstGrep {
-			t.Errorf("unknown %+v, want a whole-tree tool item that names ast-grep", u)
+		if u.Cause != evidence.CauseTool || u.Fix != fixAstGrep {
+			t.Errorf("unknown %+v, want a tool item that names ast-grep", u)
 		}
-		reasons = append(reasons, u.Reason)
+		if u.File != "" {
+			paths = append(paths, u.File)
+		}
 	}
-	want := []string{
-		"ast-grep is not installed; it reads TypeScript and JavaScript imports",
-		"ast-grep is not installed; it reads Python imports",
-		"ast-grep is not installed; it reads the literals of typescript, python",
-	}
-	slices.Sort(want)
-	slices.Sort(reasons)
-	if !slices.Equal(reasons, want) {
-		t.Errorf("reasons = %q, want %q", reasons, want)
+	want := []string{"gen/g.ts", "src/app/__init__.py", "src/app/x.py", "src/app/y.py", "web/a.ts", "web/b.ts"}
+	if !slices.Equal(paths, want) {
+		t.Errorf("unread paths = %q, want %q", paths, want)
 	}
 	if !slices.Equal(got.Sources, []string{fileMainGo}) || len(got.Literals) != 1 || got.Literals[0].Value != "a go literal" {
 		t.Errorf("Go facts = %q, %+v; want main.go and its literal", got.Sources, got.Literals)
@@ -426,9 +422,13 @@ func TestReadCheckRustWithoutCargo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got.Imports) != 0 || len(got.Unknown) != 1 || got.Unknown[0].Cause != evidence.CauseTool ||
-		got.Unknown[0].Fix != "install Rust: https://rustup.rs" {
-		t.Errorf("facts = %s; want one tool item that names Rust", jsonOf(got))
+	if len(got.Imports) != 0 || len(got.Unknown) != 2 {
+		t.Fatalf("facts = %s; want two unread sources and no imports", jsonOf(got))
+	}
+	for _, u := range got.Unknown {
+		if u.Cause != evidence.CauseTool || u.File == "" || u.Fix != "install Rust: https://rustup.rs" {
+			t.Errorf("unexpected unread source: %+v", u)
+		}
 	}
 }
 

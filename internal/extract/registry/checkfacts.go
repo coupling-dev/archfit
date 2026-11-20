@@ -307,7 +307,7 @@ func dirOrDot(dir string) string {
 func tsCheckFacts(ctx context.Context, runner toolrun.Runner, root string, cfg evidenceports.ExtractConfig) (evidence.CheckFacts, error) {
 	facts, err := tsimports.Extract(ctx, runner, root, tsimports.Config{Exclude: cfg.Exclusions})
 	if errors.Is(err, tsimports.ErrNoAstGrep) {
-		return noAstGrep("TypeScript and JavaScript imports"), nil
+		return missingTool(facts.Sources, "ast-grep is not installed; it reads TypeScript and JavaScript imports", fixAstGrep), nil
 	}
 	if err != nil {
 		return evidence.CheckFacts{}, err
@@ -342,7 +342,7 @@ func tsCheckFacts(ctx context.Context, runner toolrun.Runner, root string, cfg e
 func pyCheckFacts(ctx context.Context, runner toolrun.Runner, root string, cfg evidenceports.ExtractConfig) (evidence.CheckFacts, error) {
 	facts, err := pyimports.Extract(ctx, runner, root, pyimports.Config{Package: cfg.PyPackage, Exclude: cfg.Exclusions})
 	if errors.Is(err, pyimports.ErrNoAstGrep) {
-		return noAstGrep("Python imports"), nil
+		return missingTool(facts.Sources, "ast-grep is not installed; it reads Python imports", fixAstGrep), nil
 	}
 	if err != nil {
 		return evidence.CheckFacts{}, err
@@ -362,12 +362,6 @@ func pyCheckFacts(ctx context.Context, runner toolrun.Runner, root string, cfg e
 		}
 	}
 	return f, nil
-}
-
-func noAstGrep(what string) evidence.CheckFacts {
-	return evidence.CheckFacts{Unknown: []evidence.UnknownItem{{
-		Reason: "ast-grep is not installed; it reads " + what, Cause: evidence.CauseTool, Fix: fixAstGrep,
-	}}}
 }
 
 // rustCheckFacts reads the crate dependencies of Cargo.toml with cargo
@@ -443,7 +437,23 @@ func dotnetCheckFacts(ctx context.Context, runner toolrun.Runner, root string, c
 }
 
 func toolMissing(sources []string, reason, fix string) evidence.CheckFacts {
-	return evidence.CheckFacts{Sources: sources, Unknown: []evidence.UnknownItem{{Reason: reason, Cause: evidence.CauseTool, Fix: fix}}}
+	f := missingTool(sources, reason, fix)
+	f.Sources = sources
+	return f
+}
+
+// missingTool records the paths found by inventory, not by analysis.
+func missingTool(sources []string, reason, fix string) evidence.CheckFacts {
+	f := evidence.CheckFacts{}
+	u := evidence.UnknownItem{Reason: reason, Cause: evidence.CauseTool, Fix: fix}
+	if len(sources) == 0 {
+		f.Unknown = []evidence.UnknownItem{u}
+	}
+	for _, file := range sources {
+		u.File = file
+		f.Unknown = append(f.Unknown, u)
+	}
+	return f
 }
 
 // edgeImports turns depends_on edges into imports: target places an edge's

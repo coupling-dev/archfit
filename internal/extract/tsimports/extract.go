@@ -82,7 +82,7 @@ type UnknownItem struct {
 
 // Facts are the imports of a tree.
 type Facts struct {
-	Sources []string // every parsed file outside node_modules and .git, sorted
+	Sources []string // every discovered source file outside node_modules and .git, sorted
 	Imports []Import // sorted by file, line and specifier
 	// Unknown lists the unread tsconfigs that govern a source file, sorted.
 	Unknown []UnknownItem
@@ -145,7 +145,7 @@ func Extract(ctx context.Context, runner toolrun.Runner, root string, cfg Config
 		return Facts{}, err
 	}
 	if _, ok := runner.Detect(ctx, astGrep); !ok {
-		return Facts{}, ErrNoAstGrep
+		return Facts{Sources: files}, ErrNoAstGrep
 	}
 	specs, err := parse(ctx, runner, root, files)
 	if err != nil {

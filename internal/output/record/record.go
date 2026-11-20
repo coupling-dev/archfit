@@ -21,9 +21,8 @@
 // path and no line. `next` is "fix the code", a command, "wait for an owner:
 // #n", or a short instruction. A `can` answer has no status line.
 //
-// The renderer prints the producer's text as given: the status line is the
-// result's summary, and dates, counts and steps are already in the text. It
-// decides nothing, so the JSON and the text of one result cannot disagree.
+// The renderer prints the producer's verdict and steps as given. Repeated
+// tool reasons may share a text entry; JSON retains every location.
 // Digests and the engine version appear only with Options.Verbose (design 5).
 // A policy no workflow protects adds the line "policy: not protected" to every
 // result and answer (design 9.4).
@@ -59,7 +58,7 @@ func Result(w io.Writer, r result.Result, opts Options) error {
 		writeHead(&b, location(e.Path, e.Line), e.Rule, e.What)
 		writeDetails(&b, e.Why, e.Instead, e.Balance, &e.Next)
 	}
-	for _, u := range r.Unknown {
+	for _, u := range groupToolReasons(r.Unknown) {
 		writeHead(&b, location(u.Path, u.Line), string(u.Cause), u.What)
 		writeDetails(&b, u.Why, "", nil, &u.Next)
 	}
@@ -70,6 +69,52 @@ func Result(w io.Writer, r result.Result, opts Options) error {
 	}
 	_, err := io.WriteString(w, b.String())
 	return err
+}
+
+// groupToolReasons keeps the first occurrence of each equivalent tool reason
+// in place. Each group retains its next step and shows at most three paths.
+func groupToolReasons(unknown []result.Unknown) []result.Unknown {
+	if len(unknown) < 2 {
+		return unknown
+	}
+	const maxPaths = 3
+	type group struct {
+		index int
+		count int
+		paths [maxPaths]string
+	}
+	groups := map[result.Unknown]group{}
+	out := make([]result.Unknown, 0, len(unknown))
+	for _, u := range unknown {
+		if u.Cause != result.CauseTool || u.Path == "" {
+			out = append(out, u)
+			continue
+		}
+		key := u
+		key.Path, key.Line = "", 0
+		g, ok := groups[key]
+		if !ok {
+			g.index = len(out)
+			out = append(out, u)
+		}
+		if g.count < maxPaths {
+			g.paths[g.count] = location(u.Path, u.Line)
+		}
+		g.count++
+		groups[key] = g
+	}
+	for reason, g := range groups {
+		if g.count < 2 {
+			continue
+		}
+		paths := strings.Join(g.paths[:min(maxPaths, g.count)], ", ")
+		if g.count > maxPaths {
+			paths += ", ..."
+		}
+		reason.What += " (" + strconv.Itoa(g.count) + " paths: " + paths + ")"
+		out[g.index] = reason
+	}
+	return out
 }
 
 // Answer writes the answer of `archfit can`: one line, then its details.

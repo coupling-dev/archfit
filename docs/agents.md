@@ -68,7 +68,9 @@ uninstall the plugin before using the repository hooks. `doctor --fix` also
 installs Codex and git hooks; it will reinstall the Claude hooks when Claude
 is detected.
 
-To install repository hooks instead, run this in each checkout:
+`archfit init` installs the Claude Code and Codex repository hooks by default. Use `archfit init --no-hooks` if you use the plugin or do not want repository hooks. This flag leaves any existing hooks in place.
+
+To repair hooks for the detected harnesses or install a git pre-commit hook, run:
 
 ```sh
 archfit doctor --fix
@@ -100,9 +102,7 @@ git error) shows why and never stops the agent or the commit.
 The `post-tool-use` hook answers as `can` does: it does not see a cycle the
 import would close. The `stop` hook runs `check`, which sees it.
 
-Codex runs a project hook only after you trust it. After `doctor --fix`, start
-Codex and approve the hooks, or run it once with
-`--dangerously-bypass-hook-trust`.
+Codex runs a project hook only after you trust it. Start Codex and approve the hooks.
 
 Check the hooks with `archfit doctor`. It lists the harnesses it finds and
 each repository hook as `active` or `inactive` (not installed, switched off by
