@@ -4,74 +4,55 @@
 [![Release](https://img.shields.io/github/v/tag/coupling-dev/archfit?label=version&sort=semver)](https://github.com/coupling-dev/archfit/tags)
 [![License](https://img.shields.io/github/license/coupling-dev/archfit)](LICENSE)
 
-**archfit checks whether code changes follow the architecture declared for a repository.**
+**Tests can pass while a change adds a forbidden dependency, a new cycle, or a copy of code another module owns.**
 
-Tests can pass while a change adds a forbidden dependency, a new cycle, or a copy of code another module owns. archfit reads the imports and literals of the change, applies the rules of your policy, `.archfit.yaml`, and gives the change one status: `pass`, `fail`, or `unknown`. Use the same check locally, in agent hooks, and in continuous integration (CI).
+archfit checks each change against the architecture policy of your repository, `.archfit.yaml`. When a rule is in your way, you ask an owner: ask once, and the answer is remembered for the next change.
+
+![The archfit loop: a change fails the check, the author asks, the owner answers with one policy line, the check passes, and the next change does not ask](docs/assets/hero-loop.svg)
+
+A real run in [pumba](https://github.com/alexei-led/pumba): [#414](https://github.com/alexei-led/pumba/pull/414) adds the dependency and fails the check, [#415](https://github.com/alexei-led/pumba/issues/415) is the request, and [#418](https://github.com/alexei-led/pumba/pull/418) is the owner's answer, one line in `.archfit.yaml`. The owner answers in the Archfit App. Without the App, `archfit request` prints the request for you to show an owner.
+
+## What the check says
+
+This record comes from a deliberate probe on archfit's own repository, at commit `cebdbc57`: one import from `internal/scope` to `internal/policy`, added to show the record and never committed.
 
 ```text
 $ archfit check
-pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util is not an allowed dependency
+internal/scope/scope.go:12: graph: analysis-scope -> architecture-policy is not an allowed dependency
   why: a new dependency between modules needs an owner
   balance: 9/10 (min 7)
   next: archfit request -m "<why you need it>"     (do not copy the code)
-archfit: fail, 1 error
+internal/scope/scope.go:12: layers: analysis-scope (support) -> architecture-policy (core) goes against the layer order
+  why: a module may depend only on its own layer or an inner one
+  next: fix the code
+archfit: fail, 2 errors
+policy: not protected
 ```
 
-Each error says where, which rule, and what is wrong; then why, what to do instead, and the next step. The status line comes after the errors.
+Each error says where, which rule, and what is wrong; then why, and the next step. The status line comes after the errors: `pass`, `fail`, or `unknown`, with exit code `0`, `1`, or `2`. The check compares the change with its target branch and lists only the errors the change adds. `policy: not protected` means no workflow runs the Archfit Action, so the result is a local guide.
 
-## How it works
-
-```mermaid
-flowchart LR
-    S[The change] --> C[archfit check]
-    P[.archfit.yaml] --> C
-    C -->|pass| H[Done]
-    C -->|fail| F[Fix the code<br/>or ask an owner]
-    C -->|unknown| U[Restore what<br/>the record names]
-
-    classDef neutral fill:#f1f5f9,stroke:#64748b,color:#0f172a
-    classDef process fill:#e0f2fe,stroke:#0284c7,color:#082f49
-    classDef pass fill:#dcfce7,stroke:#16a34a,color:#14532d
-    classDef unknown fill:#fef3c7,stroke:#d97706,color:#451a03
-    classDef fail fill:#fee2e2,stroke:#dc2626,color:#7f1d1d
-    class S,P neutral
-    class C process
-    class H pass
-    class U unknown
-    class F fail
-```
-
-The check compares the change with its target branch and lists only the errors the change adds. An error that existed before is the owners' work, not the work of an unrelated change.
-
-## Install and start
-
-Install the CLI with Homebrew:
+## Start
 
 ```sh
 brew install coupling-dev/tap/archfit
+archfit init     # write .archfit.yaml from the code; today's errors become exceptions
+archfit check    # the change: pass, fail, or unknown
 ```
 
-Or download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). With Go installed:
+Read the policy `init` writes, then open a pull request with it. [Getting started](docs/getting-started.md) has the other ways to install, the tools each language needs, the agent hooks, and CI.
 
-```sh
-go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
-```
+## What archfit is and is not
 
-Run these commands from your repository:
+archfit is a command-line check of one change against one policy file. The policy names the modules, their allowed dependencies, their layers, and your rules. archfit reads the imports and literals of Go, TypeScript, JavaScript, Python, Rust, and .NET code. The same command runs on your machine, in agent hooks, and in CI.
 
-```sh
-archfit doctor --fix          # this checkout: the tools archfit needs, and the hooks
-archfit init                  # write .archfit.yaml and the block for agents
-archfit rules                 # the rules for the files you change
-archfit can pkg/tc pkg/util   # before a new dependency between modules
-archfit check                 # the change: pass, fail, or unknown
-archfit request -m "<why>"    # when a rule is in your way: ask an owner
-archfit report                # for owners: the state of the repository
-```
+archfit is not a test framework, a linter for style, or a code reviewer. It does not run your tests. A missing tool makes the check `unknown` for the code it cannot read, never a pass.
 
-Read the policy `init` writes, then open a pull request with it. Run `archfit check` in CI. See [Getting started](docs/getting-started.md).
-
-The Docker image includes Node, Python, Rust, the .NET SDK, ast-grep, cargo-modules, and the Roslyn helper (`archfit-roslyn`). Go is build-only. Deeper analyzers remain configuration-controlled. See [Getting started](docs/getting-started.md#use-docker) for details.
+|                    | archfit                                           | [ArchUnit](https://www.archunit.org/) | [import-linter](https://import-linter.readthedocs.io/) |
+| ------------------ | ------------------------------------------------- | ------------------------------------- | ------------------------------------------------------ |
+| Languages          | Go, TypeScript, JavaScript, Python, Rust, .NET    | Java and other JVM languages          | Python                                                 |
+| Rules live in      | One policy file, `.archfit.yaml`                  | Java test code                        | A configuration file of import contracts               |
+| Runs as            | A command on the change against its target branch | Tests in your test runner             | A command on the import graph                          |
+| A rule in your way | `archfit request` asks an owner                   | Change the code or the test           | Change the code or the contract                        |
 
 ## Documentation
 
