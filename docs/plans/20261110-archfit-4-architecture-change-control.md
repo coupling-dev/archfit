@@ -1,4 +1,4 @@
-# Archfit 4: architecture change control
+# Archfit change-control design
 
 Date: 2026-11-10. Status: revision 5. Every open decision has an owner answer of 2026-11-10
 (section 18). It includes two independent reviews (design and usability) and a research note

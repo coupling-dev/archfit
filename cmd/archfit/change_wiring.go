@@ -270,13 +270,11 @@ func (co checkout) saveLast(tree string, doc []byte) error {
 	return os.Rename(tmp.Name(), file)
 }
 
-// readPolicy reads one policy file into the form changecheck uses. A version
-// 2 file is found, not valid, and marked.
+// readPolicy reads one policy file into the form changecheck uses.
 func readPolicy(data []byte) changecheck.PolicyFile {
 	p, err := policyfile.Resolve(data)
 	return changecheck.PolicyFile{
 		Found: true, Digest: resolved.Digest(data), Policy: p, Err: err,
-		Version2: errors.Is(err, policyfile.ErrVersion2),
 	}
 }
 

@@ -30,13 +30,13 @@ func healthWarnings(diag result.Result, gaps []evidence.CoverageGap, topology po
 
 	if edges := diag.ClassifiedEdges; edges != nil {
 		if edges.Total > 0 && edges.Scored == 0 {
-			warn(fmt.Sprintf("0 of %d edges scored — coupling strength is unknown\n  → run: archfit config update -c %q", edges.Total, configPath))
+			warn(fmt.Sprintf("0 of %d edges scored — coupling strength is unknown\n  → run: archfit doctor", edges.Total))
 		}
 		if edges.Scored == 0 && edges.Abstained > 0 && edges.External == 0 {
-			warn(fmt.Sprintf("all %d cross-module edges have unknown strength\n  → run: archfit config enrich abstained -c %q", edges.Abstained, configPath))
+			warn(fmt.Sprintf("all %d cross-module edges have unknown strength\n  → run: archfit doctor", edges.Abstained))
 		}
 		if pythonAllEdgesExternal(diag.ToolCoverage, edges) {
-			warn(fmt.Sprintf("no internal edges found — module paths may not match source layout\n  → run: archfit config update -c %q", configPath))
+			warn("no internal edges found — module paths may not match source layout\n  → check modules.<name>.paths in .archfit.yaml, then run: archfit check")
 		}
 	}
 

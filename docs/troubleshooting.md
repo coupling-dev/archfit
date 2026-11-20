@@ -14,11 +14,11 @@ Unknown commands and flags also exit `2`. Missing evidence never passes. See [Co
 
 ## Missing or version 2 policy
 
-Run `archfit init` in the repository. It creates a version 3 policy or converts an Archfit 3 one. Read the result, then open a pull request with it. `check` no longer runs an Archfit 3 check.
+Remove a version 2 `.archfit.yaml` first. Run `archfit init` in the repository. It creates a version 3 policy. Read the result, then open a pull request with it. `check` no longer runs an Archfit 3 check.
 
 A path glob that matches nothing, an unknown module, or a malformed rule stops the check. Workers must not change the policy to pass: use `archfit request -m "<why>"` when the approved architecture must change.
 
-See [Migration](migration.md) and [Configuration](configuration.md).
+See [Configuration](configuration.md).
 
 ## Policy differs from the target
 

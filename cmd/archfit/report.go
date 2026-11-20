@@ -38,7 +38,7 @@ The state judges the whole tree with the rules and exceptions of
 
 Beside the state: the places the check could not read, the exceptions close
 to their date, the rules nothing checks, and the balance of each allowed
-dependency. A version 2 policy is rejected: run archfit init to convert it.
+dependency.
 
 The report decides nothing: it exits 0 whatever it shows.
 

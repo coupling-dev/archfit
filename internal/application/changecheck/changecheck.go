@@ -70,9 +70,6 @@ type PolicyFile struct {
 	Policy resolved.Policy
 	// Err says why a file that was found is not a valid version 3 policy.
 	Err error
-	// Version2 is true when the file is a version 2 policy, the Archfit 3
-	// format (policyfile.ErrVersion2). Err is set too.
-	Version2 bool
 }
 
 // Policies reads policy files. An error is a failure to read, such as git
@@ -194,7 +191,6 @@ const (
 	nextAskOwner   = "ask an owner to fix " + PolicyPath + " on %s"
 
 	noteNoPolicy    = "%s has no " + PolicyPath + ": judged with the local policy"
-	noteVersion2    = "%s has a version 2 " + PolicyPath + ": judged with the local policy until its conversion pull request merges"
 	noteTreeChanged = "the working tree changed during the check, so archfit request cannot use this result: run archfit check again"
 )
 
@@ -428,12 +424,8 @@ func (s Service) compare(ctx context.Context, r *run, ref, commit string) (compa
 	if err != nil {
 		return false, fmt.Errorf("read %s on %s: %w", PolicyPath, ref, err)
 	}
-	switch {
-	case !t.Found:
+	if !t.Found {
 		r.notes = append(r.notes, fmt.Sprintf(noteNoPolicy, ref))
-		return false, nil
-	case t.Version2:
-		r.notes = append(r.notes, fmt.Sprintf(noteVersion2, ref))
 		return false, nil
 	}
 	r.target, r.differs = ref, t.Digest != r.digest

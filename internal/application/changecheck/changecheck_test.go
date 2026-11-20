@@ -94,7 +94,7 @@ func file(text string) changecheck.PolicyFile {
 	data := []byte(text)
 	p, err := policyfile.Resolve(data)
 	return changecheck.PolicyFile{
-		Found: true, Digest: resolved.Digest(data), Policy: p, Err: err, Version2: errors.Is(err, policyfile.ErrVersion2),
+		Found: true, Digest: resolved.Digest(data), Policy: p, Err: err,
 	}
 }
 
@@ -530,11 +530,13 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
-			name:  "a version 2 policy on the target branch: judged with the local policy",
+			name:  "a version 2 policy on the target branch is not valid",
 			setup: func(w *world) { w.policies.target[mainSHA] = file("version: 2\nmodules: {}\n") },
 			want: want{
-				record: graphRecord, base: baseSHA, facts: true, stored: true,
-				notes: []string{"origin/main has a version 2 .archfit.yaml: judged with the local policy until its conversion pull request merges"},
+				record: ".archfit.yaml: policy: " + policyfile.ErrVersion2.Error() + "\n" +
+					"  why: the policy on origin/main is not valid\n" +
+					"  next: ask an owner to fix .archfit.yaml on origin/main\n" + noVerdict,
+				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},
 		{

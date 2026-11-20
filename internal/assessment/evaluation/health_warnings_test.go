@@ -67,23 +67,23 @@ func TestHealthWarnings(t *testing.T) {
 			want:      []string{"analyzer coverage gap"},
 		},
 		{
-			name:      "nothing scored suggests config update",
+			name:      "nothing scored suggests doctor",
 			diag:      result.Result{FileFacts: fileFacts(), ClassifiedEdges: &result.ClassifiedEdgeSummary{Total: 7, Scored: 0, External: 7}},
 			modules:   modulesWithPaths(),
 			fileLOC:   matchedWalk(),
 			wantCount: 1,
-			want:      []string{"0 of 7 edges scored", "archfit config update"},
+			want:      []string{"0 of 7 edges scored", "archfit doctor"},
 		},
 		{
-			name:      "all-abstained suggests enrich abstained",
+			name:      "all-abstained suggests doctor",
 			diag:      result.Result{FileFacts: fileFacts(), ClassifiedEdges: &result.ClassifiedEdgeSummary{Total: 4, Scored: 0, Abstained: 4}},
 			modules:   modulesWithPaths(),
 			fileLOC:   matchedWalk(),
 			wantCount: 2,
-			want:      []string{"0 of 4 edges scored", "all 4 cross-module edges have unknown strength", "archfit config enrich abstained"},
+			want:      []string{"0 of 4 edges scored", "all 4 cross-module edges have unknown strength", "archfit doctor"},
 		},
 		{
-			name: "python all-external suggests config update",
+			name: "python all-external suggests checking module paths",
 			diag: result.Result{
 				FileFacts:       fileFacts(),
 				ToolCoverage:    []evidence.Coverage{{Tool: assessGrimp, Status: evidence.StatusOK}},
@@ -92,7 +92,7 @@ func TestHealthWarnings(t *testing.T) {
 			modules:   modulesWithPaths(),
 			fileLOC:   matchedWalk(),
 			wantCount: 2,
-			want:      []string{"0 of 5 edges scored", "no internal edges found"},
+			want:      []string{"0 of 5 edges scored", "no internal edges found", "check modules.<name>.paths"},
 		},
 		{
 			name:      "no matched files echoes the caller's root",

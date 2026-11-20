@@ -159,8 +159,7 @@ SARIF output does not turn a failed check into a pass: `check` exits `1` for `fa
 
 Archfit 4 reads the merge base and the head in one run. It counts errors under
 one policy and applies its exceptions. A higher count is an error added by
-the change. See [results](results.md) for the verdict and [migration](migration.md)
-for converting accepted findings from Archfit 3.
+the change. See [results](results.md) for the verdict.
 
 There is no stored reference to capture or re-anchor. CI must fetch the target
 history instead. Missing comparison evidence gives `unknown`, not `pass`.

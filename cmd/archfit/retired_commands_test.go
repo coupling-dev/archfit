@@ -76,6 +76,6 @@ func TestCheckRejectsRetiredFlagsAndVersion2Policies(t *testing.T) {
 	dir := fixtureRepo(t, files, nil)
 	got := runCLI(t, fixtureDate, cmdCheck, "-C", dir)
 	if got.code != exitUnknown || !strings.Contains(got.stdout+got.stderr, "archfit init") {
-		t.Errorf("exit %d, stdout %q, stderr %q; want 2 and conversion guidance", got.code, got.stdout, got.stderr)
+		t.Errorf("exit %d, stdout %q, stderr %q; want 2 and the version 2 error", got.code, got.stdout, got.stderr)
 	}
 }

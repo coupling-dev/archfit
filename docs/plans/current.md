@@ -2,8 +2,10 @@
 
 ## Current plan
 
-The active design is [Archfit 4: architecture change control](20261110-archfit-4-architecture-change-control.md).
-It covers the engine, the Docker image, the GitHub Action, and the GitHub App.
+Read the [beta plan](20261120-archfit-0-9-new-home-and-beta.md) first.
+Then read the [change-control design](20261110-archfit-4-architecture-change-control.md), the active design.
+Then read the [surfaces design](20261117-archfit-4-1-surfaces-and-suggestions.md), which is proposed.
+The change-control design covers the engine, the Docker image, the GitHub Action, and the GitHub App.
 Read it before you start any item below.
 Items that the design replaces are marked "Superseded". Do not start them.
 

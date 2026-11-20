@@ -145,7 +145,7 @@ func TestAssessDisclosesAnUnscoredGraph(t *testing.T) {
 	in.RelationshipSignals.ClassifiedEdges = &relationship.ClassifiedEdgeSummary{Total: 12, Scored: 0}
 	got := evaluation.Assess(in)
 	joined := strings.Join(got.Warnings, "\n")
-	if !strings.Contains(joined, "0 of 12 edges scored") || !strings.Contains(joined, "archfit config update") {
+	if !strings.Contains(joined, "0 of 12 edges scored") || !strings.Contains(joined, "archfit doctor") {
 		t.Fatalf("warnings = %q, want an actionable unscored-graph disclosure", joined)
 	}
 }

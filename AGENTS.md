@@ -1,7 +1,8 @@
 @CLAUDE.md
 
-New work on Archfit 4 follows `docs/plans/20261110-archfit-4-architecture-change-control.md`.
-That design wins when it disagrees with an older document.
+New work starts with the beta plan, `docs/plans/20261120-archfit-0-9-new-home-and-beta.md`.
+Then the change-control design, `docs/plans/20261110-archfit-4-architecture-change-control.md`, which wins when it disagrees with an older document.
+Then the surfaces design, `docs/plans/20261117-archfit-4-1-surfaces-and-suggestions.md`.
 The user guides under `docs/` describe the behavior shipped today.
 
 <!-- gitnexus:start -->
