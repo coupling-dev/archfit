@@ -9,7 +9,9 @@ import (
 )
 
 func TestDoctorDiscoversOwnedAnalyzerPrograms(t *testing.T) {
-	chdirIsolated(t, t.TempDir())
+	dir := t.TempDir()
+	writeFixtureFile(t, dir, "main.ts", "export {}")
+	chdirIsolated(t, dir)
 	seen := map[string]bool{}
 	runner := &toolrun.RunnerMock{
 		DetectFunc: func(_ context.Context, name string) (toolrun.ToolInfo, bool) {

@@ -12,9 +12,10 @@ import (
 	"github.com/coupling-dev/archfit/internal/relationship/analysis"
 )
 
+// exampleEdge is one import. The declared surface of the target's module
+// gives its strength; an edge carries no type hint, which could not change it.
 type exampleEdge struct {
 	fromFile, toFile string
-	hint, data       string
 }
 
 func exampleGraph(edges ...exampleEdge) *graph.Graph {
@@ -32,7 +33,7 @@ func exampleGraph(edges ...exampleEdge) *graph.Graph {
 		node(e.toFile)
 		es = append(es, graph.Edge{
 			From: "file:" + e.fromFile, To: "file:" + e.toFile, Kind: graph.EdgeKindImports, Language: graph.LangGo,
-			StrengthHint: e.hint, DataStrengthHint: e.data, Locations: []graph.Location{{File: e.fromFile, Line: 1}},
+			Locations: []graph.Location{{File: e.fromFile, Line: 1}},
 		})
 	}
 	return graph.Build([]graph.Facts{{Nodes: nodes, Edges: es}})
@@ -70,18 +71,15 @@ const (
 	subdomainSupporting = "supporting"
 	volMedium           = "medium"
 	fileCart            = "sales/cart/c.go"
-	hintInterface       = "contract"
-	hintCall            = "functional"
-	hintIntrusive       = "intrusive"
 )
 
 func core(owner, deploy string, paths ...string) policy.ModuleDef {
 	return policy.ModuleDef{Paths: paths, Owner: owner, DeployUnit: deploy, Subdomain: subdomainCore}
 }
 
-// Example 1: one owner, one deploy unit. `orders` calls an interface in
-// `billing`. The call is contract coupling at D=9: balanced, for any spelling of
-// the module keys.
+// Example 1: one owner, one deploy unit. `orders` calls `billing`, which
+// declares no surface, so the whole module is its public part. The call is
+// contract coupling at D=9: balanced, for any spelling of the module keys.
 func TestV7Example1_PortCallInOneService(t *testing.T) {
 	for name, keys := range map[string][2]string{
 		"flat keys":   {"orders", "billing"},
@@ -92,18 +90,18 @@ func TestV7Example1_PortCallInOneService(t *testing.T) {
 				keys[0]: core("team", "svc", "orders/**"),
 				keys[1]: core("team", "svc", "billing/**"),
 			}
-			res := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "billing/b.go", hint: hintInterface})
+			res := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "billing/b.go"})
 			requireScore(t, res, relationship.StrengthContract, 9, relationship.SeverityNone)
 		})
 	}
 }
 
-// Example 2: an adapter reads `billing/store`, which `billing` declares
-// internal. Intrusive at D=9 into a core module is critical; into a supporting
+// Example 2: an adapter reads `billing/store`, past the public part `billing`
+// declares. Intrusive at D=9 into a core module is critical; into a supporting
 // module the target's low volatility rescues it.
 func TestV7Example2_InternalReachInOneService(t *testing.T) {
 	billing := func(subdomain string) policy.ModuleDef {
-		return policy.ModuleDef{Paths: []string{"billing/**"}, Internal: []string{"billing/store/**"}, Owner: "team", DeployUnit: "svc", Subdomain: subdomain}
+		return policy.ModuleDef{Paths: []string{"billing/**"}, Public: []string{"billing/api/**"}, Owner: "team", DeployUnit: "svc", Subdomain: subdomain}
 	}
 	tests := []struct {
 		subdomain string
@@ -119,21 +117,22 @@ func TestV7Example2_InternalReachInOneService(t *testing.T) {
 				"adapter": core("team", "svc", "adapter/**"),
 				"billing": billing(tt.subdomain),
 			}
-			res := analyze(modules, exampleEdge{fromFile: "adapter/a.go", toFile: "billing/store/s.go", hint: hintCall})
+			res := analyze(modules, exampleEdge{fromFile: "adapter/a.go", toFile: "billing/store/s.go"})
 			requireScore(t, res, relationship.StrengthIntrusive, tt.balance, tt.band)
 		})
 	}
 }
 
-// Example 4: two deploy units. `web` calls an interface in `inventory`. A call
-// through a port is contract and never reads as a distributed monolith.
+// Example 4: two deploy units. `web` calls the public part of `inventory`. A
+// call through the declared surface is contract and never reads as a
+// distributed monolith.
 func TestV7Example4_PortCallAcrossDeployUnits(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
 		"web":       core("team-a", "web", "web/**"),
 		"inventory": core("team-b", "inventory", "inventory/**"),
 	}
 	modules["inventory"] = policy.ModuleDef{Paths: []string{"inventory/**"}, Public: []string{"inventory/api/**"}, Owner: "team-b", DeployUnit: "inventory", Subdomain: subdomainCore}
-	res := analyze(modules, exampleEdge{fromFile: "web/w.go", toFile: "inventory/api/r.go", hint: hintInterface})
+	res := analyze(modules, exampleEdge{fromFile: "web/w.go", toFile: "inventory/api/r.go"})
 	e := requireScore(t, res, relationship.StrengthContract, 9, relationship.SeverityNone)
 	if e.Distance != relationship.DistanceCrossDeployUnit {
 		t.Errorf("distance = %s, want cross_deploy_unit", e.Distance)
@@ -143,21 +142,25 @@ func TestV7Example4_PortCallAcrossDeployUnits(t *testing.T) {
 	}
 }
 
-// Example 5: nested modules. `sales/cart` calls its sibling `sales/invoice` and
-// `stock/lookup` on another branch. Both calls are functional into core
-// modules, so both are critical, and the seam names the container each pair
-// shares.
+// Example 5: nested modules. `sales/cart` reaches past the declared public
+// part of its sibling `sales/invoice` and of `stock/lookup` on another branch.
+// Both uses are intrusive into core modules, so both are critical, and the
+// seam names the container each pair shares.
 func TestV7Example5_NestedModulesScoreAlike(t *testing.T) {
+	withPublic := func(def policy.ModuleDef, public string) policy.ModuleDef {
+		def.Public = []string{public}
+		return def
+	}
 	modules := map[string]policy.ModuleDef{
 		"sales":   core("team", "svc", "sales/**"),
 		"cart":    core("team", "svc", "sales/cart/**"),
-		"invoice": core("team", "svc", "sales/invoice/**"),
+		"invoice": withPublic(core("team", "svc", "sales/invoice/**"), "sales/invoice/api/**"),
 		"stock":   core("team", "svc", "stock/**"),
-		"lookup":  core("team", "svc", "stock/lookup/**"),
+		"lookup":  withPublic(core("team", "svc", "stock/lookup/**"), "stock/lookup/api/**"),
 	}
 	res := analyze(modules,
-		exampleEdge{fromFile: fileCart, toFile: "sales/invoice/i.go", hint: hintCall},
-		exampleEdge{fromFile: fileCart, toFile: "stock/lookup/l.go", hint: hintCall},
+		exampleEdge{fromFile: fileCart, toFile: "sales/invoice/i.go"},
+		exampleEdge{fromFile: fileCart, toFile: "stock/lookup/l.go"},
 	)
 	sibling := seamBetween(t, res, "cart", "invoice")
 	cross := seamBetween(t, res, "cart", "lookup")
@@ -186,7 +189,7 @@ func TestV7KeyRenameChangesNothing(t *testing.T) {
 			cart:  core("team", "svc", "sales/cart/**"),
 			"x":   core("team", "svc", "x/**"),
 		}
-		res := analyze(modules, exampleEdge{fromFile: fileCart, toFile: "x/x.go", hint: hintCall})
+		res := analyze(modules, exampleEdge{fromFile: fileCart, toFile: "x/x.go"})
 		return seamBetween(t, res, cart, "x")
 	}
 	a, b := build("sales", "cart"), build("deep/er/sales", "very/deep/er/cart")
@@ -195,45 +198,43 @@ func TestV7KeyRenameChangesNothing(t *testing.T) {
 	}
 }
 
-// Example 3: two teams, one deploy unit. `orders` (core) calls the non-public
-// `pricing/engine` (supporting). Functional coupling ties both sides, so V is the
-// worse of the two: high. The seam qualifies. Through `pricing/api`, a declared
-// public surface, the same call is contract and balanced.
-func TestV7Example3_FunctionalCallTiesBothSides(t *testing.T) {
+// Example 3: two teams, one deploy unit. `orders` (core) reaches past the
+// public part of `pricing` (supporting) into `pricing/engine`. The use is
+// intrusive, and the upstream module's volatility decides (the surfaces design
+// 6.1): low, so the balance is 8 and the seam does not qualify. Through
+// `pricing/api`, the declared public part, the same call is contract.
+func TestV7Example3_UpstreamVolatilityDecides(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
 		"orders":  core("team-a", "svc", "orders/**"),
 		"pricing": {Paths: []string{"pricing/**"}, Public: []string{"pricing/api/**"}, Owner: "team-b", DeployUnit: "svc", Subdomain: subdomainSupporting},
 	}
-	res := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "pricing/engine/e.go", hint: hintCall})
-	e := requireScore(t, res, relationship.StrengthFunctional, 2, relationship.SeverityCritical)
-	if e.Volatility != relationship.VolatilityHigh {
-		t.Errorf("volatility = %s, want high: the worse of core and supporting", e.Volatility)
+	res := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "pricing/engine/e.go"})
+	e := requireScore(t, res, relationship.StrengthIntrusive, 8, relationship.SeverityLow)
+	if e.Volatility != relationship.VolatilityLow {
+		t.Errorf("volatility = %s, want low: the target's, not the core source's", e.Volatility)
 	}
-	s := seamBetween(t, res, "orders", "pricing")
-	if !s.DistributedMonolith {
-		t.Error("functional coupling into a non-public module must qualify the seam")
-	}
-	if s.Hypothesis != relationship.SeamHypothesisIntroduceContract {
-		t.Errorf("hypothesis = %q, want introduce_contract: the target declares a public surface", s.Hypothesis)
+	if seamBetween(t, res, "orders", "pricing").DistributedMonolith {
+		t.Error("an intrusive use of a low-volatility module must not qualify the seam")
 	}
 
-	through := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "pricing/api/p.go", hint: hintCall})
+	through := analyze(modules, exampleEdge{fromFile: fileOrders, toFile: "pricing/api/p.go"})
 	requireScore(t, through, relationship.StrengthContract, 9, relationship.SeverityNone)
 }
 
-// Example 6: no volatility declared anywhere. An interface call is contract and
-// balanced. A call to a concrete function scores critical, but nobody declared
-// the volatility, so the seam is unrated: it never qualifies, it says
-// declare_volatility, and the coupling summary counts the unrated edge.
+// Example 6: no volatility declared anywhere. A call to a module that declares
+// no surface is contract and balanced. A use past the public part of `rules`
+// scores critical, but nobody declared the volatility, so the seam is unrated:
+// it never qualifies, it says declare_volatility, and the coupling summary
+// counts the unrated edges and their target modules.
 func TestV7Example6_UndeclaredVolatilityIsUnrated(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
 		"app":      {Paths: []string{"app/**"}},
 		"adapters": {Paths: []string{"adapters/**"}},
-		"rules":    {Paths: []string{"rules/**"}},
+		"rules":    {Paths: []string{"rules/**"}, Public: []string{"rules/api/**"}},
 	}
 	res := analyze(modules,
-		exampleEdge{fromFile: "app/a.go", toFile: "adapters/s.go", hint: hintInterface},
-		exampleEdge{fromFile: "app/a.go", toFile: "rules/d.go", hint: hintCall},
+		exampleEdge{fromFile: "app/a.go", toFile: "adapters/s.go"},
+		exampleEdge{fromFile: "app/a.go", toFile: "rules/d.go"},
 	)
 	port := seamBetween(t, res, "app", "adapters")
 	if port.Severity != relationship.SeverityNone || port.DistributedMonolith {
@@ -253,18 +254,24 @@ func TestV7Example6_UndeclaredVolatilityIsUnrated(t *testing.T) {
 	if s.UnratedVolatilityEdges != 2 {
 		t.Errorf("unrated edges = %d, want 2 (both edges end in undeclared volatility)", s.UnratedVolatilityEdges)
 	}
-	if got := s.UnratedVolatilityModules; len(got) != 3 {
-		t.Errorf("unrated modules = %v, want app, adapters, rules", got)
+	if got := s.UnratedVolatilityModules; len(got) != 2 {
+		t.Errorf("unrated modules = %v, want adapters and rules: the target's volatility applies", got)
 	}
 }
 
-// The qualification rule: strong strength, a module boundary, declared high
-// volatility, and no cohesive source role unless the coupling is intrusive.
-// Every qualifying edge is critical, so the gate set is a subset of the severity set.
+// The qualification rule: intrusive strength, a module boundary, the target's
+// declared high volatility. Contract and model never qualify, and a cohesive
+// source role never excuses an intrusive use. Every qualifying edge is
+// critical, so the gate set is a subset of the severity set.
 func TestV7QualificationRule(t *testing.T) {
+	const (
+		toPublic = "dst/api/d.go"
+		toModel  = "dst/model/d.go"
+		toPast   = "dst/d.go"
+	)
 	type tc struct {
 		name     string
-		hint     string
+		toFile   string
 		srcVol   string
 		dstVol   string
 		role     policy.Role
@@ -272,35 +279,23 @@ func TestV7QualificationRule(t *testing.T) {
 		wantBand relationship.Severity
 	}
 	tests := []tc{
-		{"functional, high", hintCall, volHigh, volHigh, "", true, relationship.SeverityCritical},
-		{"functional, source high, target low", hintCall, volHigh, volLow, "", true, relationship.SeverityCritical},
-		{"functional, both low", hintCall, volLow, volLow, "", false, relationship.SeverityLow},
-		{"functional, medium never qualifies", hintCall, volMedium, volMedium, "", false, relationship.SeverityMedium},
-		{"functional, undeclared is unrated", hintCall, "", "", "", false, relationship.SeverityCritical},
-		{"functional from a composition root", hintCall, volHigh, volHigh, policy.RoleCompositionRoot, false, relationship.SeverityCritical},
-		{"functional from generated code", hintCall, volHigh, volHigh, policy.RoleGenerated, false, relationship.SeverityCritical},
-		{"functional from test code", hintCall, volHigh, volHigh, policy.RoleTest, false, relationship.SeverityCritical},
-		{"intrusive, high", hintIntrusive, volHigh, volHigh, "", true, relationship.SeverityCritical},
-		{"intrusive from a composition root still qualifies", hintIntrusive, volHigh, volHigh, policy.RoleCompositionRoot, true, relationship.SeverityCritical},
-		{"interface call is contract", hintInterface, volHigh, volHigh, "", false, relationship.SeverityNone},
-		{"model coupling is below the bar", "model", volHigh, volHigh, "", false, relationship.SeverityLow},
+		{"intrusive, high", toPast, volHigh, volHigh, "", true, relationship.SeverityCritical},
+		{"intrusive, source high, target low", toPast, volHigh, volLow, "", false, relationship.SeverityLow},
+		{"intrusive, both low", toPast, volLow, volLow, "", false, relationship.SeverityLow},
+		{"intrusive, medium never qualifies", toPast, volMedium, volMedium, "", false, relationship.SeverityMedium},
+		{"intrusive, undeclared is unrated", toPast, "", "", "", false, relationship.SeverityCritical},
+		{"intrusive from a composition root still qualifies", toPast, volHigh, volHigh, policy.RoleCompositionRoot, true, relationship.SeverityCritical},
+		{"intrusive from generated code still qualifies", toPast, volHigh, volHigh, policy.RoleGenerated, true, relationship.SeverityCritical},
+		{"the public part is contract", toPublic, volHigh, volHigh, "", false, relationship.SeverityNone},
+		{"model coupling is below the bar", toModel, volHigh, volHigh, "", false, relationship.SeverityLow},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			modules := map[string]policy.ModuleDef{
-				"src": {Paths: []string{"src/**"}, Volatility: tt.srcVol, Role: tt.role, Internal: nil},
-				"dst": {Paths: []string{"dst/**"}, Volatility: tt.dstVol},
+				"src": {Paths: []string{"src/**"}, Volatility: tt.srcVol, Role: tt.role},
+				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api/**"}, Model: []string{"dst/model/**"}, Volatility: tt.dstVol},
 			}
-			if tt.hint == hintIntrusive {
-				d := modules["dst"]
-				d.Internal = []string{"dst/internal/**"}
-				modules["dst"] = d
-			}
-			toFile := "dst/d.go"
-			if tt.hint == hintIntrusive {
-				toFile = "dst/internal/d.go"
-			}
-			res := analyze(modules, exampleEdge{fromFile: "src/s.go", toFile: toFile, hint: tt.hint})
+			res := analyze(modules, exampleEdge{fromFile: "src/s.go", toFile: tt.toFile})
 			s := seamBetween(t, res, "src", "dst")
 			if s.DistributedMonolith != tt.want {
 				t.Errorf("qualifies = %t, want %t (severity %q)", s.DistributedMonolith, tt.want, s.Severity)

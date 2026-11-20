@@ -333,7 +333,6 @@ package internal/model/result
   const internal/model/result.StatusWaiting internal/model/result.Status
   type internal/model/result.Strength string
   const internal/model/result.StrengthContract internal/model/result.Strength
-  const internal/model/result.StrengthFunctional internal/model/result.Strength
   const internal/model/result.StrengthIntrusive internal/model/result.Strength
   const internal/model/result.StrengthModel internal/model/result.Strength
   type internal/model/result.Surface struct{Public []string "json:\"public\""; Model []string "json:\"model\""}

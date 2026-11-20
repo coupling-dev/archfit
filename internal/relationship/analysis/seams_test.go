@@ -18,18 +18,18 @@ const (
 	nodeM         = "file:m/m.go"
 )
 
-// seamFixture builds a graph whose module a imports module b over `imports`
-// edges, each carrying the given strength hint.
-func seamGraph(edges int, hint string) *graph.Graph {
+// seamGraph builds a graph whose module a imports target, a file of module b,
+// over `imports` edges. The target's place in b's surface gives the strength.
+func seamGraph(edges int, target string) *graph.Graph {
 	nodes := make([]graph.Node, 0, edges+1)
-	nodes = append(nodes, graph.Node{Kind: graph.NodeKindFile, Path: fileB, Language: graph.LangGo})
+	nodes = append(nodes, graph.Node{Kind: graph.NodeKindFile, Path: target, Language: graph.LangGo})
 	es := make([]graph.Edge, 0, edges)
 	for i := range edges {
 		from := "a/f" + string(rune('0'+i)) + ".go"
 		nodes = append(nodes, graph.Node{Kind: graph.NodeKindFile, Path: from, Language: graph.LangGo})
 		es = append(es, graph.Edge{
-			From: "file:" + from, To: nodeB, Kind: graph.EdgeKindImports, Language: graph.LangGo,
-			StrengthHint: hint, Locations: []graph.Location{{File: from, Line: 3}},
+			From: "file:" + from, To: "file:" + target, Kind: graph.EdgeKindImports, Language: graph.LangGo,
+			Locations: []graph.Location{{File: from, Line: 3}},
 		})
 	}
 	return graph.Build([]graph.Facts{{Nodes: nodes, Edges: es}})
@@ -52,7 +52,7 @@ func seamAB(t *testing.T, res relationship.AnalysisResult) relationship.Seam {
 // an edge count, not as twelve coupling facts (plan R4).
 func TestSeamsGroupEdgesByOrderedModulePair(t *testing.T) {
 	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(4, string(relationship.StrengthFunctional)),
+		Graph:  seamGraph(4, fileB),
 		Policy: relationshipPolicy(twoModules()),
 	})
 
@@ -84,33 +84,6 @@ func TestSeamsGroupEdgesByOrderedModulePair(t *testing.T) {
 	}
 }
 
-// TestSeamsAbstainedEdgesStayInTheDenominator pins abstain-not-fake at seam
-// level: an unknown strength lowers confidence, it does not shrink the seam.
-func TestSeamsAbstainedEdgesStayInTheDenominator(t *testing.T) {
-	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(2, ""), // no hint → strength unknown → abstain
-		Policy: relationshipPolicy(twoModules()),
-	})
-
-	s := seamAB(t, got)
-	if s.ScoredEdges != 0 || s.AbstainedEdges != 2 {
-		t.Fatalf("scored/abstained = %d/%d, want 0/2 for unknown strength", s.ScoredEdges, s.AbstainedEdges)
-	}
-	if s.Edges != 2 {
-		t.Errorf("edges = %d, want 2 — an abstained edge is still a seam edge", s.Edges)
-	}
-	if s.Confidence != relationship.SeamConfidenceUnrated {
-		t.Errorf("confidence = %q, want unrated when nothing scored", s.Confidence)
-	}
-	if s.Scores.N != 0 {
-		t.Errorf("distribution n = %d, want 0 — no invented scores for abstained edges", s.Scores.N)
-	}
-	if s.Hypothesis != "" {
-		t.Errorf("hypothesis = %q, want none when no edge was scored", s.Hypothesis)
-	}
-}
-
-// TestSeamsExcludeNonSeamEdges pins what is not a seam: same-module edges are a
 // different fractal level and an unresolved target is external hygiene.
 func TestSeamsExcludeNonSeamEdges(t *testing.T) {
 	g := graph.Build([]graph.Facts{{
@@ -138,7 +111,7 @@ func TestSeamsExcludeNonSeamEdges(t *testing.T) {
 // alone cannot be audited, so the owner and deploy facts travel beside it.
 func TestSeamRawDistanceExposesOwnerAndDeployFacts(t *testing.T) {
 	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(1, string(relationship.StrengthFunctional)),
+		Graph:  seamGraph(1, fileB),
 		Policy: relationshipPolicy(twoModules()),
 	})
 
@@ -169,7 +142,7 @@ func TestSeamSameOwnerNeedsTwoDeclaredOwners(t *testing.T) {
 		moduleB: {Paths: []string{globB}, Subdomain: subdomainCore, Volatility: volHigh},
 	}
 	got := analysis.Analyze(analysis.Input{
-		Graph: seamGraph(1, string(relationship.StrengthFunctional)),
+		Graph: seamGraph(1, fileB),
 		Policy: policy.RelationshipPolicy{Topology: policy.TopologyView{
 			Modules: modules, ModuleMap: policy.BuildModuleMap(modules),
 		}},
@@ -184,17 +157,17 @@ func TestSeamSameOwnerNeedsTwoDeclaredOwners(t *testing.T) {
 	}
 }
 
-// TestSeamCompositionRootExpectationLeavesTheSeamAlone pins the role-aware
-// diagnostic: wiring fan-out from a declared composition root is the module's
-// purpose, and saying so must not require a strength label.
-func TestSeamCompositionRootExpectationIsExpectedByRole(t *testing.T) {
+// TestSeamCompositionRootRecordsItsRole pins the role-aware diagnostic: a
+// declared composition root is recorded on the seam. A use past the surface is
+// intrusive, which a role never excuses, so the move stays a contract.
+func TestSeamCompositionRootRecordsItsRole(t *testing.T) {
 	modules := twoModules()
 	def := modules[moduleA]
 	def.Role = policy.RoleCompositionRoot
 	modules[moduleA] = def
 
 	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(1, string(relationship.StrengthFunctional)),
+		Graph:  seamGraph(1, fileB),
 		Policy: relationshipPolicy(modules),
 	})
 
@@ -202,11 +175,8 @@ func TestSeamCompositionRootExpectationIsExpectedByRole(t *testing.T) {
 	if s.RoleExpectation != relationship.SeamRoleCompositionRoot {
 		t.Errorf("role expectation = %q, want composition_root from the declared module role", s.RoleExpectation)
 	}
-	if s.Hypothesis != relationship.SeamHypothesisExpectedByRole {
-		t.Errorf("hypothesis = %q, want expected_by_role for a composition-root source", s.Hypothesis)
-	}
-	if s.DistributedMonolith {
-		t.Error("a composition root's functional fan-out must not qualify the seam")
+	if s.Hypothesis != relationship.SeamHypothesisIntroduceContract {
+		t.Errorf("hypothesis = %q, want introduce_contract: a role never excuses an intrusive use", s.Hypothesis)
 	}
 }
 
@@ -214,7 +184,7 @@ func TestSeamCompositionRootExpectationIsExpectedByRole(t *testing.T) {
 // role produces no expectation rather than a default one.
 func TestSeamWithoutRoleReportsNoExpectation(t *testing.T) {
 	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(1, string(relationship.StrengthIntrusive)),
+		Graph:  seamGraph(1, fileB),
 		Policy: relationshipPolicy(twoModules()),
 	})
 
@@ -235,34 +205,34 @@ func TestSeamDistributedMonolithNeedsCriticalAndHighDistance(t *testing.T) {
 	tests := []struct {
 		name    string
 		modules map[string]policy.ModuleDef
-		hint    string
+		target  string
 		want    bool
 	}{
 		{
 			name: "intrusive across deploy units qualifies",
 			// intrusive S=10, cross_deploy_unit D=9, high volatility V=10
 			// → max(1, 0)+1 = 2 → critical.
-			modules: twoModules(), hint: string(relationship.StrengthIntrusive), want: true,
+			modules: twoModules(), target: fileB, want: true,
 		},
 		{
 			name: "critical band at same-owner distance is local coupling",
 			modules: map[string]policy.ModuleDef{
 				moduleA: {Paths: []string{globA}, Owner: teamA, DeployUnit: moduleA, Subdomain: subdomainCore, Volatility: volHigh},
-				moduleB: {Paths: []string{globB}, Owner: teamA, DeployUnit: moduleA, Subdomain: subdomainCore, Volatility: volHigh},
+				moduleB: {Paths: []string{globB}, Public: []string{"b/api/**"}, Owner: teamA, DeployUnit: moduleA, Subdomain: subdomainCore, Volatility: volHigh},
 			},
-			hint: string(relationship.StrengthContract), want: false,
+			target: fileBAPI, want: false,
 		},
 		{
 			name: "contract across deploy units is a declared boundary",
 			// contract S=1, cross_deploy_unit D=9 → max(8, 0)+1 = 9 → none.
-			modules: twoModules(), hint: string(relationship.StrengthContract), want: false,
+			modules: twoModules(), target: fileBAPI, want: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got := analysis.Analyze(analysis.Input{
-				Graph: seamGraph(1, tc.hint), Policy: relationshipPolicy(tc.modules),
+				Graph: seamGraph(1, tc.target), Policy: relationshipPolicy(tc.modules),
 			})
 			s := seamAB(t, got)
 			if s.DistributedMonolith != tc.want {
@@ -277,18 +247,18 @@ func TestSeamDistributedMonolithNeedsCriticalAndHighDistance(t *testing.T) {
 // distance reports tight or loose depending only on integration strength.
 func TestSeamQuadrantSeparatesTightFromLoose(t *testing.T) {
 	tests := []struct {
-		name string
-		hint string
-		want relationship.SeamQuadrant
+		name   string
+		target string
+		want   relationship.SeamQuadrant
 	}{
-		{"intrusive far apart is tight", string(relationship.StrengthIntrusive), relationship.SeamQuadrantTight},
-		{"contract far apart is loose", string(relationship.StrengthContract), relationship.SeamQuadrantLoose},
+		{"intrusive far apart is tight", fileB, relationship.SeamQuadrantTight},
+		{"contract far apart is loose", fileBAPI, relationship.SeamQuadrantLoose},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			got := analysis.Analyze(analysis.Input{
-				Graph: seamGraph(1, tc.hint), Policy: relationshipPolicy(twoModules()),
+				Graph: seamGraph(1, tc.target), Policy: relationshipPolicy(twoModules()),
 			})
 			if q := seamAB(t, got).Quadrant; q != tc.want {
 				t.Errorf("quadrant = %q, want %q", q, tc.want)
@@ -339,47 +309,17 @@ func TestSeamsAreDeterministicallyOrdered(t *testing.T) {
 	}
 }
 
-// TestSeamOfWhollyAbstainedEdgesReportsUnknownStrength pins the strength rung,
-// whose "worst so far" comparison is rank-based. The zero Strength shares a
-// rank with StrengthUnknown, so an all-abstained seam — the normal state on a
-// heuristic-strength language with no SCIP and no public:/internal: globs —
-// never overwrote the zero value and published "" outside its own vocabulary.
-// Its distribution has no samples at all, so N must stay 0 rather than report a
-// median of zero, which is below the book's 1..10 range.
-//
-// Severity is exempt: SeverityNone IS the zero value, so the zero is correct.
-func TestSeamOfWhollyAbstainedEdgesReportsUnknownStrength(t *testing.T) {
-	got := analysis.Analyze(analysis.Input{
-		Graph:  seamGraph(2, ""),
-		Policy: relationshipPolicy(twoModules()),
-	})
-
-	s := seamAB(t, got)
-	if s.ScoredEdges != 0 || s.AbstainedEdges == 0 {
-		t.Fatalf("seam scored=%d abstained=%d, want a wholly abstained seam", s.ScoredEdges, s.AbstainedEdges)
-	}
-	if s.Strength != relationship.StrengthUnknown {
-		t.Errorf("strength = %q, want %q", s.Strength, relationship.StrengthUnknown)
-	}
-	if s.Severity != relationship.SeverityNone {
-		t.Errorf("severity = %q, want none — no edge produced a band", s.Severity)
-	}
-	if s.Scores.N != 0 {
-		t.Errorf("scores.n = %d, want 0 — no edge contributed a balance", s.Scores.N)
-	}
-}
-
 // manyEdgeGraph builds n a -> b imports from distinct files, listed in reverse
 // so the ledger has to impose its own order.
-func manyEdgeGraph(n int, hint string) *graph.Graph {
-	nodes := []graph.Node{{Kind: graph.NodeKindFile, Path: fileB, Language: graph.LangGo}}
+func manyEdgeGraph(n int, target string) *graph.Graph {
+	nodes := []graph.Node{{Kind: graph.NodeKindFile, Path: target, Language: graph.LangGo}}
 	edges := make([]graph.Edge, 0, n)
 	for i := n - 1; i >= 0; i-- {
 		from := fmt.Sprintf("a/f%02d.go", i)
 		nodes = append(nodes, graph.Node{Kind: graph.NodeKindFile, Path: from, Language: graph.LangGo})
 		edges = append(edges, graph.Edge{
-			From: "file:" + from, To: nodeB, Kind: graph.EdgeKindImports, Language: graph.LangGo,
-			StrengthHint: hint, Locations: []graph.Location{{File: from, Line: 3}},
+			From: "file:" + from, To: "file:" + target, Kind: graph.EdgeKindImports, Language: graph.LangGo,
+			Locations: []graph.Location{{File: from, Line: 3}},
 		})
 	}
 	return graph.Build([]graph.Facts{{Nodes: nodes, Edges: edges}})
@@ -393,25 +333,25 @@ func TestSeamCarriesItsQualifyingEdges(t *testing.T) {
 	tests := []struct {
 		name      string
 		edges     int
-		hint      string
+		target    string
 		wantEdges int
 	}{
-		{"a qualifying seam keeps every edge under the cap", 3, string(relationship.StrengthIntrusive), 3},
-		{"a qualifying seam keeps at most twenty edges", 25, string(relationship.StrengthIntrusive), 20},
-		{"a declared boundary keeps none", 3, string(relationship.StrengthContract), 0},
+		{"a qualifying seam keeps every edge under the cap", 3, fileB, 3},
+		{"a qualifying seam keeps at most twenty edges", 25, fileB, 20},
+		{"a declared boundary keeps none", 3, fileBAPI, 0},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			s := seamAB(t, analysis.Analyze(analysis.Input{
-				Graph: manyEdgeGraph(tc.edges, tc.hint), Policy: relationshipPolicy(twoModules()),
+				Graph: manyEdgeGraph(tc.edges, tc.target), Policy: relationshipPolicy(twoModules()),
 			}))
 			if len(s.QualifyingEdges) != tc.wantEdges {
 				t.Fatalf("qualifying edges = %d, want %d (distributed_monolith %v)",
 					len(s.QualifyingEdges), tc.wantEdges, s.DistributedMonolith)
 			}
 			for i, e := range s.QualifyingEdges {
-				if want := fmt.Sprintf("a/f%02d.go", i); e.FromPath != want || e.ToPath != fileB {
-					t.Errorf("qualifying edge %d = %s -> %s, want %s -> %s in endpoint order", i, e.FromPath, e.ToPath, want, fileB)
+				if want := fmt.Sprintf("a/f%02d.go", i); e.FromPath != want || e.ToPath != tc.target {
+					t.Errorf("qualifying edge %d = %s -> %s, want %s -> %s in endpoint order", i, e.FromPath, e.ToPath, want, tc.target)
 				}
 				if len(e.Locations) != 1 || e.Locations[0].File != e.FromPath {
 					t.Errorf("qualifying edge %d locations = %+v, want the import site", i, e.Locations)

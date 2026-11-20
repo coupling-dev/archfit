@@ -102,6 +102,7 @@ func TestResultSchemaRejectsBrokenDocuments(t *testing.T) {
 		{"missing strength", goldenGraph, func(d map[string]any) { delete(balance(firstError(d)), "strength") }},
 		{"empty strength", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "" }},
 		{"unknown strength", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "symmetric" }},
+		{"the 4.0 strength functional", goldenGraph, func(d map[string]any) { balance(firstError(d))["strength"] = "functional" }},
 		{"missing volatility", goldenGraph, func(d map[string]any) { delete(balance(firstError(d)), "volatility") }},
 		{"unknown volatility", goldenGraph, func(d map[string]any) { balance(firstError(d))["volatility"] = "core" }},
 		{"surface without model", goldenCoupling, func(d map[string]any) { delete(surface(firstError(d)), surfaceModel) }},

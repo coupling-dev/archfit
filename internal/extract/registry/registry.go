@@ -380,6 +380,14 @@ func ProjectPresent(id, root string, cfg evidenceports.ExtractConfig) bool {
 	return false
 }
 
+// HasProjectSources reports whether doctor should list the language's tools.
+func HasProjectSources(id, root string, cfg evidenceports.ExtractConfig) bool {
+	if id == graph.LangPython {
+		return pyimports.HasSources(root, pyimports.Config{Package: cfg.PyPackage, Exclude: cfg.Exclusions})
+	}
+	return ProjectPresent(id, root, cfg)
+}
+
 // ByAlias resolves a --lang / install key (canonical ID or any alias)
 // to the canonical language ID. Returns "" for an unknown key.
 func ByAlias(key string) string {

@@ -4,6 +4,7 @@ package classify
 
 import (
 	"maps"
+	gopath "path"
 	"sort"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 
 	"github.com/coupling-dev/archfit/internal/model/graph"
 	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/relationship/balance"
 	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 	"github.com/coupling-dev/archfit/internal/relationship/scoring"
 )
@@ -37,8 +40,9 @@ const (
 // edge canonical key (from + "\x00" + to + "\x00" + kind).
 //
 // For each edge:
-//   - Strength: contract if the target path matches a public glob of any module;
-//     intrusive if it matches an internal glob; unknown otherwise.
+//   - Strength: balance.StrengthOf over the declared surface of the
+//     module that owns the target (contract, model or intrusive); unknown when
+//     no module owns it or the edge stays inside one module.
 //   - Distance: same_module, or one of three tokens for a module boundary
 //     (cross_module / cross_module_different_owner / cross_deploy_unit) that all
 //     score at D=9. When either endpoint cannot be resolved to a module,
@@ -49,7 +53,7 @@ const (
 //     unknown otherwise.
 //   - Score: continuous EdgeScore from the production BookScorer.
 //     Applied to every known-distance edge; unknown-distance edges are zero.
-//     Same-module edges are scored (local_coupling report block) but keep
+//     A same-module edge has no strength, so its score abstains and it keeps
 //     SeverityNone — the advisory pipeline stays cross-boundary.
 func Run(g *graph.Graph, c Config) coupling.Index {
 	mm := buildModuleIndex(c.Modules)
@@ -61,10 +65,10 @@ func Run(g *graph.Graph, c Config) coupling.Index {
 
 	for _, e := range g.Edges() {
 		cl := classify(e, mm, c, effectiveVol, extSystems)
-		// Score every edge whose distance is known. Same-module edges score at
-		// the book's same-module rung (D=2) and surface the Ch10 local-complexity
-		// quadrant in the local_coupling report block; unknown-distance edges are
-		// not scored (zero EdgeScore). Abstain rules are identical at both levels.
+		// Score every edge whose distance is known; unknown-distance edges are
+		// not scored (zero EdgeScore). A same-module edge has no strength
+		// (resolveStrength), so the scorer abstains on it and the local_coupling
+		// block lists it as abstained.
 		// Severity is derived from cl.Score.Band so the book formula and the
 		// advisory severity are always identical — the single source of truth.
 		if cl.Distance != coupling.DistanceUnknown {
@@ -100,24 +104,18 @@ func pathFromID(id string) string {
 	return id
 }
 
-// moduleIndex is a sorted list of module names for deterministic glob matching.
-// Path→module resolution delegates to the shared policy.ModuleMap so there is a
-// single most-specific-match implementation; names/modules remain for the
-// public/internal glob strength scan in classifyStrength.
+// moduleIndex holds the module definitions for classification. Path→module
+// resolution delegates to the shared policy.ModuleMap so there is a single
+// most-specific-match implementation; modules gives the owner's declared
+// surface to resolveStrength.
 type moduleIndex struct {
-	names   []string
 	modules map[string]policy.ModuleDef
 	mm      policy.ModuleMap
 }
 
-// buildModuleIndex builds a sorted module name index from the Modules map.
+// buildModuleIndex builds the index from the Modules map.
 func buildModuleIndex(modules map[string]policy.ModuleDef) moduleIndex {
-	names := make([]string, 0, len(modules))
-	for n := range modules {
-		names = append(names, n)
-	}
-	sort.Strings(names)
-	return moduleIndex{names: names, modules: modules, mm: policy.BuildModuleMap(modules)}
+	return moduleIndex{modules: modules, mm: policy.BuildModuleMap(modules)}
 }
 
 // moduleFor returns the most-specific module name whose Paths globs match path,
@@ -271,9 +269,17 @@ func AugmentCargoCrateNodes(g *graph.Graph, modules map[string]policy.ModuleDef)
 			if modName, ok := mi.moduleFor(dir + "/x"); ok {
 				// A configured module covers the crate dir but not its bare-name node;
 				// bind the node to it, preserving owner/subdomain/volatility/layer.
+				// The bare node is the crate, so it joins the part of the
+				// surface that holds the crate's directory.
 				ensureClone()
 				def := out[modName]
 				def.Paths = append(append([]string{}, def.Paths...), name)
+				if resolved.InPart(def.Public, dir, false) || namesFilesIn(def.Public, dir) {
+					def.Public = append(append([]string{}, def.Public...), name)
+				}
+				if resolved.InPart(def.Model, dir, false) || namesFilesIn(def.Model, dir) {
+					def.Model = append(append([]string{}, def.Model...), name)
+				}
 				out[modName] = def
 				continue
 			}
@@ -379,15 +385,10 @@ func classify(e graph.Edge, mi moduleIndex, c Config, effectiveVol map[string]co
 	str := resolveStrength(e, mi)
 
 	// --- Distance & volatility ---
+	// Every strength balance.StrengthOf gives takes the target's volatility: the
+	// upstream module's volatility decides (the surfaces design 6.1). A
+	// declared external target keeps its own declared volatility.
 	dist, distBasis, vol := resolveDistanceVolatility(fromPath, toPath, mi, c, effectiveVol, extSystems)
-	// Functional and symmetric coupling ties both sides to each other's changes
-	// (Ch7), so the worse volatility of the two modules drives the edge. Contract,
-	// model and intrusive edges keep the target's volatility. A declared external
-	// target keeps its own declared volatility.
-	if (str == coupling.StrengthFunctional || str == coupling.StrengthSymmetric) &&
-		dist != coupling.DistanceUnknown && dist != coupling.DistanceExternal {
-		vol = worseVolatility(vol, classifyVolatilityEffective(fromPath, mi, modules, effectiveVol))
-	}
 
 	// --- Explicitness ---
 	// ExplicitnessHint from the extractor (AST signal) takes precedence over the
@@ -496,85 +497,69 @@ func resolveDistanceVolatility(fromPath, toPath string, mi moduleIndex, c Config
 	return dist, distBasis, classifyVolatilityEffective(toPath, mi, modules, effectiveVol)
 }
 
-// classifyStrength determines strength from glob matching against all modules'
-// public and internal glob lists.
-//
-// The two-pass structure (ALL public globs before ANY internal glob) makes the
-// result independent of module order; iteration still goes through the sorted
-// index so the code is self-evidently deterministic.
-func classifyStrength(toPath string, mi moduleIndex) coupling.Strength {
-	for _, name := range mi.names {
-		if matchesAnyGlob(toPath, mi.modules[name].Public) {
-			return coupling.StrengthContract
-		}
-	}
-	for _, name := range mi.names {
-		if matchesAnyGlob(toPath, mi.modules[name].Internal) {
-			return coupling.StrengthIntrusive
-		}
-	}
-	return coupling.StrengthUnknown
-}
-
-// resolveStrength applies static surface and extractor precedence for one edge.
+// resolveStrength gives an edge the strength of the surfaces design 6.1: the
+// module that owns the target, and where the target sits in that module's
+// declared surface, decide it through balance.StrengthOf, as they do for
+// the check. The surface speaks only to other modules, so an edge inside one
+// module, or to a target in no module, has no strength (unknown) and its score
+// abstains. The extractors' type facts (StrengthHint, DataStrengthHint) and
+// connascence are evidence; they never set a strength.
 func resolveStrength(e graph.Edge, mi moduleIndex) coupling.Strength {
 	toPath := pathFromID(e.To)
-	str := classifyStrength(toPath, mi)
-	// A public-glob match is the integration CONTRACT: the target declared this
-	// surface as its published interface, so a call through it is contract
-	// coupling. A callable hint (function, method, interface method) never
-	// raises that floor. Only DATA evidence does — a concrete non-DTO type,
-	// field, var or const, or a method on a concrete receiver — because that
-	// couples the caller to the target's model. A pure-data DTO across a
-	// declared public boundary IS the book's explicit integration contract.
-	//
-	// An intrusive hint raises the floor to intrusive: the caller uses a member
-	// its declaring code keeps out of the surface (a C# internal member through
-	// InternalsVisibleTo, a Python private name, a private symbol SCIP
-	// resolves). Intrusive coupling is integration through implementation
-	// details not meant for integration, and a file-granular public: glob
-	// declares the intended surface; it cannot make such a use a contract.
-	if str == coupling.StrengthContract {
-		switch {
-		case e.StrengthHint == string(coupling.StrengthIntrusive):
-			str = coupling.StrengthIntrusive
-		case e.DataStrengthHint == string(coupling.StrengthModel):
-			str = coupling.StrengthModel
-		}
-	}
-	// Unknown (no glob) falls back to the extractor or SCIP hint.
-	// Connascence is report-only evidence and never sets strength.
-	if str == coupling.StrengthUnknown {
-		str = strengthFromHint(e.StrengthHint)
-	}
-
-	return str
-}
-
-// strengthFromHint maps an extractor's strength hint to a coupling.Strength.
-//
-// Hints come from a trusted symbol-level source: either a SCIP index (which
-// resolves the imported symbol — Protocol/ABC → contract, concrete class → model,
-// function/method → functional, private → intrusive) or the Python underscore
-// heuristic (intrusive only). Both are evidence, not guesses, so all four valid
-// strengths are accepted; an unrecognized hint stays unknown. Config public/internal
-// globs still take precedence (see resolveStrength): the hint is a fallback, except
-// that an intrusive hint raises a public glob's contract floor.
-func strengthFromHint(hint string) coupling.Strength {
-	// A DTO hint without a declared public boundary is just a shared concrete
-	// type — model. The boundary declaration is what makes a DTO a contract:
-	// across a public glob the floor stands, because only a "model" data hint
-	// raises it (see resolveStrength).
-	if hint == graph.StrengthHintDTO {
-		return coupling.StrengthModel
-	}
-	switch coupling.Strength(hint) {
-	case coupling.StrengthContract, coupling.StrengthModel,
-		coupling.StrengthFunctional, coupling.StrengthSymmetric, coupling.StrengthIntrusive:
-		return coupling.Strength(hint)
-	default:
+	owner, ok := mi.moduleFor(toPath)
+	if !ok {
 		return coupling.StrengthUnknown
 	}
+	if from, ok := mi.moduleFor(pathFromID(e.From)); ok && from == owner {
+		return coupling.StrengthUnknown
+	}
+	return balance.StrengthOf(surfaceOf(mi.modules[owner], toPath, isFileNode(e.To)))
+}
+
+// surfaceOf places a graph-node path in the declared surface of def, with
+// the matcher the check uses (resolved.InPart). A module that declares
+// neither public nor model is public as a whole, as the policy defaults say
+// (resolved.Policy.WithDefaults); so is a module the report adds on its own,
+// a Go workspace member or a Rust module, which declares nothing. A module
+// that declares only model has no public part.
+func surfaceOf(def policy.ModuleDef, path string, isFile bool) balance.Surface {
+	if len(def.Public) == 0 && len(def.Model) == 0 {
+		return balance.Surface{Public: true}
+	}
+	in := func(globs []string) bool {
+		return resolved.InPart(globs, path, isFile) || !isFile && namesFilesIn(globs, path)
+	}
+	return balance.Surface{Public: in(def.Public), Model: in(def.Model)}
+}
+
+// namesFilesIn reports whether a glob names files directly in dir, such as
+// pkg/api/*.go or pkg/api/api.go for the package pkg/api. The check counts a
+// package as in a part when one of its files is; the graph has no file list
+// for a package node, so the report reads the glob's directory instead. A
+// glob whose last segment has no dot and no wildcard names a directory
+// (pkg/api), not files in its parent. Limit: a wildcard directory
+// (pkg/*/api.go) counts for every package it names, also one without that
+// file.
+func namesFilesIn(globs []string, dir string) bool {
+	for _, g := range globs {
+		if !strings.ContainsAny(gopath.Base(g), ".*?[{") {
+			continue
+		}
+		if ok, _ := doublestar.Match(gopath.Dir(g), dir); ok {
+			return true
+		}
+	}
+	return false
+}
+
+// isFileNode reports whether a graph node id names a file: a file node, or a
+// .NET project node, whose path is its .csproj file. The check treats every
+// target that is not a directory as a file, so the directory that holds it
+// matches too. A package node names a directory, which the surface matches
+// as a whole.
+func isFileNode(id string) bool {
+	kind, _, _ := strings.Cut(id, ":")
+	return graph.NodeKind(kind) == graph.NodeKindFile || graph.NodeKind(kind) == graph.NodeKindProject
 }
 
 // classifyDistance names the boundary of an edge. A module boundary is the far
@@ -733,26 +718,6 @@ func computeEffectiveVolatility(g *graph.Graph, mi moduleIndex, c Config) map[st
 		}
 	}
 	return effective
-}
-
-// volatilityRiskRank orders volatility levels by book Ch9 ordinal for
-// worst-of-pair selection. High outranks undeclared/unknown (all three score
-// V=10) so a declared high is reported over an artifact of missing config.
-var volatilityRiskRank = map[coupling.Volatility]int{
-	coupling.VolatilityFrozen:     1,
-	coupling.VolatilityLow:        2,
-	coupling.VolatilityMedium:     3,
-	coupling.VolatilityUndeclared: 4,
-	coupling.VolatilityUnknown:    4,
-	coupling.VolatilityHigh:       5,
-}
-
-// worseVolatility returns the riskier of two volatility levels.
-func worseVolatility(a, b coupling.Volatility) coupling.Volatility {
-	if volatilityRiskRank[b] > volatilityRiskRank[a] {
-		return b
-	}
-	return a
 }
 
 // volatilityFromDef derives base volatility from a ModuleDef using the same

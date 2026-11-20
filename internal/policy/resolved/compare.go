@@ -42,7 +42,8 @@ type Comparison struct {
 //
 //   - loosens: an added depends_on entry; an added or removed module or
 //     module path (a removed one can hand files to a nested module's parent or
-//     take them out of a deny rule that names the module); a wider public; a
+//     take them out of a deny rule that names the module); a wider public; an
+//     added model glob (a use past the surface becomes a model use); a
 //     mode moved toward off; a lower min_balance; a removed rule; an added
 //     exception, a later expires or a removed one; an added generated, tests or
 //     exclude glob; a lower volatility; any change to owners; gate required to
@@ -136,6 +137,7 @@ func (d *diff) module(key string, b, a Module) {
 	if !wholeModule(b) || !wholeModule(a) {
 		d.globs(key+".public", b.Public, a.Public)
 	}
+	d.globs(key+".model", b.Model, a.Model)
 	if b.Volatility != a.Volatility {
 		dir := Loosens
 		if rank(volatilityRank, a.Volatility) > rank(volatilityRank, b.Volatility) {

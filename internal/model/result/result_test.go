@@ -66,7 +66,7 @@ func TestGoldensMatchTheTypes(t *testing.T) {
 		var got result.Result
 		decodeStrict(t, readGolden(t, "coupling"), &got)
 		e := got.Errors[0]
-		wantBalance := result.Balance{Value: 2, Min: 7, Strength: result.StrengthFunctional, Volatility: result.VolatilityHigh}
+		wantBalance := result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}
 		if e.Balance == nil || *e.Balance != wantBalance {
 			t.Errorf("balance = %+v, want %+v", e.Balance, wantBalance)
 		}

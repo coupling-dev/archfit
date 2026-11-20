@@ -68,6 +68,7 @@
         "pkg/chaos",
         "pkg/chaos/cliflags"
       ],
+      "Model": null,
       "Internal": null,
       "Layer": "core",
       "Subdomain": "",
@@ -90,6 +91,7 @@
       "Public": [
         "pkg/container/**"
       ],
+      "Model": null,
       "Internal": null,
       "Layer": "core",
       "Subdomain": "",
@@ -109,6 +111,7 @@
       "Public": [
         "pkg/runtime/**"
       ],
+      "Model": null,
       "Internal": null,
       "Layer": "cmd",
       "Subdomain": "generic",
@@ -128,6 +131,7 @@
       "Public": [
         "pkg/tc"
       ],
+      "Model": null,
       "Internal": null,
       "Layer": "core",
       "Subdomain": "",
@@ -147,6 +151,7 @@
       "Public": [
         "pkg/util/**"
       ],
+      "Model": null,
       "Internal": null,
       "Layer": "core",
       "Subdomain": "",

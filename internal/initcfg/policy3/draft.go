@@ -23,7 +23,7 @@ const header = "# The Archfit policy, written by archfit init from the code as i
 	"# Review the modules, public, depends_on and exceptions, then commit it.\n"
 
 // whyException is the reason of an exception for an error that existed when
-// init wrote the policy. It has no date: the owner decides when it ends.
+// init wrote the policy.
 const whyException = "The error existed when archfit init wrote this policy."
 
 // packageSets are the sets init writes an only rule for, in this order.
@@ -36,12 +36,23 @@ const probePrefix = "init-probe-"
 // build returns the policy of the code the head facts describe, and its bytes.
 // The bytes load (policyfile.Resolve) and fit the tree (CheckTree).
 func build(root, owner string, facts evidence.CheckFacts, now time.Time) (policyfile.File, []byte, error) {
-	testGlobs := tests(factFiles(facts))
-	genGlobs, err := generated(root, facts.Sources)
+	sources := slices.Clone(facts.Sources)
+	tree := factFiles(facts)
+	// Inventory can assign paths even when the tool that reads them is missing.
+	for _, u := range facts.Unknown {
+		if u.Cause == evidence.CauseTool && u.File != "" {
+			sources = append(sources, u.File)
+			tree = append(tree, u.File)
+		}
+	}
+	slices.Sort(sources)
+	sources = slices.Compact(sources)
+	genGlobs, err := generated(root, sources)
 	if err != nil {
 		return policyfile.File{}, nil, err
 	}
-	files := slices.DeleteFunc(slices.Clone(facts.Sources), func(f string) bool { return matchesGlob(testGlobs, f) })
+	testGlobs := tests(tree)
+	files := slices.DeleteFunc(sources, func(f string) bool { return matchesGlob(testGlobs, f) })
 	mods := discover(files)
 	if len(mods) == 0 {
 		return policyfile.File{}, nil, errors.New("no source file outside the tests: archfit init writes the modules from the code")
@@ -61,12 +72,16 @@ func build(root, owner string, facts evidence.CheckFacts, now time.Time) (policy
 		f.Modules[m.name] = mod
 	}
 	f.Rules = containment(today.users, len(mods))
-	_, p, err := encode(f, factFiles(facts), header)
+	_, p, err := encode(f, tree, header)
 	if err != nil {
 		return policyfile.File{}, nil, err
 	}
 	f.Exceptions = exceptions(p, facts, now)
-	data, _, err := encode(f, factFiles(facts), header)
+	note := header
+	if len(facts.Unknown) > 0 {
+		note += "# Draft: some evidence was not read. Review the unread paths from archfit init.\n"
+	}
+	data, _, err := encode(f, tree, note)
 	if err != nil {
 		return policyfile.File{}, nil, err
 	}

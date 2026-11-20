@@ -22,7 +22,9 @@ const (
 func TestDoctorTypeScriptToolGroups(t *testing.T) {
 	for _, format := range []string{"text", "json"} {
 		t.Run(format, func(t *testing.T) {
-			out, err := runDoctorResult(t, t.TempDir(), format)
+			dir := t.TempDir()
+			writeFixtureFile(t, dir, "main.ts", "export {}")
+			out, err := runDoctorResult(t, dir, format)
 			if err != nil {
 				t.Fatal(err)
 			}

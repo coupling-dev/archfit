@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -35,7 +36,8 @@ func (*DoctorCmd) Help() string {
 The tools come in two groups: needed for the check (git, and ast-grep, cargo
 or dotnet for the languages that use them) and optional, for the report. A
 missing tool of the first group makes the check unknown for the code it
-cannot read.
+cannot read. The text lists tools for the languages found here and compares
+the local engine with the version comment on the workflow pin.
 
 Then the hooks: for Claude Code, Codex and git, whether the harness is here
 and whether each archfit hook runs. A settings file that git ignores is
@@ -67,6 +69,16 @@ func (c *DoctorCmd) Run(deps *appDeps) error {
 	if err != nil {
 		return err
 	}
+	loop := agentLoopStatus(ctx, deps, "")
+	// The Claude harness config is resolved at the repository root.
+	root := filepath.Dir(filepath.Dir(loop.Harnesses[0].Config))
+	cfg, cfgErr := loadConfig(root)
+	if c.Format != formatJSON {
+		report = doctorProjectTools(root, cfg, report)
+		checkCfg := cfg
+		checkCfg.Exclude = append(registry.CheckExclusions(cfg.Exclude), cacheDirName)
+		check = doctorProjectTools(root, checkCfg, check)
+	}
 	// A tool configured to an unusable value fails doctor after the full
 	// report, as it fails analysis: a missing tool is not an error, a wrong one is.
 	var invalid []error
@@ -84,13 +96,10 @@ func (c *DoctorCmd) Run(deps *appDeps) error {
 			rows = append(rows, row)
 		}
 	}
-	_, cfgErr := loadConfig(defaultConfigPath)
 	if cfgErr != nil {
 		invalid = append(invalid, cfgErr)
 	}
-	loop := agentLoopStatus(ctx, deps, "")
-	// The Claude harness config is resolved at the repository root by agentLoopStatus.
-	plugin := claudePluginStatus(filepath.Dir(filepath.Dir(loop.Harnesses[0].Config)))
+	plugin := claudePluginStatus(root)
 	if c.Format == formatJSON {
 		if err := writeDoctorJSON(deps, struct {
 			doctorReport
@@ -108,6 +117,7 @@ func (c *DoctorCmd) Run(deps *appDeps) error {
 		_, _ = fmt.Fprintf(deps.Stdout, "\n%s failed to load: %v (config checks skipped)\n", defaultConfigPath, cfgErr)
 	}
 
+	_, _ = fmt.Fprintf(deps.Stdout, "\nWorkflow pin: %s\n", doctorPin(root, version))
 	writeAgentLoop(deps.Stdout, loop)
 	writeClaudePlugin(deps.Stdout, plugin)
 
@@ -124,6 +134,24 @@ func (c *DoctorCmd) Run(deps *appDeps) error {
 		}
 	}
 	return errors.Join(invalid...)
+}
+
+// doctorProjectTools filters the human report without changing the JSON inventory.
+func doctorProjectTools(root string, cfg config.Config, tools []registry.ToolUse) []registry.ToolUse {
+	var rows []registry.ToolUse
+	for _, t := range tools {
+		if len(t.Languages) == 0 {
+			rows = append(rows, t)
+			continue
+		}
+		t.Languages = slices.DeleteFunc(slices.Clone(t.Languages), func(lang string) bool {
+			return !registry.HasProjectSources(lang, root, cfg.ForExtract(lang))
+		})
+		if len(t.Languages) > 0 {
+			rows = append(rows, t)
+		}
+	}
+	return rows
 }
 
 // The two tool groups of design 11.8.

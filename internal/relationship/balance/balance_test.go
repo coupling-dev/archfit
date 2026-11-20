@@ -16,8 +16,9 @@ const (
 // bySourceThenTarget holds the expected balance for each source and target volatility.
 type bySourceThenTarget map[relationship.Volatility]map[relationship.Volatility]int
 
-// The diagonal is the coupling table of design 6.2: contract or model for a
-// use of the public part, functional for a use past it, symmetric for a copy.
+// The coupling table of the surfaces design 6.1: contract, model and
+// intrusive take the target's volatility; functional and a copy (symmetric)
+// take the higher of the two.
 func TestOfMatrix(t *testing.T) {
 	matrix := map[relationship.Strength]bySourceThenTarget{
 		relationship.StrengthContract: {
@@ -42,8 +43,8 @@ func TestOfMatrix(t *testing.T) {
 		},
 		relationship.StrengthIntrusive: {
 			low:    {low: 8, medium: 5, high: 2},
-			medium: {low: 5, medium: 5, high: 2},
-			high:   {low: 2, medium: 2, high: 2},
+			medium: {low: 8, medium: 5, high: 2},
+			high:   {low: 8, medium: 5, high: 2},
 		},
 	}
 	for strength, grid := range matrix {

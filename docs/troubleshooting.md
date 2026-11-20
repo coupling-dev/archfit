@@ -39,7 +39,7 @@ Fetch the target history, then run `archfit check --base origin/main` (use the r
 | A report measurement is partial or unavailable. | Read `evidence not complete:`. Optional report tools do not affect the check.                           |
 | `sg` exists but extraction fails.               | Run `sg --version`: another program named `sg` may precede ast-grep on `PATH`.                          |
 
-Run `archfit doctor` to see the check and report tool groups. See [Language support](languages.md#analyzer-tools).
+Run `archfit doctor` to see the check and report tools for the languages in your checkout. See [Language support](languages.md#analyzer-tools).
 
 ## Installed tool is missing
 

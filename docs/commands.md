@@ -58,7 +58,7 @@ The run:
 5. The check reads the base and the working tree and counts the errors of each by rule, modules, and symbol. An error the base does not have, or has fewer times, is added by the change: the status is `fail`. An expired exception fails every change, and the status line ends with `(not from this change)`. See [results](results.md).
 6. On a push (`HEAD` is the tip of the target branch) with a `pass` or `fail` status, the JSON result adds the state of the repository. See [results](results.md#json).
 
-The default text record is also the agent workflow: run `archfit check` without a format flag and follow `next:`. Exit `0` means `pass`, `1` means `fail`, and `2` means `unknown`, wrong usage, or a tool error.
+The default text record is also the agent workflow: run `archfit check` without a format flag and follow `next:`. Exit `0` means `pass`, `1` means `fail`, and `2` means `unknown`, wrong usage, or a tool error. Repeated tool errors share a line with a path count and up to three examples. The JSON retains each path.
 
 The record goes to stdout. Notes, such as a target branch with no policy, and tool errors go to stderr. When no workflow in `.github/workflows/` has a step that uses `coupling-dev/archfit-action` (`uses: coupling-dev/archfit-action@<ref>`), every result carries the line `policy: not protected`, after the status line: the result is a local guide, not change control.
 
@@ -149,9 +149,11 @@ next: ask an owner     (open a pull request first if there is none)
 
 | The repository has | `archfit init` |
 | --- | --- |
-| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes. |
+| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 1 `.archfit.yaml` | Leaves it as it is. |
+
+`init` adds `.archfit-cache/` to the root `.gitignore`. A missing tool leaves a draft based on available evidence. The output lists unread paths and prints each install hint once.
 
 New exceptions expire 90 days after the run. The final list names them as decisions for the owner.
 
@@ -220,6 +222,8 @@ A version 2 policy stops the report with exit `2` and guidance to run `archfit i
 ### `doctor`
 
 `archfit doctor [flags]` checks this checkout: the tools archfit uses and the hooks of the agent loop. `--fix` installs the hooks.
+
+The text report lists tools for languages found in the checkout. It checks the workflow pin using the Action step’s trailing version comment, such as `# v0.9.0`. A missing or conflicting comment gives “cannot tell.” Doctor does not fetch the version. The JSON format still lists all known tools.
 
 The tools come in two tables:
 
