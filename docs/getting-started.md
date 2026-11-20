@@ -38,13 +38,14 @@ From your repository, run:
 archfit init
 ```
 
-`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the owners from the GitHub `origin` remote. Each error that exists today becomes an exception, so the first check passes. `init` also writes five lines for agents between markers in `AGENTS.md`.
+`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the owners from the GitHub `origin` remote. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
 
 ```text
 $ archfit init
 wrote .archfit.yaml: 4 modules, 0 allowed dependencies, 0 rules, 1 exception
-  exception: duplication pkg_tc -> pkg_util
 wrote AGENTS.md: the instruction block for agents
+exceptions for the owner to review:
+  exception: duplication pkg_tc -> pkg_util until 2027-02-08
 next: read .archfit.yaml, then open a pull request with it
 ```
 

@@ -24,14 +24,15 @@ import (
 )
 
 const (
-	origin     = "git@github.com:acme/shop.git"
-	copyText   = "the order could not be saved"
-	gitattrs   = ".gitattributes"
-	mainGo     = "main.go"
-	appMain    = "src/app/main.ts"
-	unbalanced = "unbalanced"
-	aFile      = "pkg/a/a.go"
-	aTestFile  = "pkg/a/a_test.go"
+	exceptionExpiry = "2027-02-08"
+	origin          = "git@github.com:acme/shop.git"
+	copyText        = "the order could not be saved"
+	gitattrs        = ".gitattributes"
+	mainGo          = "main.go"
+	appMain         = "src/app/main.ts"
+	unbalanced      = "unbalanced"
+	aFile           = "pkg/a/a.go"
+	aTestFile       = "pkg/a/a_test.go"
 )
 
 func requireTool(t *testing.T, tool string) {
@@ -127,7 +128,7 @@ func (f fixed) Head(context.Context, string) (evidence.CheckFacts, error) {
 
 func initWith(t *testing.T, facts policy3.HeadFacts, root string) (policy3.Result, error) {
 	t.Helper()
-	return policy3.Init(context.Background(), policy3.Deps{Runner: toolrun.New(), Facts: facts}, root)
+	return policy3.Init(context.Background(), policy3.Deps{Runner: toolrun.New(), Facts: facts, Now: func() time.Time { return time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC) }}, root)
 }
 
 var goRepo = map[string]string{
@@ -243,7 +244,7 @@ func excepted(exceptions []resolved.Exception, e change.Error) bool {
 		if e.Key.Rule == resolved.RuleUnowned {
 			from = e.Key.Symbol
 		}
-		if x.Rule == e.Key.Rule && x.From == from && x.To == e.Key.To && x.Expires.IsZero() {
+		if x.Rule == e.Key.Rule && x.From == from && x.To == e.Key.To && x.Expires.Format(time.DateOnly) == exceptionExpiry {
 			return true
 		}
 	}
@@ -470,7 +471,7 @@ func TestInitDeclaresTests(t *testing.T) {
 		{name: "a test copies the literal", copy: aTestFile},
 		{
 			name: "production code copies the literal", copy: aFile,
-			want: []policyfile.Exception{{Rule: "duplication", From: "pkg_a", To: "pkg_b", Why: "The error existed when archfit init wrote this policy."}},
+			want: []policyfile.Exception{{Rule: "duplication", From: "pkg_a", To: "pkg_b", Expires: exceptionExpiry, Why: "The error existed when archfit init wrote this policy."}},
 		},
 	}
 	for _, tt := range tests {
@@ -578,7 +579,7 @@ func TestInitPublicOfAFileThatIsNotASource(t *testing.T) {
 	if got := res.File.Modules["ui"].Public; len(got) != 1 || got[0] != "src/ui" {
 		t.Errorf("ui public = %v, want [src/ui]", got)
 	}
-	want := policyfile.Exception{Rule: resolved.RuleCoupling, From: "app", To: "ui", Why: "The error existed when archfit init wrote this policy."}
+	want := policyfile.Exception{Rule: resolved.RuleCoupling, From: "app", To: "ui", Expires: exceptionExpiry, Why: "The error existed when archfit init wrote this policy."}
 	if len(res.File.Exceptions) != 1 || res.File.Exceptions[0] != want {
 		t.Errorf("exceptions = %+v, want [%+v]", res.File.Exceptions, want)
 	}
