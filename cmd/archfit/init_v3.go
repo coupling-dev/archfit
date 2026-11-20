@@ -36,12 +36,15 @@ changes a version 1 policy.
                         public, depends_on as the dependencies that exist,
                         tests, generated, owners from the origin remote,
                         and a dated exception for each error that exists today,
-                        so the first check passes
+                        when the evidence is complete
   Version 1 policy      leaves it as it is
   Any other policy      fails: archfit reads version 1 only
 
 Each case that succeeds writes the five lines for agents between the archfit markers in
 AGENTS.md; text outside the markers stays as it is.
+
+Init writes a draft if some evidence is missing and lists what it could not read.
+It adds .archfit-cache/ to .gitignore.
 
 Init installs Claude Code and Codex hooks unless you use --no-hooks.
 It does not install the git pre-commit hook.
@@ -81,6 +84,9 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	}
 	if err != nil {
 		return noVerdict(err)
+	}
+	if err := ignoreInitCache(ctx, co.runner, co.root); err != nil {
+		fmt.Fprintf(&b, "warning: could not ignore %s/: %v\n", cacheDirName, err)
 	}
 	if initAgentHooksByDefault && !c.NoHooks {
 		installInitHooks(ctx, deps, co.root, &b)
@@ -174,18 +180,28 @@ func writeExceptionDecisions(b *strings.Builder, exceptions []policyfile.Excepti
 	}
 }
 
-// writeUnread lists the places of the code archfit could not read. The
-// policy is written without them.
+// writeUnread discloses unavailable evidence. Source paths found by inventory
+// can still appear in the draft policy.
 func writeUnread(b *strings.Builder, items []evidence.UnknownItem) {
+	if len(items) == 0 {
+		return
+	}
+	b.WriteString("draft policy: some evidence was not read\n")
+	seenFixes := map[string]bool{}
+	var fixes []string
 	for _, u := range items {
 		b.WriteString("not read: ")
 		if u.File != "" {
 			b.WriteString(location(u.File, u.Line) + ": ")
 		}
 		b.WriteString(u.Reason + "\n")
-		if u.Fix != "" {
-			b.WriteString("  fix: " + u.Fix + "\n")
+		if u.Fix != "" && !seenFixes[u.Fix] {
+			seenFixes[u.Fix] = true
+			fixes = append(fixes, u.Fix)
 		}
+	}
+	for _, fix := range fixes {
+		b.WriteString("  fix: " + fix + "\n")
 	}
 }
 

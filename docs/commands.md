@@ -149,9 +149,11 @@ next: ask an owner     (open a pull request first if there is none)
 
 | The repository has | `archfit init` |
 | --- | --- |
-| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes. |
+| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 1 `.archfit.yaml` | Leaves it as it is. |
+
+`init` adds `.archfit-cache/` to the root `.gitignore`. A missing tool leaves a draft based on available evidence. The output lists unread paths and prints each install hint once.
 
 New exceptions expire 90 days after the run. The final list names them as decisions for the owner.
 
@@ -220,6 +222,8 @@ A version 2 policy stops the report with exit `2` and guidance to run `archfit i
 ### `doctor`
 
 `archfit doctor [flags]` checks this checkout: the tools archfit uses and the hooks of the agent loop. `--fix` installs the hooks.
+
+The text report lists tools for languages found in the checkout. It checks the workflow pin using the Action step’s trailing version comment, such as `# v0.9.0`. A missing or conflicting comment gives “cannot tell.” Doctor does not fetch the version. The JSON format still lists all known tools.
 
 The tools come in two tables:
 

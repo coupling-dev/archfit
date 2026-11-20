@@ -26,9 +26,9 @@ Run:
 archfit doctor
 ```
 
-This command reports the tools that archfit can find, in two groups: needed for the check, and optional, for the report. The check needs `git`, and `ast-grep` for languages other than Go. Install the tools of the first group for the languages in your repository. A missing tool makes the check `unknown` for the code it cannot read. See [Language support](languages.md#analyzer-tools).
+This command reports tools for the languages it finds, in two groups: needed for the check, and optional, for the report. The check always needs `git`. Other tools depend on the languages. Install the tools of the first group for the languages in your repository. A missing tool makes the check `unknown` for the code it cannot read. See [Language support](languages.md#analyzer-tools).
 
-`doctor` also reports missing or inactive hooks. See [Hooks](agents.md#hooks).
+`doctor` compares the local engine with the version comment on the workflow pin. It also reports missing or inactive hooks. See [Hooks](agents.md#hooks).
 
 ## Set up the repository
 
@@ -38,7 +38,7 @@ From your repository, run:
 archfit init
 ```
 
-`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the owners from the GitHub `origin` remote. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
+`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the owners from the GitHub `origin` remote. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes when the evidence is complete. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
 
 ```text
 $ archfit init
@@ -53,6 +53,10 @@ next: read .archfit.yaml, then open a pull request with it
 ```
 
 `init` installs repository hooks for Claude Code and Codex by default. To skip them, run `archfit init --no-hooks`. The git pre-commit hook is opt-in.
+
+If a tool is missing, `init` writes a draft policy and lists what it could not read. Install the named tool and review the draft before opening a pull request.
+
+`init` adds `.archfit-cache/` to `.gitignore`.
 
 Read the policy, then open one pull request with it. An owner removes an exception when the code is fixed, and writes rules with `why` and `instead`. Read [Configuration](configuration.md) for the fields and [Rules](rules.md) for the built-in rules, custom rules, and exceptions.
 
