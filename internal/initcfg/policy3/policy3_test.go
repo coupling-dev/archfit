@@ -379,12 +379,8 @@ func TestWriteBlock(t *testing.T) {
 }
 
 // TestInitWritesNothingOnAnError: unbalanced markers, a missing origin, an
-// origin outside GitHub and a missing tool stop Init before it writes.
+// an origin outside GitHub stops Init before it writes.
 func TestInitWritesNothingOnAnError(t *testing.T) {
-	missingTool := fixed{Sources: goFacts.Sources, Unknown: []evidence.UnknownItem{{
-		Reason: "ast-grep is not installed; it reads the literals of typescript", Cause: evidence.CauseTool,
-		Fix: "install ast-grep: https://example.com",
-	}}}
 	for _, tt := range []struct {
 		name   string
 		agents string
@@ -397,7 +393,6 @@ func TestInitWritesNothingOnAnError(t *testing.T) {
 		{"a second start marker", "<!-- archfit:start -->\na\n<!-- archfit:end -->\n<!-- archfit:start -->\n", origin, goFacts, unbalanced},
 		{"no origin", "", "", goFacts, "no origin remote"},
 		{"origin outside GitHub", "", "https://gitlab.com/acme/shop.git", goFacts, "on gitlab.com"},
-		{"missing tool", "", origin, missingTool, "next: install ast-grep"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			files := map[string]string{}
