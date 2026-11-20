@@ -168,8 +168,8 @@ generated: ["internal/gen/**"]
 
 ## Version 2 (Archfit 3)
 
-A version 2 policy has rule types (`forbidden_dependency`, `module_dependencies`, `forbidden_layer_direction`, `module_cycle`, `public_api_only`, `forbidden_pattern`, and others), a `gate` of `fail`, `warn`, or `off` on each rule, and waivers. `check` and `report` require version 1. The full reference is the [Rules page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/rules.md).
+A version 2 policy has rule types (`forbidden_dependency`, `module_dependencies`, `forbidden_layer_direction`, `module_cycle`, `public_api_only`, `forbidden_pattern`, and others), a `gate` of `fail`, `warn`, or `off` on each rule, and waivers. `check` and `report` require version 1. The full reference is the [Rules page of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/rules.md).
 
 ### Waivers
 
-Archfit 3 accepted findings with `waivers`: a rule ID, selectors, a reason, approver metadata, and an expiry date. In version 1, exceptions replace them. See the [waivers of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/rules.md#waivers).
+Archfit 3 accepted findings with `waivers`: a rule ID, selectors, a reason, approver metadata, and an expiry date. In version 1, exceptions replace them. See the [waivers of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/rules.md#waivers).

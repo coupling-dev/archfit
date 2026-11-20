@@ -155,4 +155,4 @@ The report `evidence` object contains the declared scope, bounded snapshot, comp
 
 The agent digest, console, Markdown, scorecard, and architecture-map renderers are removed. `check` and `can` use the text record by default; the check also supports JSON and SARIF through the record renderer. `report` keeps text and JSON. The report schema is now `archfit.report.schema.json`, including its `$id`; the old state-schema filename and agent-result schema are no longer published.
 
-For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/results.md). Current `check` requires a version 1 policy; a version 2 policy is an error.
+For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/results.md). Current `check` requires a version 1 policy; a version 2 policy is an error.
