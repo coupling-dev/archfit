@@ -15,13 +15,34 @@
           "maximum": 10,
           "minimum": 1,
           "description": "Min is the policy's min_balance, 1 to 10."
+        },
+        "strength": {
+          "type": "string",
+          "enum": [
+            "contract",
+            "model",
+            "intrusive",
+            "functional"
+          ],
+          "description": "Strength is the strength the balance is computed with."
+        },
+        "volatility": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "description": "Volatility is the declared volatility the balance is computed with:\nthe target's for a use of its public part, else the higher of the\ntwo modules'."
         }
       },
       "additionalProperties": false,
       "type": "object",
       "required": [
         "value",
-        "min"
+        "min",
+        "strength",
+        "volatility"
       ],
       "description": "Balance is the coupling number of a dependency, printed as \"Value/10 (min Min)\"."
     },
@@ -72,6 +93,10 @@
         "balance": {
           "$ref": "#/$defs/Balance",
           "description": "Balance is the balance the dependency would have."
+        },
+        "surface": {
+          "$ref": "#/$defs/Surface",
+          "description": "Surface is the declared surface of the target module, when the answer\nis no for a use past it. Not set by the engine of this version."
         },
         "next": {
           "$ref": "#/$defs/Next",
@@ -143,6 +168,10 @@
         "balance": {
           "$ref": "#/$defs/Balance",
           "description": "Balance is the balance of the dependency, when the rule is about\ncoupling."
+        },
+        "surface": {
+          "$ref": "#/$defs/Surface",
+          "description": "Surface is the declared surface of the target module, for a coupling\nerror of a use past it. Not set by the engine of this version."
         },
         "next": {
           "$ref": "#/$defs/Next",
@@ -426,6 +455,31 @@
         "engine"
       ],
       "description": "Result is the verdict of `archfit check` for one change."
+    },
+    "Surface": {
+      "properties": {
+        "public": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Public are the globs of the public part. A module that declares\nneither public nor model has its paths here: the whole module is\npublic. A module that declares only model has none."
+        },
+        "model": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array",
+          "description": "Model are the globs of the model part, or none."
+        }
+      },
+      "additionalProperties": false,
+      "type": "object",
+      "required": [
+        "public",
+        "model"
+      ],
+      "description": "Surface is the part of a module that other modules may use, as the policy declares it."
     },
     "Unknown": {
       "properties": {

@@ -2,8 +2,11 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -20,6 +23,7 @@ const (
 	ruleGraph       = "graph"
 	ruleDuplication = "duplication"
 	flagExpires     = "--expires"
+	checkFirst      = "run archfit check first"
 )
 
 // TestRequestFromTheCLI: check or can, then request, on the examples of
@@ -69,13 +73,16 @@ func TestRequestRefusesFromTheCLI(t *testing.T) {
 		head    map[string]string
 		first   []string
 		edit    bool
+		older   bool
 		request []string
 		want    string
 	}{
 		{name: "no check output", head: map[string]string{tcNetem: tcImportsUtil},
-			request: []string{"-m", whyGraph}, want: "run archfit check first"},
+			request: []string{"-m", whyGraph}, want: checkFirst},
 		{name: "an edit after the check", head: map[string]string{tcNetem: tcImportsUtil}, first: []string{cmdCheck}, edit: true,
-			request: []string{"-m", whyGraph}, want: "run archfit check first"},
+			request: []string{"-m", whyGraph}, want: checkFirst},
+		{name: "a check by another engine", head: map[string]string{tcNetem: tcImportsUtil}, first: []string{cmdCheck}, older: true,
+			request: []string{"-m", whyGraph}, want: checkFirst},
 		{name: "a pass", head: map[string]string{runtimeGo: fixtureFiles()[runtimeGo] + "\n// Done.\n"}, first: []string{cmdCheck},
 			request: []string{"-m", whyGraph}, want: "nothing to ask: archfit: pass"},
 		{name: "no reason off a terminal", head: map[string]string{tcNetem: tcImportsUtil}, first: []string{cmdCheck},
@@ -96,6 +103,9 @@ func TestRequestRefusesFromTheCLI(t *testing.T) {
 			if tc.edit {
 				writeFiles(t, dir, map[string]string{tcNetem: tcImportsUtil + "\n// Edited.\n"})
 			}
+			if tc.older {
+				stampEngine(t, dir, "0.8.0")
+			}
 			got := runCLI(t, fixtureDate, append([]string{cmdRequest, "-C", dir}, tc.request...)...)
 			if got.code != exitUnknown || got.stdout != "" {
 				t.Errorf("exit = %d, stdout %q; want 2 and no request", got.code, got.stdout)
@@ -109,6 +119,35 @@ func TestRequestRefusesFromTheCLI(t *testing.T) {
 	got := runCLI(t, fixtureDate, cmdRequest, "-m", whyGraph, "-C", t.TempDir())
 	if got.code != exitUnknown || !strings.Contains(got.stderr, notARepo) {
 		t.Errorf("outside a repository: exit %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+// stampEngine rewrites the engine of the stored check output, as if another
+// version of archfit had written it.
+func stampEngine(t *testing.T, dir, engine string) {
+	t.Helper()
+	path := filepath.Join(dir, lastFile)
+	data, err := os.ReadFile(path) //nolint:gosec // controlled fixture checkout
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc map[string]json.RawMessage
+	var output map[string]any
+	if err := json.Unmarshal(data, &doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(doc["output"], &output); err != nil {
+		t.Fatal(err)
+	}
+	output["engine"] = engine
+	if doc["output"], err = json.Marshal(output); err != nil {
+		t.Fatal(err)
+	}
+	if data, err = json.Marshal(doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		t.Fatal(err)
 	}
 }
 

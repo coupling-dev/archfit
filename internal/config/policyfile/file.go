@@ -61,6 +61,8 @@ type Module struct {
 	Paths []string `yaml:"paths" jsonschema:"required,minItems=1"`
 	// Globs other modules may use. Absent: the whole module is public. Add public to protect its inside.
 	Public []string `yaml:"public,omitempty" jsonschema:"minItems=1"`
+	// Globs inside paths that other modules may use as a shared model. Absent: no model part.
+	Model []string `yaml:"model,omitempty" jsonschema:"minItems=1"`
 	// How often the module is expected to change. Absent: taken from subdomain (core is high; supporting and generic are low), otherwise high.
 	Volatility Volatility `yaml:"volatility,omitempty"`
 	// The business role of the module. It sets the volatility only when volatility is absent. Absent: no business role is recorded.
