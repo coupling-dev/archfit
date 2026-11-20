@@ -17,7 +17,7 @@ class CorpusSweepTest(unittest.TestCase):
         self.root = Path(self.temporary.name)
         self.repo = self.root / "repo"
         self.repo.mkdir()
-        (self.repo / ".archfit.yaml").write_text("version: 3\n")
+        (self.repo / ".archfit.yaml").write_text("version: 1\n")
         self.spec = cs.RepoSpec("fixture", self.repo, "go")
         self.calls = []
 

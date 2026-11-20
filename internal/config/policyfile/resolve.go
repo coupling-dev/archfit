@@ -16,10 +16,10 @@ import (
 // changes.
 var settingKeys = []string{"languages", "analyzers", "coverage"}
 
-// Resolve reads a schema 3 policy and returns its model: Decode, then the
+// Resolve reads a schema 1 policy and returns its model: Decode, then the
 // defaults of design 6.1, then the checks across keys (resolved.Policy.Check).
 // The digest is that of data. Checks against the file tree are
-// resolved.Policy.CheckTree. A version 2 file fails with ErrVersion2.
+// resolved.Policy.CheckTree. A file of another version is an error.
 func Resolve(data []byte) (resolved.Policy, error) {
 	f, err := Decode(data)
 	if err != nil {

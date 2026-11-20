@@ -79,7 +79,7 @@ make language-contracts
 ```
 
 The language contract harness runs `archfit check` on Go, TypeScript, JavaScript, Python, Rust, and .NET fixtures.
-Each fixture has a schema 3 policy with one `deny` rule. Its `main` branch holds a clean tree, and its change branch adds the forbidden dependency.
+Each fixture has a schema 1 policy with one `deny` rule. Its `main` branch holds a clean tree, and its change branch adds the forbidden dependency.
 The check must report the rule's error and exit 1. An active exception (judged with `--policy`) must pass, and an expired one must fail.
 When the change is undone, the check must pass with exit 0.
 Go, TypeScript, JavaScript, and Python need only `git` and `ast-grep`. Rust also needs `cargo`. .NET needs the SDK and the Roslyn helper.
@@ -141,7 +141,7 @@ Missing checkouts and toolchains must remain visible.
 ## Extractor equivalence
 
 `scripts/eval/extractors` compares the typed Go extractor with the parser-based Go extractor.
-The retired TypeScript and Python reference extractors are unavailable. The tool requires a schema 3 policy.
+The retired TypeScript and Python reference extractors are unavailable. The tool requires a schema 1 policy.
 It reports file edges, module pairs, and `unknown` imports for one language and repository.
 Run it on a disposable clone, because today's extractors can write caches in the target.
 
@@ -178,7 +178,7 @@ The trap benchmark measures what coding agents do when the shortest path breaks 
 It runs trap tasks, setups (arms), and models in disposable clones.
 Traps, arms, and default model IDs live in `scripts/eval/traps/definitions.py`.
 
-Each run clones the pinned trap commit and commits the schema 3 policy on its default branch.
+Each run clones the pinned trap commit and commits the schema 1 policy on its default branch.
 The task branch starts from that policy commit. Setup changes are excluded from the measured diff.
 The `prose` arm keeps the prose graph and denies `archfit`.
 The other arms use the five-line block. The `tool` arms remove the prose graph.

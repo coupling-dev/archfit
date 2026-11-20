@@ -107,7 +107,7 @@ func TestRefusals(t *testing.T) {
 			wantLines: []int{3, 5}, wantAsked: []string{toUtil, stdlibFmt, forbidden, toNowhere}},
 		{name: "a no an exception covers is dropped", policy: policies{ok: true, p: resolved.Policy{Exceptions: []resolved.Exception{graphException}}},
 			wantLines: []int{5}, wantAsked: []string{toUtil, stdlibFmt, forbidden, toNowhere}},
-		{name: "no valid version 3 policy: nothing to ask", policy: policies{}},
+		{name: "no valid version 1 policy: nothing to ask", policy: policies{}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()

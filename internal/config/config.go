@@ -1,4 +1,4 @@
-// Package config projects schema 3 policies into report measurement inputs.
+// Package config projects schema 1 policies into report measurement inputs.
 package config
 
 import (
@@ -9,7 +9,7 @@ import (
 )
 
 // Config is an internal report projection, not a policy file format.
-// ReportConfig constructs it from the schema 3 policy decoder.
+// ReportConfig constructs it from the schema 1 policy decoder.
 type Config struct {
 	Exclude         []string
 	Languages       LanguagesConfig

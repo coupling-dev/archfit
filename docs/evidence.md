@@ -162,7 +162,7 @@ The [metrics reference](metrics.md) explains how supplied coverage differs from 
 
 - **Required facts:** `admissible persisted reference`, `complete two-sided seam identity`.
 - **Current result:** `unmeasured`. The report has no stored reference and does not compare seam inventories across runs.
-- **Limits:** This legacy report dimension is not the repository drift that schema 3 `archfit report` lists for owners. The check's same-run change counting does not promote it.
+- **Limits:** This legacy report dimension is not the repository drift that schema 1 `archfit report` lists for owners. The check's same-run change counting does not promote it.
 
 The coupling contract counts abstentions in its denominator. Same-module coupling and undeclared external dependencies are outside that denominator. See [coupling](coupling.md) for current v7 distance and seam semantics.
 

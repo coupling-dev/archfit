@@ -4,7 +4,7 @@ Archfit has seven public commands. Run `archfit <command> --help` for their flag
 
 ## Policy version
 
-`check`, `can`, `rules`, `request`, and `report` need a version 3 `.archfit.yaml`. A version 2 file (Archfit 3) is an error: remove it and run `archfit init` to write a fresh version 3 policy.
+`check`, `can`, `rules`, `request`, and `report` need a version 1 `.archfit.yaml`. A version 2 file (Archfit 3) is an error: remove it and run `archfit init` to write a fresh version 1 policy.
 
 ## Choose a command
 
@@ -32,7 +32,7 @@ Unknown commands and flags also exit `2`. Diagnostics go to stderr; normal outpu
 
 ### `check`
 
-`archfit check [flags]` gives the status of the change in the working tree: `pass`, `fail`, or `unknown`. It needs a version 3 policy. If the policy is missing, run `archfit init`. A version 2 policy is an error.
+`archfit check [flags]` gives the status of the change in the working tree: `pass`, `fail`, or `unknown`. It needs a version 1 policy. If the policy is missing, run `archfit init`. A version 2 policy is an error.
 
 ```sh
 archfit check
@@ -66,7 +66,7 @@ Each run except a `--policy` preview keeps its JSON output and the git tree id o
 
 ### `can <from> <to>`
 
-`archfit can <from> <to> [flags]` answers before you write code: may `<from>` depend on `<to>`? It reads `.archfit.yaml` (version 3) and applies the rules `check` applies to one new dependency: `graph`, `coupling`, `layers`, and the custom `deny` and `only` rules.
+`archfit can <from> <to> [flags]` answers before you write code: may `<from>` depend on `<to>`? It reads `.archfit.yaml` (version 1) and applies the rules `check` applies to one new dependency: `graph`, `coupling`, `layers`, and the custom `deny` and `only` rules.
 
 ```text
 $ archfit can pkg/tc pkg/util
@@ -97,7 +97,7 @@ The answer is approximate in two cases. It applies no exception, and it does not
 
 ### `rules [PATH... | RULE]`
 
-`archfit rules` shows the rules of `.archfit.yaml` (version 3) in plain words. Paths are relative to the repository root.
+`archfit rules` shows the rules of `.archfit.yaml` (version 1) in plain words. Paths are relative to the repository root.
 
 | Form | Shows |
 | --- | --- |
@@ -145,13 +145,13 @@ next: ask an owner     (open a pull request first if there is none)
 
 ### `init`
 
-`archfit init [flags]` sets up a repository. It writes what is missing and never changes a version 3 policy. It writes no workflow file: the workflow comes with Action 4.
+`archfit init [flags]` sets up a repository. It writes what is missing and never changes a version 1 policy. It writes no workflow file: the workflow comes with Action 4.
 
 | The repository has | `archfit init` |
 | --- | --- |
-| No `.archfit.yaml` | Writes a version 3 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes. |
+| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes. |
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
-| A version 3 `.archfit.yaml` | Leaves it as it is. |
+| A version 1 `.archfit.yaml` | Leaves it as it is. |
 
 In each case it writes the five lines for agents between the `<!-- archfit:start -->` and `<!-- archfit:end -->` markers in `AGENTS.md`, and creates the file when it is missing. Text outside the markers stays as it is. When the block is already there, nothing is written and the command still exits `0`.
 
@@ -173,7 +173,7 @@ Read the policy and its exceptions before you open the pull request. A place in 
 
 `archfit report [flags]` gives owners the repository-wide picture. It decides nothing: it exits `0` whatever it shows, and `2` only on wrong usage or a tool error. It never runs on the path of `check`.
 
-On a version 3 policy, it first judges the whole working tree with the rules and exceptions of `.archfit.yaml` on today's date. The state is one of:
+On a version 1 policy, it first judges the whole working tree with the rules and exceptions of `.archfit.yaml` on today's date. The state is one of:
 
 | State | Meaning |
 | --- | --- |
@@ -202,7 +202,7 @@ policy: not protected
 
 A version 2 policy stops the report with exit `2` and guidance to run `archfit init`.
 
-`--format json` writes the `archfit.architecture-state.v2` document of `archfit.report.schema.json`. On a version 3 policy, its `repository` object holds the state and each list above.
+`--format json` writes the `archfit.architecture-state.v2` document of `archfit.report.schema.json`. On a version 1 policy, its `repository` object holds the state and each list above.
 
 | Flag | Meaning |
 | --- | --- |

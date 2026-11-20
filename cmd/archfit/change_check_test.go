@@ -23,9 +23,9 @@ import (
 // fixture repository below must print each example byte for byte.
 const designExamples = "../../internal/output/record/testdata"
 
-// fixturePolicy is a version 3 policy for the fixture repository, the modules
+// fixturePolicy is a version 1 policy for the fixture repository, the modules
 // of design 8.1.
-const fixturePolicy = `version: 3
+const fixturePolicy = `version: 1
 owners: [alexei-led]
 modules:
   pkg_chaos:
@@ -79,7 +79,7 @@ const (
 	pkgTC       = "pkg/tc"
 	pkgUtil     = "pkg/util"
 	apiPolicy   = "services/api/.archfit.yaml"
-	version1    = "version: 1\n"
+	version3    = "version: 3\n"
 	statusPass  = string(result.StatusPass)
 	statusFail  = string(result.StatusFail)
 )
@@ -401,7 +401,7 @@ func TestVersion3UsageAndToolErrorsExit2(t *testing.T) {
 		{name: "a version 2 format", args: []string{cmdCheck, "-C", dir, flagFormat, "markdown"}, want: "--format must be one of"},
 		{name: "two formats", args: []string{cmdCheck, "-C", dir, flagFormat, formatJSON, flagFormat, formatSarif}, want: "--format takes one value"},
 		{name: "a version 2 flag", args: []string{cmdCheck, "-C", dir, "--json"}, want: "unknown flag --json"},
-		{name: "-c names a version 3 file", args: []string{cmdCheck, "-c", filepath.Join(dir, defaultConfigPath)}, want: "unknown flag -c"},
+		{name: "-c names a version 1 file", args: []string{cmdCheck, "-c", filepath.Join(dir, defaultConfigPath)}, want: "unknown flag -c"},
 		{name: "not a git repository", args: []string{cmdCheck, "-C", plain}, want: notARepo},
 		{name: "can with one argument", args: []string{cmdCan, pkgTC, "-C", dir}, want: "usage: name a file"},
 		{name: "rules mixing forms", args: []string{cmdRules, "--graph", pkgTC, "-C", dir}, want: "usage: --graph takes no path"},
@@ -441,7 +441,7 @@ func TestCanExitCodes(t *testing.T) {
 // a subdirectory names that directory's file, as the record shows.
 func TestPolicyFlagReadsFromTheStartDirectory(t *testing.T) {
 	t.Parallel()
-	dir := fixtureRepo(t, with(fixtureFiles(), map[string]string{apiPolicy: "version: 3\nowners: [alexei-led]\n"}), nil)
+	dir := fixtureRepo(t, with(fixtureFiles(), map[string]string{apiPolicy: "version: 1\nowners: [alexei-led]\n"}), nil)
 	got := runCLI(t, fixtureDate, cmdCheck, "-C", filepath.Join(dir, "services", "api"), "--policy", defaultConfigPath)
 	if got.code != exitUnknown || !strings.HasPrefix(got.stdout, apiPolicy+": policy: ") {
 		t.Errorf("= %d\n%s%s; want unknown about services/api/.archfit.yaml", got.code, got.stdout, got.stderr)

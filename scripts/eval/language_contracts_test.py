@@ -92,7 +92,7 @@ class TestFixturePolicies(unittest.TestCase):
         for spec in lc.FIXTURES:
             with self.subTest(spec=spec.name):
                 policy = lc.config_text(spec)
-                self.assertRegex(policy, r"(?m)^version: 3$")
+                self.assertRegex(policy, r"(?m)^version: 1$")
                 self.assertIn(f"owners: [{lc.POLICY_OWNER}]", policy)
                 self.assertIn(f"  core:\n    paths: ['{spec.core_paths}']", policy)
                 self.assertIn(
@@ -436,7 +436,7 @@ class TestDotnetContract(unittest.TestCase):
 
     def test_checked_policy_lists_only_the_healthy_projects(self):
         policy = lc.dotnet_policy_text(lc.DOTNET_CHECKED_PROJECTS)
-        self.assertRegex(policy, r"(?m)^version: 3$")
+        self.assertRegex(policy, r"(?m)^version: 1$")
         self.assertIn(
             "    projects: [Domain/Domain.csproj, Application/Application.csproj, "
             "Infrastructure/Infrastructure.csproj, Legacy/Legacy.csproj]\n",

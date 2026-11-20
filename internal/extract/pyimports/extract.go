@@ -26,7 +26,7 @@
 // It is a port of scripts/eval/extractors/py_imports.py, the prototype that
 // the extractor-equivalence test measured (design appendix D.3), with three
 // differences: no package from the root directory's name, no first-party
-// names from module paths (schema 3 paths are file globs), and a configured
+// names from module paths (schema 1 paths are file globs), and a configured
 // package without a directory is an error.
 package pyimports
 

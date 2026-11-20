@@ -1,11 +1,11 @@
 # CI
 
-With a version 3 policy, run `archfit check` as shown in
+With a version 1 policy, run `archfit check` as shown in
 [Run the check without the Action](#run-the-check-without-the-action). It
 returns `0` for `pass`, `1` for `fail`, and `2` for `unknown`, wrong usage, or
 a tool error.
 
-The Go coverage example describes version 2 (Archfit 3). Use the current text-record gate below for a version 3 policy.
+The Go coverage example describes version 2 (Archfit 3). Use the current text-record gate below for a version 1 policy.
 
 ## Run the check without the Action
 

@@ -68,7 +68,7 @@ type PolicyFile struct {
 	Digest string
 	// Policy is the policy with its defaults, set when Found and Err is nil.
 	Policy resolved.Policy
-	// Err says why a file that was found is not a valid version 3 policy.
+	// Err says why a file that was found is not a valid version 1 policy.
 	Err error
 }
 
@@ -161,7 +161,7 @@ type Options struct {
 type Outcome struct {
 	Result result.Result
 	// Notes are lines for stderr: progress the record does not hold, such
-	// as a target branch with no version 3 policy.
+	// as a target branch with no version 1 policy.
 	Notes []string
 }
 

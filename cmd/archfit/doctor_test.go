@@ -66,12 +66,12 @@ func TestDoctorCmdRejectsVersion2(t *testing.T) {
 
 func TestDoctorCmdLoadsVersion3(t *testing.T) {
 	dir := t.TempDir()
-	if err := os.WriteFile(filepath.Join(dir, defaultConfigPath), []byte("version: 3\nowners: [owner]\nmodules:\n  app: {paths: ['**']}\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, defaultConfigPath), []byte("version: 1\nowners: [owner]\nmodules:\n  app: {paths: ['**']}\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	out := runDoctorCmd(t, dir)
 	if strings.Contains(out, "failed to load") {
-		t.Fatalf("doctor rejected version 3:\n%s", out)
+		t.Fatalf("doctor rejected version 1:\n%s", out)
 	}
 }
 

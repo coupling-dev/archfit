@@ -7,7 +7,7 @@ import (
 
 func TestReportPolicySelectorsEscapeModuleNames(t *testing.T) {
 	t.Parallel()
-	data := []byte("version: 3\nowners: [owner]\nmodules:\n  'a/b~c':\n    paths: ['app/**']\n    volatility: high\n")
+	data := []byte("version: 1\nowners: [owner]\nmodules:\n  'a/b~c':\n    paths: ['app/**']\n    volatility: high\n")
 	in, err := NewReportInput(data)
 	if err != nil {
 		t.Fatal(err)

@@ -18,7 +18,7 @@ import (
 
 // ReportCmd is `archfit report`: the repository-wide picture for owners. It
 // runs the measurements of the report pipeline (D2: today's analyze pipeline,
-// with no verdict) and the state of the repository under a version 3 policy
+// with no verdict) and the state of the repository under a version 1 policy
 // (internal/application/repostate). It never runs on the check path.
 type ReportCmd struct {
 	Format string `help:"Output: text or json." enum:"text,json" default:"text"`
@@ -30,7 +30,7 @@ func (*ReportCmd) Help() string {
 the measurements of the code.
 
 The state judges the whole tree with the rules and exceptions of
-.archfit.yaml (version 3) on today's date:
+.archfit.yaml (version 1) on today's date:
 
   clean    no error outside the exceptions
   drift    an error exists that no exception covers
@@ -91,7 +91,7 @@ func (c *ReportCmd) runLoaded(ctx context.Context, deps *appDeps, co checkout, i
 	return nil
 }
 
-// repositoryState judges the working tree with the local version 3 policy.
+// repositoryState judges the working tree with the local version 1 policy.
 func (co checkout) repositoryState(ctx context.Context, p resolved.Policy) (report.RepositoryState, error) {
 	src := reportPolicySource{p}
 	svc := repostate.Service{Policies: src, Tree: repository{co}, Facts: co.facts(checkfacts.ConfigFrom(p))}

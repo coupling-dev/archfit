@@ -93,7 +93,7 @@ repository that holds the event cwd. They remember the session in
                   The errors an exception covers are left out, as check
                   leaves them out.
                     yes, unknown    exit 0, silent
-                  Without a version 3 policy it is silent.
+                  Without a version 1 policy it is silent.
   stop            runs archfit check, as you would before you finish:
                     fail (first stop)           exit 2; the record on stderr
                     fail, with stop_hook_active exit 0 with a systemMessage

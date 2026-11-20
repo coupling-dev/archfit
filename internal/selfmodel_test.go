@@ -1,4 +1,4 @@
-// The self-model checks that the schema 3 policy describes this source tree.
+// The self-model checks that the schema 1 policy describes this source tree.
 // They check ownership, live selectors, public surfaces, and layers.
 // Run with: go test ./internal/ -run TestSelfModel
 package arch_test

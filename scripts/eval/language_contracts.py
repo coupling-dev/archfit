@@ -3,7 +3,7 @@
 
 This gate creates five disposable repositories (Go, TypeScript, JavaScript,
 Python, and a Rust workspace) and runs the branch binary's `archfit check` on
-each.  Every fixture has a schema 3 policy with one custom deny rule.  Its
+each.  Every fixture has a schema 1 policy with one custom deny rule.  Its
 target branch holds a clean tree; its change branch adds the forbidden
 dependency.  The check must give the deny error and exit 1, honour a policy
 exception until its date, and pass (exit 0) once the change is undone.
@@ -229,13 +229,13 @@ DOTNET_EDGELESS_PROJECTS = ("Broken", "Tests")
 
 
 def config_text(spec: FixtureSpec) -> str:
-    """The schema 3 policy of a fixture: two modules and one deny rule."""
+    """The schema 1 policy of a fixture: two modules and one deny rule."""
     languages = (
         f"languages:\n  python:\n    package: {spec.python_package}\n"
         if spec.python_package
         else ""
     )
-    return f"""version: 3
+    return f"""version: 1
 owners: [{POLICY_OWNER}]
 {languages}modules:
   core:
@@ -260,7 +260,7 @@ def dotnet_policy_text(projects: tuple[str, ...] | None) -> str:
         f"  {name}:\n    paths: ['{name}/**']\n"
         for name in (*DOTNET_PROJECTS, "Shared")
     )
-    return f"""version: 3
+    return f"""version: 1
 owners: [{POLICY_OWNER}]
 {languages}modules:
 {modules}rules:
@@ -862,7 +862,7 @@ def run_change_stages(
     """Check the change, its repeat, its exceptions, and the clean tree."""
     assert_result(
         result,
-        "fixture policy uses schema 3",
+        "fixture policy uses schema 1",
         re.search(r"(?m)^version:\s*3\s*$", contract.policy) is not None,
         contract.policy.splitlines()[:1],
     )

@@ -17,19 +17,19 @@ func TestIsVersion3(t *testing.T) {
 		data string
 		want bool
 	}{
-		{"version: 3\nowners: [a]\n", true},
-		{"version: 3.0\n", true},
-		{"version: 3\nnot: [valid\n", false},
-		{"version: 3\nmodules: {}\n", true},
+		{"version: 1\nowners: [a]\n", true},
+		{"version: 1.0\n", true},
+		{"version: 1\nnot: [valid\n", false},
+		{"version: 1\nmodules: {}\n", true},
 		{"version: 2\n", false},
-		{version1, false},
+		{version3, false},
 		{"version: 4\n", false},
-		{"version: \"3\"\n", false},
+		{"version: \"1\"\n", false},
 		{"owners: [a]\n", false},
 		{"", false},
 	} {
-		if got := isVersion3([]byte(tc.data)); got != tc.want {
-			t.Errorf("isVersion3(%q) = %v, want %v", tc.data, got, tc.want)
+		if got := isVersion1([]byte(tc.data)); got != tc.want {
+			t.Errorf("isVersion1(%q) = %v, want %v", tc.data, got, tc.want)
 		}
 	}
 }

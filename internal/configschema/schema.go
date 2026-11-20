@@ -1,5 +1,5 @@
 // Package configschema generates archfit.schema.json, the JSON Schema of the
-// Archfit policy file (.archfit.yaml, schema 3). The schema is reflected from the
+// Archfit policy file (.archfit.yaml, schema 1). The schema is reflected from the
 // types in internal/config/policyfile, with their doc comments as descriptions.
 //
 // The committed archfit.schema.json must match Generate: the no-drift test and
@@ -20,8 +20,8 @@ import (
 const (
 	schemaID          = "https://raw.githubusercontent.com/coupling-dev/archfit/main/archfit.schema.json"
 	schemaDraft       = "https://json-schema.org/draft/2020-12/schema"
-	schemaTitle       = "Archfit policy (schema 3)"
-	schemaDescription = "The Archfit policy, .archfit.yaml: modules, allowed dependencies, rules and exceptions. Archfit 4 reads it. Archfit 3 reads version 2 and uses the schema of tag v3.4.0."
+	schemaTitle       = "Archfit policy (schema 1)"
+	schemaDescription = "The Archfit policy, .archfit.yaml: modules, allowed dependencies, rules and exceptions. Archfit reads policy version 1."
 
 	// commentBase is this package's import path. AddGoComments keys comments by
 	// path.Join(base, walked directory), so joining "../config/policyfile" onto it

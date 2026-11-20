@@ -398,10 +398,10 @@ func TestRoslynEnabledDefaultsOn(t *testing.T) {
 		body string
 		want bool
 	}{
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: auto\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: true\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: false\n", false},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: auto\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: true\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: false\n", false},
 	} {
 		cfg, err := config.ReportConfig([]byte(tc.body))
 		if err != nil {

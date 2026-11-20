@@ -42,7 +42,7 @@ var retiredDenyRules = []retiredDenyRule{
 	{"application_no_config_adapter", "internal/application/**", "internal/config/**", "internal/application/analysis.go", pkgConfig},
 }
 
-// The schema 3 graph must still reject the imports banned by the retired rules.
+// The schema 1 graph must still reject the imports banned by the retired rules.
 func TestSelfModelAllowlistsCatchTheRetiredDenyRules(t *testing.T) {
 	p := selfPolicy3(t)
 	for _, retired := range retiredDenyRules {

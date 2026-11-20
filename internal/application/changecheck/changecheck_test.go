@@ -41,7 +41,7 @@ const (
 )
 
 // policyYAML is the policy of the examples of design 8.1.
-const policyYAML = `version: 3
+const policyYAML = `version: 1
 owners: [alexei-led]
 modules:
   pkg_chaos:
@@ -533,15 +533,15 @@ func TestCheck(t *testing.T) {
 			name:  "a version 2 policy on the target branch is not valid",
 			setup: func(w *world) { w.policies.target[mainSHA] = file("version: 2\nmodules: {}\n") },
 			want: want{
-				record: ".archfit.yaml: policy: " + policyfile.ErrVersion2.Error() + "\n" +
+				record: ".archfit.yaml: policy: " + `version 2 is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy` + "\n" +
 					"  why: the policy on origin/main is not valid\n" +
 					"  next: ask an owner to fix .archfit.yaml on origin/main\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},
 		{
-			name:  "an invalid version 3 policy on the target branch",
-			setup: func(w *world) { w.policies.target[mainSHA] = file("version: 3\nowners: [alexei-led]\n") },
+			name:  "an invalid version 1 policy on the target branch",
+			setup: func(w *world) { w.policies.target[mainSHA] = file("version: 1\nowners: [alexei-led]\n") },
 			want: want{
 				record: ".archfit.yaml: policy: modules: required: declare at least one module\n" +
 					"  why: the policy on origin/main is not valid\n" +
@@ -552,7 +552,7 @@ func TestCheck(t *testing.T) {
 		{
 			name: "an invalid local policy",
 			setup: func(w *world) {
-				w.policies.local[changecheck.PolicyPath] = file("version: 3\nowners: []\nmodules: {}\n")
+				w.policies.local[changecheck.PolicyPath] = file("version: 1\nowners: []\nmodules: {}\n")
 				delete(w.policies.target, mainSHA)
 			},
 			want: want{

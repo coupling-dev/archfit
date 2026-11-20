@@ -109,7 +109,7 @@ class ImageContract:
             return {}
 
     def read_result(self, output: Path, label: str) -> dict[str, Any]:
-        """A version 3 check record. The host runs plain python3, so this checks
+        """A version 1 check record. The host runs plain python3, so this checks
         the document identifier and the lists; the language contracts validate
         the full published schema."""
         try:
@@ -353,7 +353,7 @@ def helper_status_failures(document: dict[str, Any]) -> list[str]:
     return failures
 
 
-DOTNET_CONFIG = """version: 3
+DOTNET_CONFIG = """version: 1
 owners: [owner]
 languages:
   dotnet:
@@ -447,7 +447,7 @@ def dotnet_extraction_failures(state: dict[str, Any], stderr: str) -> list[str]:
         (s.get("from_module"), s.get("to_module")): s.get("strength")
         for s in state.get("seams", [])
     }
-    # A DTO used across schema 3 public is a contract; an internal-member hint stays intrusive.
+    # A DTO used across schema 1 public is a contract; an internal-member hint stays intrusive.
     for edge, strength in {
         ("repository", "contracts"): "contract",
         ("repository", "domain"): "intrusive",

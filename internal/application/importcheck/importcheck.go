@@ -27,7 +27,7 @@ import (
 )
 
 // Policies reads the local policy. ok is false when there is none, or when
-// the file is not a valid version 3 policy: then there is nothing to ask can
+// the file is not a valid version 1 policy: then there is nothing to ask can
 // with, and the check reports why.
 type Policies interface {
 	Local(ctx context.Context) (p resolved.Policy, ok bool, err error)

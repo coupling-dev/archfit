@@ -139,7 +139,7 @@ type appDeps struct {
 	// Set by each pipeline command from its --refresh flag before the analysis pipeline.
 	refresh bool
 
-	// now is the clock of the version 3 commands: exceptions are judged on
+	// now is the clock of the version 1 commands: exceptions are judged on
 	// its date. nil → time.Now (tests set a fixed date).
 	now func() time.Time
 
@@ -156,7 +156,7 @@ func (d *appDeps) runContext() context.Context {
 	return d.ctx
 }
 
-// clock returns the clock of the version 3 commands.
+// clock returns the clock of the version 1 commands.
 func (d *appDeps) clock() func() time.Time {
 	if d.now != nil {
 		return d.now

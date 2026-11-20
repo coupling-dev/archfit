@@ -26,13 +26,9 @@ const DurationPattern = `^([0-9]+(\.[0-9]+)?(ns|us|µs|ms|s|m|h))+$`
 
 var durationRE = regexp.MustCompile(DurationPattern)
 
-// ErrVersion2 is the error of a version 2 file, the Archfit 3 policy format,
-// which this engine does not read.
-var ErrVersion2 = errors.New(`version 2 is not supported: archfit reads policy version 3; remove the file and run "archfit init" to write a fresh policy`)
-
-// Decode reads a schema 3 policy. Unknown keys, wrong types, values outside their
+// Decode reads a schema 1 policy. Unknown keys, wrong types, values outside their
 // list or range, bad dates, missing required keys and a rule without exactly one
-// form are errors. A version 2 file fails with ErrVersion2, whose message names
+// form are errors. A file of another version is an error that names
 // archfit init. When the checks fail, the error lists every problem, one per line.
 func Decode(data []byte) (File, error) {
 	if err := checkVersion(data); err != nil {
@@ -57,8 +53,8 @@ func Decode(data []byte) (File, error) {
 	return f, nil
 }
 
-// checkVersion reads only the version, before the strict decode, so a version 2
-// file gets the conversion message instead of its first unknown key.
+// checkVersion reads only the version, before the strict decode, so a file of another
+// version gets the version message instead of its first unknown key.
 func checkVersion(data []byte) error {
 	var header struct {
 		Version any `yaml:"version"`
@@ -67,22 +63,19 @@ func checkVersion(data []byte) error {
 		return err
 	}
 	version := header.Version
-	// As in JSON Schema, a number with no fraction is an integer: 3.0 is 3.
+	// As in JSON Schema, a number with no fraction is an integer: 1.0 is 1.
 	if f, ok := version.(float64); ok && f >= 0 && f == math.Trunc(f) {
 		version = uint64(f)
 	}
 	switch v := version.(type) {
 	case nil:
-		return errors.New(`version: missing: add "version: 3"`)
+		return errors.New(`version: missing: add "version: 1"`)
 	case uint64:
-		switch v {
-		case Version:
+		if v == Version {
 			return nil
-		case 2:
-			return ErrVersion2
 		}
 	}
-	return fmt.Errorf("version %v: this engine reads version 3", yamlValue(header.Version))
+	return fmt.Errorf(`version %v is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy`, yamlValue(header.Version))
 }
 
 // yamlValue prints a value as the file wrote it, quoting strings.

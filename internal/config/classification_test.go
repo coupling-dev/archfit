@@ -164,7 +164,7 @@ func TestEveryConfigLeafHasOneClass(t *testing.T) {
 	}
 }
 
-const classificationBaseYAML = `version: 3
+const classificationBaseYAML = `version: 1
 owners: [owner]
 languages:
   go: {enabled: true}

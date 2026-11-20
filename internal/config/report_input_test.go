@@ -7,7 +7,7 @@ import (
 
 func TestReportInputPreservesPolicyOrigins(t *testing.T) {
 	t.Parallel()
-	base := "version: 3\nowners: [owner]\nmodules:\n  app:\n    paths: [app/**]\n"
+	base := "version: 1\nowners: [owner]\nmodules:\n  app:\n    paths: [app/**]\n"
 	for _, tc := range []struct {
 		name, field       string
 		raw               *string
@@ -41,7 +41,7 @@ func TestReportInputPreservesPolicyOrigins(t *testing.T) {
 
 func TestReportInputDoesNotRelaxExplicitEmptyPublicValidation(t *testing.T) {
 	t.Parallel()
-	data := "version: 3\nowners: [owner]\nmodules:\n  app:\n    paths: [app/**]\n    public: []\n"
+	data := "version: 1\nowners: [owner]\nmodules:\n  app:\n    paths: [app/**]\n    public: []\n"
 	if _, err := NewReportInput([]byte(data)); err == nil || !strings.Contains(err.Error(), "public") {
 		t.Fatalf("explicit empty public accepted: %v", err)
 	}

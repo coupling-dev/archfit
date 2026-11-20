@@ -114,7 +114,7 @@ class ImageContractsTest(unittest.TestCase):
                     image.prepare_fixture(spec, path, extra)
                     policy = (path / ".archfit.yaml").read_text()
                     self.assertEqual(policy, image.lc.config_text(spec))
-                    self.assertRegex(policy, r"(?m)^version: 3$")
+                    self.assertRegex(policy, r"(?m)^version: 1$")
                     self.assertEqual(
                         git(path, "branch", "--show-current").strip(),
                         image.lc.CHANGE_BRANCH,

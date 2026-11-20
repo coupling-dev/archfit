@@ -276,7 +276,7 @@ var goFacts = fixed{
 // byte for byte, and nothing else is written.
 func TestInitNeverOverwritesAPolicy(t *testing.T) {
 	for name, content := range map[string]string{
-		"version 3": "version: 3\nowners: [acme]\nmodules:\n  app:\n    paths: [\"**\"]\n",
+		"version 1": "version: 1\nowners: [acme]\nmodules:\n  app:\n    paths: [\"**\"]\n",
 		"version 2": "version: 2\nmodules: {}\n",
 	} {
 		t.Run(name, func(t *testing.T) {

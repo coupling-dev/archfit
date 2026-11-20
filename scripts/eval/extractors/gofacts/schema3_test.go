@@ -11,7 +11,7 @@ import (
 func TestCommandsUseSchema3Settings(t *testing.T) {
 	t.Parallel()
 	root := writeTree(t, map[string]string{
-		".archfit.yaml": "version: 3\nowners: [owner]\nexclude: [skip/**]\nmodules: {app: {paths: ['src/**']}}\nlanguages: {python: {package: shop}}\n",
+		".archfit.yaml": "version: 1\nowners: [owner]\nexclude: [skip/**]\nmodules: {app: {paths: ['src/**']}}\nlanguages: {python: {package: shop}}\n",
 	})
 	path := filepath.Join(root, ".archfit.yaml")
 	var out bytes.Buffer

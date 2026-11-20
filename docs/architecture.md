@@ -39,7 +39,7 @@ The application owns the stage order. Acquisition returns observations. Relation
 
 ## Check flow
 
-`archfit check` with a version 3 policy runs `internal/application/changecheck`. It shares no slow extraction with `report`.
+`archfit check` with a version 1 policy runs `internal/application/changecheck`. It shares no slow extraction with `report`.
 
 ```mermaid
 flowchart LR
@@ -74,7 +74,7 @@ Git object writes use a private directory for the command, with the repository's
 | `internal/assessment/change` | The built-in and custom rules on one tree |
 | `internal/assessment/copies` | The `duplication` rule |
 | `internal/assessment/count` | Errors counted on base and head, exceptions with dates, the status |
-| `internal/policy/resolved` | The schema 3 policy model |
+| `internal/policy/resolved` | The schema 1 policy model |
 | `internal/model/result` | The result contract |
 | `internal/output/record` | The text record, JSON, and SARIF of a result |
 
@@ -125,7 +125,7 @@ Update the matching tests when a contract changes.
 
 | Contract | Owner and check |
 |---|---|
-| Policy purity | `internal/policy` owns policy contracts. It may use the model kernel and the approved pure matcher. The `policy_owns_domain_contracts` subtest in `TestArchImports` checks its imports. `internal/policy/resolved` holds the schema 3 policy model; `internal/config/policyfile` projects the file into it. It imports no config package; `TestImportsNoConfig` checks this. |
+| Policy purity | `internal/policy` owns policy contracts. It may use the model kernel and the approved pure matcher. The `policy_owns_domain_contracts` subtest in `TestArchImports` checks its imports. `internal/policy/resolved` holds the schema 1 policy model; `internal/config/policyfile` projects the file into it. It imports no config package; `TestImportsNoConfig` checks this. |
 | Projected configuration | Stages receive their own option contracts. They do not receive `internal/config`. `internal/config` projects options for each consumer. `TestPolicyDoesNotImportConfig` and module rules enforce the boundary. |
 | Relationship and assessment | `internal/relationship` owns classification and coupling. Assessment consumes its public contract. `TestAssessmentConsumesOnlyThePublicRelationshipContract` checks this rule. |
 | Report projection | `internal/application` maps results to report DTOs. The projector does not import relationship or evidence internals. `TestReportProjectionHasOneOwner` checks this rule. |

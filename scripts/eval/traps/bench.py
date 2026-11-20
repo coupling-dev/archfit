@@ -265,7 +265,7 @@ def prepare_clone(
     )
     git("add", ".archfit.yaml")
     git("-c", "commit.gpgsign=false", "-c", "user.name=Workspace", "-c",
-        "user.email=workspace@example.invalid", "commit", "--quiet", "-m", "Seed schema 3 policy")
+        "user.email=workspace@example.invalid", "commit", "--quiet", "-m", "Seed schema 1 policy")
     base = git("rev-parse", "HEAD").stdout.strip()
     git("branch", "--quiet", "--force", trap.branch, base)
     git("update-ref", f"refs/remotes/origin/{trap.branch}", base)

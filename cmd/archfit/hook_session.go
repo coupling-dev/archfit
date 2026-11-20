@@ -140,7 +140,7 @@ func sessionStart(ctx context.Context, deps *appDeps, dir, id string) error {
 // are the ones the check reads (the head check facts), on lines added since
 // the session base (internal/application/importcheck), with the errors an
 // exception covers left out. A yes, an unknown, or a tree without a valid
-// version 3 policy is silent: the stop hook reports what the check makes of
+// version 1 policy is silent: the stop hook reports what the check makes of
 // it. The answer of the first no is stored for archfit request, as archfit
 // can stores its answer. A failure of the hook's own is a message, never a
 // stop.

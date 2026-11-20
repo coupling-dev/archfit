@@ -1,6 +1,6 @@
 package main
 
-// CheckCmd is the status of the change against the version 3 policy.
+// CheckCmd is the status of the change against the version 1 policy.
 type CheckCmd struct {
 	Base    string   `help:"The target branch, such as origin/main. Default: the remote's default branch (origin/HEAD)." default:"auto" placeholder:"REF"`
 	Policy  string   `help:"Preview the change with this policy file, without comparing it with the target branch's policy." placeholder:"FILE"`

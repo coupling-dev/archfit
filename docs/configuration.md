@@ -1,11 +1,11 @@
 # Configuration
 
-The policy is the file `.archfit.yaml` at the root of the repository: modules, allowed dependencies, rules, and exceptions. All commands read policy version 3, described on this page. The decoder rejects unknown keys and names the key of each problem. A version 2 file is the Archfit 3 format: see [Version 2 (Archfit 3)](#version-2-archfit-3).
+The policy is the file `.archfit.yaml` at the root of the repository: modules, allowed dependencies, rules, and exceptions. All commands read policy version 1, described on this page. The decoder rejects unknown keys and names the key of each problem. A version 2 file is the Archfit 3 format: see [Version 2 (Archfit 3)](#version-2-archfit-3).
 
 The smallest valid policy:
 
 ```yaml
-version: 3
+version: 1
 owners: [alexei-led]
 modules:
   app:
@@ -15,7 +15,7 @@ modules:
 A typical one:
 
 ```yaml
-version: 3
+version: 1
 owners: [alexei-led]
 gate: required              # default: advisory
 layers: [core, cmd]         # inner first
@@ -147,7 +147,7 @@ A policy that fails a check gives the status `unknown`, and the record names the
 ## Schema and editor support
 
 The repository ships [`archfit.schema.json`](../archfit.schema.json), generated from the policy types and their comments.
-It describes policy version 3, which Archfit 4 reads.
+It describes policy version 1, which Archfit 4 reads.
 Archfit 3 reads `version: 2` files, which this schema rejects.
 An Archfit 3 repository pins the schema from tag `v3.4.0`:
 `https://raw.githubusercontent.com/coupling-dev/archfit/v3.4.0/archfit.schema.json`.
@@ -156,7 +156,7 @@ Copy the schema beside your policy, then add this comment for YAML language-serv
 
 ```yaml
 # yaml-language-server: $schema=./archfit.schema.json
-version: 3
+version: 1
 ```
 
 VS Code can bind the schema in `.vscode/settings.json`:
@@ -178,7 +178,7 @@ The policy version is separate from the Archfit release version.
 
 ## Version 2 (Archfit 3)
 
-A version 2 file is the Archfit 3 format. No command reads it: each rejects it with an error that says to remove the file and run `archfit init` for a fresh version 3 policy. The full reference is the [Configuration page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md). The starter configurations in [`examples/`](../examples) are version 2 files.
+A version 2 file is the Archfit 3 format. No command reads it: each rejects it with an error that says to remove the file and run `archfit init` for a fresh version 1 policy. The full reference is the [Configuration page of v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md). The starter configurations in [`examples/`](../examples) are version 2 files.
 
 ### AI provider
 
@@ -190,8 +190,8 @@ Analysis ignores `.archfit-labels.yaml` and the value draft files at every polic
 
 ### Module review
 
-Archfit 3 used `module_review` for module owners and review dates. Version 3 has no such key. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#module-review).
+Archfit 3 used `module_review` for module owners and review dates. Version 1 has no such key. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#module-review).
 
 ### Metrics
 
-Archfit 3 used `metrics` for metric gates and baseline thresholds. Version 3 has no metric gates. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#metrics).
+Archfit 3 used `metrics` for metric gates and baseline thresholds. Version 1 has no metric gates. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/v3.4.0/docs/configuration.md#metrics).

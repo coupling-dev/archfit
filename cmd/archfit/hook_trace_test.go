@@ -247,7 +247,7 @@ func gitCommitWithHooks(t *testing.T, dir string) (string, error) {
 
 // TestHookRunPostToolUse pins the post-tool-use table: only a no from archfit
 // can stops the agent; a yes, an unknown, a covered import, a tree with no
-// version 3 policy, and a hook error never do.
+// version 1 policy, and a hook error never do.
 func TestHookRunPostToolUse(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {

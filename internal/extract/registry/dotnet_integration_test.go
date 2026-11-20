@@ -45,7 +45,7 @@ func TestDotNetLaneOnFixture(t *testing.T) {
 	t.Setenv("DOTNET_CLI_TELEMETRY_OPTOUT", "1")
 
 	root := copyTree(t, filepath.Join("..", "..", "testdata", "dotnet"))
-	cfg, err := config.ReportConfig([]byte("version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\nlanguages: {dotnet: {enabled: true}}\n"))
+	cfg, err := config.ReportConfig([]byte("version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\nlanguages: {dotnet: {enabled: true}}\n"))
 	if err != nil {
 		t.Fatalf("ReportConfig: %v", err)
 	}

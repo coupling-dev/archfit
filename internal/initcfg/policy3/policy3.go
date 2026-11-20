@@ -1,4 +1,4 @@
-// Package policy3 writes the first schema 3 policy of a repository and the
+// Package policy3 writes the first schema 1 policy of a repository and the
 // instruction block for agents (design 10.1 and 11.3).
 //
 // Init reads the head check facts, the facts archfit check reads, finds the

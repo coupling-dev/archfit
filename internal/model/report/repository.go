@@ -9,7 +9,7 @@ const (
 
 // RepositoryState is the state of the repository for owners (design 7.1 and
 // 10.6): the whole head tree judged with the rules and the exceptions of a
-// version 3 policy on the run's date. Only `archfit report` fills it.
+// version 1 policy on the run's date. Only `archfit report` fills it.
 //
 // State does not cover Unread: missing evidence is not zero, so a reader that
 // shows State shows Unread beside it.

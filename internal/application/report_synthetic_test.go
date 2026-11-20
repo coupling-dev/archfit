@@ -28,7 +28,7 @@ const (
 
 func TestReportSyntheticComponentRetainsUnknownLineage(t *testing.T) {
 	t.Parallel()
-	in, err := config.NewReportInput([]byte("version: 3\nowners: [owner]\nmodules:\n  crate:\n    paths: [crate]\n    public: [crate]\n    volatility: low\n    subdomain: supporting\n"))
+	in, err := config.NewReportInput([]byte("version: 1\nowners: [owner]\nmodules:\n  crate:\n    paths: [crate]\n    public: [crate]\n    volatility: low\n    subdomain: supporting\n"))
 	if err != nil {
 		t.Fatal(err)
 	}
