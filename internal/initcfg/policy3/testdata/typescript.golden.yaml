@@ -54,6 +54,7 @@ exceptions:
   - rule: duplication
     from: app
     to: util
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
 generated:
   - src/generated/**

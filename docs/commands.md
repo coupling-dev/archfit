@@ -153,13 +153,16 @@ next: ask an owner     (open a pull request first if there is none)
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 1 `.archfit.yaml` | Leaves it as it is. |
 
+New exceptions expire 90 days after the run. The final list names them as decisions for the owner.
+
 In each case it writes the five lines for agents between the `<!-- archfit:start -->` and `<!-- archfit:end -->` markers in `AGENTS.md`, and creates the file when it is missing. Text outside the markers stays as it is. When the block is already there, nothing is written and the command still exits `0`.
 
 ```text
 $ archfit init
 wrote .archfit.yaml: 4 modules, 0 allowed dependencies, 0 rules, 1 exception
-  exception: duplication pkg_tc -> pkg_util
 wrote AGENTS.md: the instruction block for agents
+exceptions for the owner to review:
+  exception: duplication pkg_tc -> pkg_util until 2027-02-08
 next: read .archfit.yaml, then open a pull request with it
 ```
 

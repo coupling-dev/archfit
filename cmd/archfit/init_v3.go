@@ -33,7 +33,7 @@ changes a version 1 policy.
   No .archfit.yaml      writes a version 1 policy from the code: modules,
                         public, depends_on as the dependencies that exist,
                         tests, generated, owners from the origin remote,
-                        and an exception for each error that exists today,
+                        and a dated exception for each error that exists today,
                         so the first check passes
   Version 1 policy      leaves it as it is
   Any other policy      fails: archfit reads version 1 only
@@ -82,13 +82,14 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 
 // initFresh writes the first policy of a repository.
 func (co checkout) initFresh(ctx context.Context, b *strings.Builder) error {
-	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig())}, co.root)
+	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig()), Now: co.now}, co.root)
 	if err != nil {
 		return err
 	}
 	writePolicySummary(b, "wrote", res.File)
 	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
 	writeUnread(b, res.Unknown)
+	writeExceptionDecisions(b, res.File.Exceptions)
 	b.WriteString(initNext + "\n")
 	return nil
 }
@@ -109,8 +110,7 @@ func (co checkout) initBlock(b *strings.Builder) error {
 	return nil
 }
 
-// writePolicySummary writes what the policy holds, then its exceptions: the
-// errors that exist today, which an owner reads before the pull request.
+// writePolicySummary counts what the policy holds.
 func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 	deps := 0
 	for _, m := range f.Modules {
@@ -119,7 +119,14 @@ func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 	fmt.Fprintf(b, "%s %s: %s, %s, %s, %s\n", verb, policy3.PolicyFile,
 		count(len(f.Modules), "module"), count(deps, "allowed dependency"),
 		count(len(f.Rules), "rule"), count(len(f.Exceptions), "exception"))
-	for _, x := range f.Exceptions {
+}
+
+func writeExceptionDecisions(b *strings.Builder, exceptions []policyfile.Exception) {
+	if len(exceptions) == 0 {
+		return
+	}
+	b.WriteString("exceptions for the owner to review:\n")
+	for _, x := range exceptions {
 		place := x.From
 		if x.To != "" {
 			place += " -> " + x.To

@@ -47,12 +47,15 @@ exceptions:
   - rule: duplication
     from: shop_orders
     to: shop_util
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
   - rule: cycle
     from: shop_billing
     to: shop_orders
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
   - rule: cycle
     from: shop_orders
     to: shop_billing
+    expires: "2027-02-08"
     why: The error existed when archfit init wrote this policy.
