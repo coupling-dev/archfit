@@ -212,12 +212,14 @@ Starts after task 1.3.
       the migration links leave the README. #6. The record is a probe on the engine; task 3.2 refreshes it.
 - [ ] **2.3 Other front pages.** The Action README and the App README use the same sentence and
       the same names. The "input contract" paragraph leaves the App README. Action: archfit-action #2. App: after App #231 (task 5.1).
-- [ ] **2.4 Onboarding design.** One document for the engine and the App, written while
+- [x] **2.4 Onboarding design.** One document for the engine and the App, written while
       epics 1 and 3 run and accepted before task 3.8. It uses the count of task 0.4. It names
       the route, the three rungs, each command and page, what `init` and the hooks do by
       default, and what the result and the manifest must already carry in 0.9.0 so that 0.10.0
       breaks nothing. Epic 8 is built from it after the reset. HUMAN to accept.
-      Proposed: `docs/plans/20261120-archfit-onboarding-design.md`.
+      `docs/plans/20261120-archfit-onboarding-design.md`, #8. Accepted by the owner on 2026-11-20,
+      with O1 amended (see task 8.9). The `v0.9.0` tag no longer waits for it; the App part of
+      task 0.4 (O3) stays open.
 
 ### Epic 3. Engine fixes for 0.9.0
 
@@ -363,6 +365,8 @@ App:
 - [ ] **8.9 One setup page.** The page shows the state of one repository and one next action.
       It never asks the user to copy a workflow by hand. The last action is "Make it
       required": the approval of task 8.1, the first approval and the ruleset belong there.
+      Before the first approval, the page lists every policy change since the setup pull
+      request, with who merged it and its request (onboarding design, O1).
 - [ ] **8.10 Welcome and digest.** A comment on the setup pull request: how to ask, what
       happens next. After seven days: checked, quiet, asked.
 
@@ -429,5 +433,5 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Action `v0.9.0` commit | | 4.3 |
 | App revision before the deploy (rollback) | | 5.4 |
 | App revision of 0.9.0 | | 5.4 |
-| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). | as found |
+| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). The owner set it to `false` on 2026-11-20 (16:42 UTC) until after epic 6; task 5.4 releases by `workflow_dispatch`. `init` fails without ast-grep, as the review says: a Go repository with one JavaScript file exits 2 and writes no policy (reproduced on `5bd583e7` in a container; task 3.6 fixes it). | as found |
 
