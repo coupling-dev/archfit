@@ -17,7 +17,10 @@ import (
 
 const (
 	fileA            = "a/a.go"
-	fileB            = "b/b.go"
+	fileB            = "b/b.go" // past b's surface
+	fileBAPI         = "b/api/api.go"
+	fileBModel       = "b/model/model.go"
+	fileOutside      = "c/c.go" // in no module
 	nodeA            = "file:" + fileA
 	nodeB            = "file:" + fileB
 	moduleA          = "a"
@@ -37,11 +40,16 @@ const (
 )
 
 // twoModules is the standard fixture topology: module a owned by team-a,
-// module b owned by team-b, so an a→b edge is a cross-owner relationship.
+// module b owned by team-b, so an a→b edge is a cross-owner relationship. b
+// declares its surface: b/api is public, b/model the model part, so an edge to
+// fileBAPI is contract, to fileBModel model, and to fileB intrusive.
 func twoModules() map[string]policy.ModuleDef {
 	return map[string]policy.ModuleDef{
 		moduleA: {Paths: []string{globA}, Owner: teamA, DeployUnit: moduleA, Subdomain: subdomainCore, Volatility: volHigh},
-		moduleB: {Paths: []string{globB}, Owner: teamB, DeployUnit: moduleB, Subdomain: subdomainSupporting, Volatility: volHigh},
+		moduleB: {
+			Paths: []string{globB}, Public: []string{"b/api/**"}, Model: []string{"b/model/**"},
+			Owner: teamB, DeployUnit: moduleB, Subdomain: subdomainSupporting, Volatility: volHigh,
+		},
 	}
 }
 
@@ -51,17 +59,17 @@ func relationshipPolicy(modules map[string]policy.ModuleDef) policy.Relationship
 	}}
 }
 
-// graphWith builds a two-file graph carrying one a→b import edge with the given
-// extractor strength hint.
-func graphWith(hint string) *graph.Graph {
+// graphTo builds a two-file graph carrying one import edge from fileA to
+// target. The edge carries a functional type hint, which is evidence only.
+func graphTo(target string) *graph.Graph {
 	return graph.Build([]graph.Facts{{
 		Nodes: []graph.Node{
 			{Kind: graph.NodeKindFile, Path: fileA, Language: graph.LangGo},
-			{Kind: graph.NodeKindFile, Path: fileB, Language: graph.LangGo},
+			{Kind: graph.NodeKindFile, Path: target, Language: graph.LangGo},
 		},
 		Edges: []graph.Edge{{
-			From: nodeA, To: nodeB, Kind: graph.EdgeKindImports, Language: graph.LangGo,
-			StrengthHint: hint, Locations: []graph.Location{{File: fileA, Line: 7}},
+			From: nodeA, To: "file:" + target, Kind: graph.EdgeKindImports, Language: graph.LangGo,
+			StrengthHint: string(relationship.StrengthFunctional), Locations: []graph.Location{{File: fileA, Line: 7}},
 		}},
 	}})
 }
@@ -75,7 +83,7 @@ func onlyEdge(t *testing.T, res relationship.AnalysisResult) relationship.Edge {
 }
 
 func TestAnalyzeResolvesModulesAndDistance(t *testing.T) {
-	got := analysis.Analyze(analysis.Input{Graph: graphWith(""), Policy: relationshipPolicy(twoModules())})
+	got := analysis.Analyze(analysis.Input{Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules())})
 
 	edge := onlyEdge(t, got)
 	if edge.FromModule != moduleA || edge.ToModule != moduleB {
@@ -117,22 +125,22 @@ func TestAnalyzeResolvesModulesAndDistance(t *testing.T) {
 	}
 }
 
-func TestAnalyzeStrengthFromExtractorHint(t *testing.T) {
+// The declared surface of the target decides the strength; the type hint on
+// the edge is evidence and never changes it.
+func TestAnalyzeStrengthFromDeclaredSurface(t *testing.T) {
 	tests := []struct {
-		name string
-		hint string
-		want relationship.Strength
+		name   string
+		target string
+		want   relationship.Strength
 	}{
-		{name: "no hint abstains", hint: "", want: relationship.StrengthUnknown},
-		{name: "contract hint", hint: string(relationship.StrengthContract), want: relationship.StrengthContract},
-		{name: "intrusive hint", hint: string(relationship.StrengthIntrusive), want: relationship.StrengthIntrusive},
-		{name: "functional hint", hint: string(relationship.StrengthFunctional), want: relationship.StrengthFunctional},
-		{name: "model hint", hint: string(relationship.StrengthModel), want: relationship.StrengthModel},
+		{name: "the public part", target: fileBAPI, want: relationship.StrengthContract},
+		{name: "the model part", target: fileBModel, want: relationship.StrengthModel},
+		{name: "past the surface", target: fileB, want: relationship.StrengthIntrusive},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			edge := onlyEdge(t, analysis.Analyze(analysis.Input{
-				Graph: graphWith(test.hint), Policy: relationshipPolicy(twoModules()),
+				Graph: graphTo(test.target), Policy: relationshipPolicy(twoModules()),
 			}))
 			if edge.Strength != test.want {
 				t.Fatalf("strength = %q, want %q", edge.Strength, test.want)
@@ -143,7 +151,7 @@ func TestAnalyzeStrengthFromExtractorHint(t *testing.T) {
 
 // An unknown strength must abstain from scoring rather than invent an ordinal.
 func TestAnalyzeAbstainsWhenStrengthIsUnknown(t *testing.T) {
-	unknown := onlyEdge(t, analysis.Analyze(analysis.Input{Graph: graphWith(""), Policy: relationshipPolicy(twoModules())}))
+	unknown := onlyEdge(t, analysis.Analyze(analysis.Input{Graph: graphTo(fileOutside), Policy: relationshipPolicy(twoModules())}))
 	if unknown.Strength != relationship.StrengthUnknown {
 		t.Fatalf("strength = %q, want unknown", unknown.Strength)
 	}
@@ -155,7 +163,7 @@ func TestAnalyzeAbstainsWhenStrengthIsUnknown(t *testing.T) {
 	}
 
 	known := onlyEdge(t, analysis.Analyze(analysis.Input{
-		Graph: graphWith(string(relationship.StrengthFunctional)), Policy: relationshipPolicy(twoModules()),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules()),
 	}))
 	if !known.Classified.Score.Scored {
 		t.Fatal("Score.Scored = false for a classified edge, want a score")
@@ -165,25 +173,25 @@ func TestAnalyzeAbstainsWhenStrengthIsUnknown(t *testing.T) {
 func TestAnalyzeEmitsAdvisoryCandidatesForSevereEdges(t *testing.T) {
 	tests := []struct {
 		name         string
-		hint         relationship.Strength
+		target       string
 		minSeverity  string
 		wantSeverity relationship.Severity
 		wantRules    []string
 	}{
 		{
-			name: "no threshold emits the candidate", hint: relationship.StrengthIntrusive,
+			name: "no threshold emits the candidate", target: fileB,
 			wantSeverity: relationship.SeverityCritical, wantRules: []string{ruleBC},
 		},
 		{
-			name: "threshold at severity emits the candidate", hint: relationship.StrengthIntrusive,
+			name: "threshold at severity emits the candidate", target: fileB,
 			minSeverity: "critical", wantSeverity: relationship.SeverityCritical, wantRules: []string{ruleBC},
 		},
 		{
-			name: "threshold above severity filters it out", hint: relationship.StrengthModel,
+			name: "threshold above severity filters it out", target: fileBModel,
 			minSeverity: string(relationship.SeverityMedium), wantSeverity: relationship.SeverityLow, wantRules: nil,
 		},
 		{
-			name: "threshold at a low severity keeps it", hint: relationship.StrengthModel,
+			name: "threshold at a low severity keeps it", target: fileBModel,
 			minSeverity: string(relationship.SeverityLow), wantSeverity: relationship.SeverityLow, wantRules: []string{ruleBC},
 		},
 	}
@@ -191,14 +199,14 @@ func TestAnalyzeEmitsAdvisoryCandidatesForSevereEdges(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			pol := relationshipPolicy(twoModules())
 			pol.MinimumSeverity = test.minSeverity
-			got := analysis.Analyze(analysis.Input{Graph: graphWith(string(test.hint)), Policy: pol})
+			got := analysis.Analyze(analysis.Input{Graph: graphTo(test.target), Policy: pol})
 			if sev := onlyEdge(t, got).Severity; sev != test.wantSeverity {
 				t.Fatalf("edge severity = %q, want %q", sev, test.wantSeverity)
 			}
 			rules := make([]string, 0, len(got.Assessment.AdvisoryCandidates))
 			for _, c := range got.Assessment.AdvisoryCandidates {
 				rules = append(rules, c.RuleID)
-				if c.From != fileA || c.To != fileB || c.FromModule != moduleA || c.ToModule != moduleB {
+				if c.From != fileA || c.To != test.target || c.FromModule != moduleA || c.ToModule != moduleB {
 					t.Errorf("candidate endpoints = %+v, want the classified edge endpoints", c)
 				}
 				if c.Why == "" || c.MatchedBy["strength"] == "" {
@@ -220,7 +228,7 @@ func TestAnalyzeRuntimeSignalRollup(t *testing.T) {
 		{File: fileB, Line: 3, IntegrationKind: "event", Language: graph.LangGo},
 	}
 	got := analysis.Analyze(analysis.Input{
-		Graph: graphWith(""), Policy: relationshipPolicy(twoModules()),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules()),
 		RuntimeSites: sites, RuntimeConfidence: confidence,
 	})
 
@@ -253,9 +261,9 @@ func TestAnalyzeRuntimeSignalRollup(t *testing.T) {
 
 // Runtime evidence never annotates a relationship edge — it is report-only.
 func TestAnalyzeRuntimeEvidenceDoesNotAnnotateEdges(t *testing.T) {
-	base := analysis.Analyze(analysis.Input{Graph: graphWith(string(relationship.StrengthFunctional)), Policy: relationshipPolicy(twoModules())})
+	base := analysis.Analyze(analysis.Input{Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules())})
 	withRuntime := analysis.Analyze(analysis.Input{
-		Graph: graphWith(string(relationship.StrengthFunctional)), Policy: relationshipPolicy(twoModules()),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules()),
 		RuntimeSites:      []evidence.RuntimeAsyncSite{{File: fileA, Line: 1, IntegrationKind: kindQueue, Library: libNATS}},
 		RuntimeConfidence: volHigh,
 	})
@@ -267,7 +275,7 @@ func TestAnalyzeRuntimeEvidenceDoesNotAnnotateEdges(t *testing.T) {
 
 func TestAnalyzeSummariesAreProduced(t *testing.T) {
 	got := analysis.Analyze(analysis.Input{
-		Graph: graphWith(string(relationship.StrengthIntrusive)), Policy: relationshipPolicy(twoModules()),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules()),
 	})
 	if got.Assessment.ClassifiedEdges == nil {
 		t.Fatal("ClassifiedEdges = nil, want a classified-edge summary")
@@ -490,7 +498,7 @@ func TestAnalyzeConnascenceEvidence(t *testing.T) {
 	}
 	// Connascence is disclosure, not a distance input.
 	plain := onlyEdge(t, analysis.Analyze(analysis.Input{
-		Graph: graphWith(string(relationship.StrengthFunctional)), Policy: relationshipPolicy(twoModules()),
+		Graph: graphTo(fileB), Policy: relationshipPolicy(twoModules()),
 	}))
 	if plain.Distance != edge.Distance {
 		t.Errorf("distance changed with connascence evidence: %q -> %q", plain.Distance, edge.Distance)

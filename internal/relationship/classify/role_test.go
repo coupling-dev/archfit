@@ -10,7 +10,7 @@ import (
 )
 
 // roleModules returns two modules — "src" (the edge source, role applied by the
-// caller) and "dst" (a core/high-volatility target with an internal glob) — owned
+// caller) and "dst" (a core/high-volatility target with a public part) — owned
 // by distinct teams so the boundary token is cross_module_different_owner.
 func roleModules(srcRole policy.Role) map[string]policy.ModuleDef {
 	return map[string]policy.ModuleDef{
@@ -21,7 +21,7 @@ func roleModules(srcRole policy.Role) map[string]policy.ModuleDef {
 		},
 		"dst": {
 			Paths:     []string{"dst/**"},
-			Internal:  []string{"dst/internal/**"},
+			Public:    []string{"dst/api/**"},
 			Owner:     ownerTeamY,
 			Subdomain: subdomainCore, // high volatility
 		},
@@ -33,7 +33,7 @@ func roleModules(srcRole policy.Role) map[string]policy.ModuleDef {
 // composition root's fan-out scores like anyone else's; the role is read later,
 // at the seam, where it explains the seam instead of hiding its edges.
 func TestRun_RoleDoesNotChangeEdgeScoring(t *testing.T) {
-	// Intrusive (the target hits dst's internal glob), cross-module, different
+	// Intrusive (the target is past dst's public part), cross-module, different
 	// owner, high volatility: S=10, D=9, V=10 → max(1,0)+1 = 2 → critical.
 	edge := graph.Edge{
 		From: "file:src/main.go", To: "file:dst/internal/db.go",

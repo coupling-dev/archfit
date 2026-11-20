@@ -21,6 +21,8 @@ const (
 	pathsA              = "services/a/**"
 	pathsB              = "services/b/**"
 	publicB             = "services/b/api/**"
+	publicA             = "services/a/api/**"
+	modelB              = "services/b/model/**"
 	fileServicesBClient = "file:services/b/api/client.go"
 	sourceGoTypes       = "go/types"
 	subdomainCore       = "core"
@@ -79,9 +81,9 @@ func edgeKey(e graph.Edge) string {
 
 func TestRun(t *testing.T) {
 	// Shared module config used by most sub-tests.
-	//   module "a": paths=["services/a/**"], public=["services/a/api/**"], internal=["services/a/internal/**"]
+	//   module "a": paths=["services/a/**"], public=[publicA]
 	//               owner="team-x", deploy_unit="svc-a", subdomain="core"
-	//   module "b": paths=["services/b/**"], public=["services/b/api/**"], internal=["services/b/internal/**"]
+	//   module "b": paths=["services/b/**"], public=["services/b/api/**"], model=[modelB]
 	//               owner="team-y", deploy_unit="svc-b", subdomain="supporting"
 	//   module "c": paths=["services/c/**"], public=["services/c/api/**"]
 	//               owner="team-x", deploy_unit="svc-a", subdomain="generic"
@@ -90,8 +92,7 @@ func TestRun(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
 		"a": {
 			Paths:      []string{pathsA},
-			Public:     []string{"services/a/api/**"},
-			Internal:   []string{"services/a/internal/**"},
+			Public:     []string{publicA},
 			Owner:      ownerTeamX,
 			DeployUnit: deployUnitA,
 			Subdomain:  subdomainCore,
@@ -99,7 +100,7 @@ func TestRun(t *testing.T) {
 		"b": {
 			Paths:      []string{pathsB},
 			Public:     []string{publicB},
-			Internal:   []string{"services/b/internal/**"},
+			Model:      []string{modelB},
 			Owner:      ownerTeamY,
 			DeployUnit: deployUnitB,
 			Subdomain:  subdomainSupporting,
@@ -150,7 +151,15 @@ func TestRun(t *testing.T) {
 			wantExp:  coupling.ExplicitnessExplicit,
 		},
 		{
-			name:     "intrusive edge — target matches internal glob",
+			name:     "model edge — target matches model glob",
+			edge:     importEdge("services/a/impl.go", "services/b/model/order.go"),
+			wantStr:  coupling.StrengthModel,
+			wantDist: coupling.DistanceCrossDeployUnit,
+			wantVol:  coupling.VolatilityLow,
+			wantExp:  coupling.ExplicitnessUnknown,
+		},
+		{
+			name:     "intrusive edge — target past the surface",
 			edge:     importEdge("services/a/impl.go", "services/b/internal/secret.go"),
 			wantStr:  coupling.StrengthIntrusive,
 			wantDist: coupling.DistanceCrossDeployUnit,
@@ -158,20 +167,20 @@ func TestRun(t *testing.T) {
 			wantExp:  coupling.ExplicitnessImplicit,
 		},
 		{
-			name:     "unknown strength — target matches neither public nor internal",
+			name:     "intrusive edge — any path past the surface, not only internal/",
 			edge:     importEdge("services/a/impl.go", "services/b/util/helper.go"),
-			wantStr:  coupling.StrengthUnknown,
+			wantStr:  coupling.StrengthIntrusive,
 			wantDist: coupling.DistanceCrossDeployUnit,
-			wantVol:  coupling.VolatilityLow, // b.subdomain = "supporting" → low (book Table 9.1)
-			wantExp:  coupling.ExplicitnessUnknown,
+			wantVol:  coupling.VolatilityLow, // the target's: b.subdomain = "supporting" → low
+			wantExp:  coupling.ExplicitnessImplicit,
 		},
 		{
-			name:     "same-module edge — distance same_module",
+			name:     "same-module edge — distance same_module, no strength",
 			edge:     importEdge("services/a/x.go", "services/a/api/types.go"),
-			wantStr:  coupling.StrengthContract, // a.public matches services/a/api/**
+			wantStr:  coupling.StrengthUnknown, // the surface speaks only to other modules
 			wantDist: coupling.DistanceSameModule,
 			wantVol:  coupling.VolatilityHigh, // a.subdomain = "core"
-			wantExp:  coupling.ExplicitnessExplicit,
+			wantExp:  coupling.ExplicitnessUnknown,
 		},
 		{
 			name:     "cross-module same-owner — different module, same owner",
@@ -200,10 +209,10 @@ func TestRun(t *testing.T) {
 		{
 			name:     "undeclared subdomain — module resolves but no subdomain/volatility",
 			edge:     importEdge("services/a/impl.go", "services/d/internal/impl.go"),
-			wantStr:  coupling.StrengthUnknown, // d has no internal globs defined
+			wantStr:  coupling.StrengthIntrusive, // past d's public part
 			wantDist: coupling.DistanceCrossModule,
 			wantVol:  coupling.VolatilityUndeclared, // d resolves; no subdomain/volatility/path match
-			wantExp:  coupling.ExplicitnessUnknown,
+			wantExp:  coupling.ExplicitnessImplicit,
 		},
 		{
 			name:     "unresolvable from-path — distance unknown",
@@ -327,7 +336,9 @@ func TestRun_RegistersRustModuleGraphNodes(t *testing.T) {
 		t.Errorf("unregistered: Distance = %q, want unknown (module nodes not in config)", cl.Distance)
 	}
 
-	// With registration: cross-module, same owner (siblings in one crate), functional.
+	// With registration: cross-module, same owner (siblings in one crate). A
+	// synthetic module declares no surface, so it is public as a whole: contract,
+	// whatever the type hint says.
 	mods := classify.AugmentModulesFromGraph(g, map[string]policy.ModuleDef{})
 	idx := classify.Run(g, classify.Config{Modules: mods})
 	cl, ok := idx[edgeKey(e)]
@@ -337,8 +348,8 @@ func TestRun_RegistersRustModuleGraphNodes(t *testing.T) {
 	if cl.Distance != coupling.DistanceCrossModule {
 		t.Errorf("Distance = %q, want cross_module (registered sibling modules)", cl.Distance)
 	}
-	if cl.Strength != coupling.StrengthFunctional {
-		t.Errorf("Strength = %q, want functional (from hint)", cl.Strength)
+	if cl.Strength != coupling.StrengthContract {
+		t.Errorf("Strength = %q, want contract (no declared surface)", cl.Strength)
 	}
 }
 
@@ -409,13 +420,13 @@ func TestRun_ExplicitVolatilityFieldOverridesSubdomain(t *testing.T) {
 // TestRun_ExplicitnessHintOverridesGlob verifies that ExplicitnessHint on the
 // edge takes precedence over the config-glob-derived explicitness.
 func TestRun_ExplicitnessHintOverridesGlob(t *testing.T) {
-	// module "a" treats services/a/internal/** as internal → StrengthIntrusive → ExplicitnessImplicit by glob.
+	// services/a/internal/** is past the public part of module "a" → StrengthIntrusive → ExplicitnessImplicit.
 	// An AST signal can flip this to "explicit" via ExplicitnessHint.
 	modules := map[string]policy.ModuleDef{
 		"a": {
-			Paths:    []string{pathsA},
-			Internal: []string{"services/a/internal/**"},
-			Owner:    ownerTeamX, DeployUnit: deployUnitA,
+			Paths:  []string{pathsA},
+			Public: []string{publicA},
+			Owner:  ownerTeamX, DeployUnit: deployUnitA,
 		},
 		"b": {
 			Paths:  []string{pathsB},
@@ -447,11 +458,11 @@ func TestRun_ExplicitnessHintOverridesGlob(t *testing.T) {
 		},
 	}
 
-	// Base edge: a→b/internal → StrengthIntrusive → ExplicitnessImplicit without hint.
+	// Base edge: b→a/internal → StrengthIntrusive → ExplicitnessImplicit without hint.
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			e := graph.Edge{
-				From:             "file:services/a/impl.go",
+				From:             "file:services/b/impl.go",
 				To:               "file:services/a/internal/secret.go",
 				Kind:             graph.EdgeKindImports,
 				Language:         "go",
@@ -482,7 +493,7 @@ func TestRun_Severity(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
 		"a": {
 			Paths:      []string{pathsA},
-			Public:     []string{"services/a/api/**"},
+			Public:     []string{publicA},
 			Owner:      ownerTeamX,
 			DeployUnit: deployUnitA,
 			Subdomain:  subdomainCore,
@@ -566,79 +577,80 @@ func TestRun_Severity(t *testing.T) {
 	}
 }
 
-func TestRun_StrengthHintFallbackAndPrecedence(t *testing.T) {
-	// Module "b" declares services/b/api/** as its public surface but no internal
-	// globs, so a plain import of services/b/impl.go has no config-derived strength.
-	modules := map[string]policy.ModuleDef{
-		"a": {Paths: []string{pathsA}, Owner: ownerTeamX, DeployUnit: deployUnitA},
-		"b": {Paths: []string{pathsB}, Public: []string{publicB}, Owner: ownerTeamY, DeployUnit: deployUnitB},
-	}
-	cfg := classify.Config{Modules: modules}
-
-	const toBImpl = "file:services/b/impl.go" // no config-derived strength
-
-	tests := []struct {
-		name         string
-		to           string
-		hint         string
-		wantStrength coupling.Strength
+// TestRun_SurfaceDecidesStrength is the classification rule of the surfaces
+// design 6.1, cell by cell: the declared surface of the module that owns the
+// target gives the strength, and no type fact of an extractor changes it. Each
+// surface is crossed with every strength hint and data hint an extractor
+// emits; the hints stay on the edge as evidence.
+func TestRun_SurfaceDecidesStrength(t *testing.T) {
+	const (
+		toAPI   = "file:services/b/api/client.go"
+		toModel = "file:services/b/model/order.go"
+		toImpl  = "file:services/b/impl/store.go"
+		toNone  = "file:vendor/x/x.go"
+	)
+	declared := policy.ModuleDef{Paths: []string{pathsB}, Public: []string{publicB}, Model: []string{modelB}}
+	modelOnly := policy.ModuleDef{Paths: []string{pathsB}, Model: []string{modelB}}
+	undeclared := policy.ModuleDef{Paths: []string{pathsB}}
+	surfaces := []struct {
+		name string
+		b    policy.ModuleDef
+		to   string
+		want coupling.Strength
 	}{
-		{
-			name:         "hint=intrusive used when config does not decide",
-			to:           toBImpl,
-			hint:         string(coupling.StrengthIntrusive),
-			wantStrength: coupling.StrengthIntrusive,
-		},
-		{
-			name:         "intrusive hint raises a public glob above contract",
-			to:           "file:services/b/api/client.go",
-			hint:         string(coupling.StrengthIntrusive),
-			wantStrength: coupling.StrengthIntrusive,
-		},
-		{
-			name:         "config public glob beats a callable hint",
-			to:           "file:services/b/api/client.go",
-			hint:         string(coupling.StrengthFunctional),
-			wantStrength: coupling.StrengthContract,
-		},
-		{
-			name:         "contract hint honored (trusted symbol-level source)",
-			to:           toBImpl,
-			hint:         string(coupling.StrengthContract),
-			wantStrength: coupling.StrengthContract,
-		},
-		{
-			name:         "unrecognized hint stays unknown",
-			to:           toBImpl,
-			hint:         "garbage",
-			wantStrength: coupling.StrengthUnknown,
-		},
-		{
-			name:         "no hint stays unknown",
-			to:           toBImpl,
-			hint:         "",
-			wantStrength: coupling.StrengthUnknown,
-		},
+		{"the public part", declared, toAPI, coupling.StrengthContract},
+		{"the model part", declared, toModel, coupling.StrengthModel},
+		{"past the surface", declared, toImpl, coupling.StrengthIntrusive},
+		{"model only: the model part", modelOnly, toModel, coupling.StrengthModel},
+		{"model only: no public part", modelOnly, toAPI, coupling.StrengthIntrusive},
+		{"no surface declared: the whole module is public", undeclared, toImpl, coupling.StrengthContract},
+		{"a target in no module", declared, toNone, coupling.StrengthUnknown},
 	}
+	hints := []string{
+		"", string(coupling.StrengthContract), string(coupling.StrengthModel), hintFunctional,
+		string(coupling.StrengthSymmetric), hintIntrusive, graph.StrengthHintDTO, "garbage",
+	}
+	dataHints := []string{"", string(coupling.StrengthModel), graph.StrengthHintDTO}
+	for _, sf := range surfaces {
+		for _, hint := range hints {
+			for _, data := range dataHints {
+				t.Run(sf.name+" hint="+hint+" data="+data, func(t *testing.T) {
+					e := graph.Edge{
+						From: "file:services/a/impl.go", To: sf.to, Kind: graph.EdgeKindImports,
+						Language: graph.LangGo, StrengthHint: hint, DataStrengthHint: data,
+					}
+					modules := map[string]policy.ModuleDef{"a": {Paths: []string{pathsA}}, "b": sf.b}
+					cl := classify.Run(makeGraph([]graph.Edge{e}), classify.Config{Modules: modules})[edgeKey(e)]
+					if cl.Strength != sf.want {
+						t.Errorf("Strength = %q, want %q", cl.Strength, sf.want)
+					}
+				})
+			}
+		}
+	}
+}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			e := graph.Edge{
-				From:         "file:services/a/impl.go",
-				To:           tc.to,
-				Kind:         graph.EdgeKindImports,
-				Language:     "go",
-				StrengthHint: tc.hint,
-			}
-			g := makeGraph([]graph.Edge{e})
-			cl, ok := classify.Run(g, cfg)[edgeKey(e)]
-			if !ok {
-				t.Fatal("edge not found in index")
-			}
-			if cl.Strength != tc.wantStrength {
-				t.Errorf("Strength = %q, want %q", cl.Strength, tc.wantStrength)
-			}
-		})
+// TestRun_DotNetInternalMemberThroughPublicFile is the CleanArchitecture V5
+// case: Infrastructure calls Application's internal Result constructor through
+// InternalsVisibleTo, in a file a public: glob covers. Roslyn reports the use
+// as intrusive. The surfaces design 6.1 keeps such a use as evidence: one
+// dependency has one number, from the declared surface, so it stays contract.
+func TestRun_DotNetInternalMemberThroughPublicFile(t *testing.T) {
+	modules := map[string]policy.ModuleDef{
+		"Infrastructure": {Paths: []string{"src/Infrastructure/**"}},
+		"Application":    {Paths: []string{"src/Application/**"}, Public: []string{"src/Application/Common/Models/**"}},
+	}
+	e := graph.Edge{
+		From:             "file:src/Infrastructure/Leaks/InfrastructureUsesInternalCtor.cs",
+		To:               "file:src/Application/Common/Models/Result.cs",
+		Kind:             graph.EdgeKindImports,
+		Language:         graph.LangDotNet,
+		StrengthHint:     string(coupling.StrengthIntrusive),
+		DataStrengthHint: string(coupling.StrengthModel),
+	}
+	cl := classify.Run(makeGraph([]graph.Edge{e}), classify.Config{Modules: modules})[edgeKey(e)]
+	if cl.Strength != coupling.StrengthContract {
+		t.Fatalf("strength = %q, want contract", cl.Strength)
 	}
 }
 
@@ -674,106 +686,6 @@ const (
 	globSvcX   = "services/x/**"
 )
 
-// TestRun_PublicGlobFloorRefinement pins the v7 strength rules for a public
-// glob: the target declared this surface as its integration contract, so the
-// floor is contract and a CALLABLE hint (function, method, interface method)
-// never raises it. Only DATA evidence (a "model" data hint) lifts it to model.
-// An internal glob stays authoritatively intrusive, and a hint never lowers the
-// floor.
-func TestRun_PublicGlobFloorRefinement(t *testing.T) {
-	build := func(hint, data string) (*graph.Graph, string) {
-		e := graph.Edge{
-			From: filePkgAAGo, To: filePkgBBGo,
-			Kind: graph.EdgeKindImports, StrengthHint: hint, DataStrengthHint: data,
-		}
-		g := graph.Build([]graph.Facts{{
-			Language: "go",
-			Nodes: []graph.Node{
-				{Kind: graph.NodeKindFile, Path: pathPkgAGo},
-				{Kind: graph.NodeKindFile, Path: pathPkgBGo},
-			},
-			Edges: []graph.Edge{e},
-		}})
-		return g, e.From + "\x00" + e.To + "\x00" + string(e.Kind)
-	}
-	publicB := map[string]policy.ModuleDef{
-		"a": {Paths: []string{globPkgA}},
-		"b": {Paths: []string{globPkgB}, Public: []string{globPkgB}},
-	}
-	internalB := map[string]policy.ModuleDef{
-		"a": {Paths: []string{globPkgA}},
-		"b": {Paths: []string{globPkgB}, Internal: []string{globPkgB}},
-	}
-	// No public/internal globs: classifyStrength is unknown, the hint decides.
-	noGlobB := map[string]policy.ModuleDef{
-		"a": {Paths: []string{globPkgA}},
-		"b": {Paths: []string{globPkgB}},
-	}
-	model := string(coupling.StrengthModel)
-	contract := string(coupling.StrengthContract)
-	cases := []struct {
-		name    string
-		modules map[string]policy.ModuleDef
-		hint    string
-		data    string
-		want    coupling.Strength
-	}{
-		{"public + no hint → contract floor", publicB, "", "", coupling.StrengthContract},
-		{"public + contract hint → contract", publicB, contract, "", coupling.StrengthContract},
-		{"public + functional hint (a call) → contract: a callable never raises the floor", publicB, hintFunctional, "", coupling.StrengthContract},
-		{"public + model hint without data evidence → contract", publicB, model, "", coupling.StrengthContract},
-		{"public + functional hint + model data → model", publicB, hintFunctional, model, coupling.StrengthModel},
-		{"public + model hint + model data → model", publicB, model, model, coupling.StrengthModel},
-		{"public + contract data → contract", publicB, hintFunctional, contract, coupling.StrengthContract},
-		// A non-public member used through a public file is intrusive: the glob
-		// declares the intended surface, the member is not part of it.
-		{"public + intrusive hint → intrusive (a non-public member is not the contract)", publicB, hintIntrusive, "", coupling.StrengthIntrusive},
-		{"public + intrusive hint + model data → intrusive (the stronger evidence wins)", publicB, hintIntrusive, model, coupling.StrengthIntrusive},
-		{"internal glob → intrusive (authoritative)", internalB, hintFunctional, model, coupling.StrengthIntrusive},
-		// A pure-data DTO across a declared public boundary IS the book's explicit
-		// integration contract — the floor stands.
-		{"public + dto hint + dto data → contract", publicB, graph.StrengthHintDTO, graph.StrengthHintDTO, coupling.StrengthContract},
-		// Without the boundary declaration the hint decides: a call is functional,
-		// an interface method is contract, a DTO is just a shared concrete type.
-		{"no glob + functional hint → functional", noGlobB, hintFunctional, "", coupling.StrengthFunctional},
-		{"no glob + contract hint (interface method) → contract", noGlobB, contract, "", coupling.StrengthContract},
-		{"no glob + dto hint → model (no declared boundary)", noGlobB, graph.StrengthHintDTO, graph.StrengthHintDTO, coupling.StrengthModel},
-		{"internal + dto hint → intrusive (authoritative)", internalB, graph.StrengthHintDTO, graph.StrengthHintDTO, coupling.StrengthIntrusive},
-	}
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			g, key := build(tc.hint, tc.data)
-			idx := classify.Run(g, classify.Config{Modules: tc.modules})
-			if got := idx[key].Strength; got != tc.want {
-				t.Errorf("strength = %q, want %q", got, tc.want)
-			}
-		})
-	}
-}
-
-// TestRun_DotNetInternalMemberThroughPublicFile is the CleanArchitecture V5
-// regression: Infrastructure calls Application's internal Result constructor
-// through InternalsVisibleTo, in a file a public: glob covers. Roslyn proves
-// the use intrusive (data hint model); the seam must read intrusive, not model.
-func TestRun_DotNetInternalMemberThroughPublicFile(t *testing.T) {
-	modules := map[string]policy.ModuleDef{
-		"Infrastructure": {Paths: []string{"src/Infrastructure/**"}},
-		"Application":    {Paths: []string{"src/Application/**"}, Public: []string{"src/Application/Common/Models/**"}},
-	}
-	e := graph.Edge{
-		From:             "file:src/Infrastructure/Leaks/InfrastructureUsesInternalCtor.cs",
-		To:               "file:src/Application/Common/Models/Result.cs",
-		Kind:             graph.EdgeKindImports,
-		Language:         graph.LangDotNet,
-		StrengthHint:     string(coupling.StrengthIntrusive),
-		DataStrengthHint: string(coupling.StrengthModel),
-	}
-	cl := classify.Run(makeGraph([]graph.Edge{e}), classify.Config{Modules: modules})[edgeKey(e)]
-	if cl.Strength != coupling.StrengthIntrusive {
-		t.Fatalf("strength = %q, want intrusive", cl.Strength)
-	}
-}
-
 // Connascence is report-only evidence: whatever kinds an extractor reports, it
 // never sets or raises strength (bc_score.v7 S3).
 func TestRun_ConnascenceNeverSetsStrength(t *testing.T) {
@@ -796,9 +708,9 @@ func TestRun_ConnascenceNeverSetsStrength(t *testing.T) {
 		"a": {Paths: []string{globPkgA}},
 		"b": {Paths: []string{globPkgB}, Public: []string{globPkgB}},
 	}
-	noGlobB := map[string]policy.ModuleDef{
+	pastB := map[string]policy.ModuleDef{
 		"a": {Paths: []string{globPkgA}},
-		"b": {Paths: []string{globPkgB}},
+		"b": {Paths: []string{globPkgB}, Public: []string{"pkg/b/api/**"}},
 	}
 	cases := []struct {
 		name    string
@@ -806,9 +718,9 @@ func TestRun_ConnascenceNeverSetsStrength(t *testing.T) {
 		kind    string
 		want    coupling.Strength
 	}{
-		{"unknown + algorithm stays unknown", noGlobB, graph.ConnascenceAlgorithm, coupling.StrengthUnknown},
-		{"unknown + meaning stays unknown", noGlobB, graph.ConnascenceMeaning, coupling.StrengthUnknown},
-		{"unknown + position stays unknown", noGlobB, graph.ConnascencePosition, coupling.StrengthUnknown},
+		{"past the surface + algorithm stays intrusive", pastB, graph.ConnascenceAlgorithm, coupling.StrengthIntrusive},
+		{"past the surface + meaning stays intrusive", pastB, graph.ConnascenceMeaning, coupling.StrengthIntrusive},
+		{"past the surface + position stays intrusive", pastB, graph.ConnascencePosition, coupling.StrengthIntrusive},
 		{"public floor + algorithm stays contract", publicB, graph.ConnascenceAlgorithm, coupling.StrengthContract},
 		{"public floor + meaning stays contract", publicB, graph.ConnascenceMeaning, coupling.StrengthContract},
 	}
@@ -1693,54 +1605,27 @@ func TestAugmentFunctions_InheritOwnerlessAncestorAttributes(t *testing.T) {
 	})
 }
 
-// TestRun_SameModuleScoredSeverityNone verifies Wave 5 local-complexity scoring:
-// a same-module edge is scored with the book formula at the same-module rung
-// (D=2) but keeps SeverityNone, so the bc/imbalanced_coupling advisory pipeline
-// (which keys on Severity) never fires for it. Abstain rules are identical:
-// unknown strength still abstains at same-module distance.
-func TestRun_SameModuleScoredSeverityNone(t *testing.T) {
+// TestRun_SameModuleEdgesAbstain: the declared surface speaks only to other
+// modules, so an edge inside one module has no strength, whatever type hint
+// the extractor read, and its score abstains (missing evidence is not zero).
+// It keeps SeverityNone, so the advisory pipeline never sees it.
+func TestRun_SameModuleEdgesAbstain(t *testing.T) {
 	modules := map[string]policy.ModuleDef{
-		"a": {Paths: []string{pathsA}, Subdomain: subdomainCore},
+		"a": {Paths: []string{pathsA}, Public: []string{publicA}, Subdomain: subdomainCore},
 	}
 	cfg := classify.Config{Modules: modules}
-
-	// Low strength (model) at same-module distance in a volatile (core) module:
-	// |3-2|=1, 10-10=0, max(1,0)+1=2 → critical band — the ball-of-mud quadrant.
-	ballOfMud := graph.Edge{
-		From:         "file:services/a/mud.go",
-		To:           "file:services/a/y.go",
-		Kind:         graph.EdgeKindImports,
-		Language:     "go",
-		StrengthHint: string(coupling.StrengthModel),
-	}
-	// Unknown strength — must abstain even though distance is known.
-	unknownStrength := graph.Edge{
-		From:     "file:services/a/mud.go",
-		To:       "file:services/a/z.go",
-		Kind:     graph.EdgeKindImports,
-		Language: "go",
-	}
-	idx := classify.Run(makeGraph([]graph.Edge{ballOfMud, unknownStrength}), cfg)
-
-	cl := idx[edgeKey(ballOfMud)]
-	if cl.Distance != coupling.DistanceSameModule {
-		t.Fatalf("Distance = %q, want same_module", cl.Distance)
-	}
-	if !cl.Score.Scored {
-		t.Fatal("same-module edge with known strength must be scored (local complexity quadrant)")
-	}
-	if cl.Score.Balance != 2 || cl.Score.Band != coupling.SeverityCritical {
-		t.Errorf("Score = balance %d band %q, want balance 2 band critical", cl.Score.Balance, cl.Score.Band)
-	}
-	if cl.Severity != coupling.SeverityNone {
-		t.Errorf("Severity = %q, want none — same-module edges must not reach the advisory pipeline", cl.Severity)
-	}
-
-	ab := idx[edgeKey(unknownStrength)]
-	if ab.Score.Scored {
-		t.Errorf("unknown-strength same-module edge must abstain, got balance %d", ab.Score.Balance)
-	}
-	if ab.Severity != coupling.SeverityNone {
-		t.Errorf("abstained edge Severity = %q, want none", ab.Severity)
+	for _, hint := range []string{"", string(coupling.StrengthModel), hintFunctional, hintIntrusive} {
+		e := graph.Edge{
+			From: "file:services/a/mud.go", To: "file:services/a/y.go",
+			Kind: graph.EdgeKindImports, Language: "go", StrengthHint: hint,
+		}
+		cl := classify.Run(makeGraph([]graph.Edge{e}), cfg)[edgeKey(e)]
+		if cl.Distance != coupling.DistanceSameModule {
+			t.Fatalf("hint %q: Distance = %q, want same_module", hint, cl.Distance)
+		}
+		if cl.Strength != coupling.StrengthUnknown || cl.Score.Scored || cl.Severity != coupling.SeverityNone {
+			t.Errorf("hint %q: strength %q, scored %v, severity %q; want unknown, abstained, none",
+				hint, cl.Strength, cl.Score.Scored, cl.Severity)
+		}
 	}
 }

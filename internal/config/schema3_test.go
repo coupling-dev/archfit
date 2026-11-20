@@ -19,7 +19,10 @@ import (
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
 	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/model/graph"
 	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/relationship/classify"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -39,6 +42,40 @@ func reportConfig(t *testing.T, path string) config.Config {
 		t.Fatalf("ReportConfig(%s): %v", path, err)
 	}
 	return cfg
+}
+
+// The surface reaches the report through the real projection: a module that
+// declares neither public nor model is public as a whole, so every use of it
+// is contract (the default must not turn every edge intrusive). A declared
+// model part gives model, and a path past a declared surface intrusive.
+func TestReportConfigCarriesTheSurface(t *testing.T) {
+	t.Parallel()
+	cfg, err := config.ReportConfig([]byte(`version: 1
+owners: [alexei-led]
+modules:
+  a: {paths: [a/**], depends_on: [b, c]}
+  b: {paths: [b/**]}
+  c: {paths: [c/**], public: [c/api/**], model: [c/model/**]}
+`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	tests := []struct{ to, want string }{
+		{"b/deep/b.go", "contract"},
+		{"c/api/c.go", "contract"},
+		{"c/model/c.go", string(coupling.StrengthModel)},
+		{"c/impl/c.go", "intrusive"},
+	}
+	for _, tt := range tests {
+		e := graph.Edge{From: "file:a/a.go", To: "file:" + tt.to, Kind: graph.EdgeKindImports, Language: graph.LangGo}
+		g := graph.Build([]graph.Facts{{Nodes: []graph.Node{
+			{Kind: graph.NodeKindFile, Path: "a/a.go"}, {Kind: graph.NodeKindFile, Path: tt.to},
+		}, Edges: []graph.Edge{e}}})
+		cl := classify.Run(g, cfg.ForClassify())[e.From+"\x00"+e.To+"\x00"+string(e.Kind)]
+		if string(cl.Strength) != tt.want {
+			t.Errorf("a -> %s: strength %q, want %q", tt.to, cl.Strength, tt.want)
+		}
+	}
 }
 
 // The golden is the whole projected Config: every view the report reads is a
@@ -363,11 +400,11 @@ func TestReportPipelineRunsOnSchema3AndDoesNotGate(t *testing.T) {
 	if balance < 0 || doc.Score.Dimensions[balance].Band == report.ScoreBandNA {
 		t.Errorf("coupling_balance not measured: %+v", doc.Score.Dimensions)
 	}
-	// a uses b/api, b's public part, and b itself, past it. With no internal
-	// glob the Go type evidence decides past public: a call is functional, as
-	// in the check, not intrusive.
-	if e := doc.ClassifiedEdges; e == nil || e.ByStrength["contract"] != 1 || e.ByStrength["functional"] != 1 || e.ByStrength["intrusive"] != 0 {
-		t.Errorf("classified edges %+v: want one contract use of public and one functional use past it", e)
+	// a uses b/api, b's public part, and b itself, past it: contract and
+	// intrusive, from the declared surface, as in the check. The Go type
+	// evidence on the edges never sets a strength.
+	if e := doc.ClassifiedEdges; e == nil || e.ByStrength["contract"] != 1 || e.ByStrength["intrusive"] != 1 || e.ByStrength["functional"] != 0 {
+		t.Errorf("classified edges %+v: want one contract use of public and one intrusive use past it", e)
 	}
 
 	for _, f := range doc.Findings {

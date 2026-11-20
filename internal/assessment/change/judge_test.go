@@ -164,37 +164,28 @@ func TestJudgeModes(t *testing.T) {
 	}
 }
 
-// Design 6.2: a use of the public part passes at every volatility; a use
-// past it takes the higher volatility of the two and passes only into low.
+// The surfaces design 6.1: the declared surface of the target gives the
+// strength, and every strength takes the target's volatility. A use of the
+// public part passes at every volatility, a use of the model part passes at
+// a min of 7, and a use past the surface passes only into low.
 func TestJudgeCouplingMatrix(t *testing.T) {
 	volatilities := []resolved.Volatility{resolved.VolatilityLow, resolved.VolatilityMedium, resolved.VolatilityHigh}
+	modelBalance := map[resolved.Volatility]int{resolved.VolatilityLow: 8, resolved.VolatilityMedium: 7, resolved.VolatilityHigh: 7}
 	pastBalance := map[resolved.Volatility]int{resolved.VolatilityLow: 8, resolved.VolatilityMedium: 5, resolved.VolatilityHigh: 2}
-	higher := func(a, b resolved.Volatility) resolved.Volatility {
-		if a == resolved.VolatilityHigh || b == resolved.VolatilityHigh {
-			return resolved.VolatilityHigh
-		}
-		if a == resolved.VolatilityMedium || b == resolved.VolatilityMedium {
-			return resolved.VolatilityMedium
-		}
-		return resolved.VolatilityLow
-	}
 	for _, source := range volatilities {
 		for _, target := range volatilities {
 			p := resolved.Policy{Modules: map[string]resolved.Module{
 				"src": {Paths: []string{"src/**"}, Volatility: source, DependsOn: []string{"dst"}},
-				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api"}, Volatility: target},
+				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api"}, Model: []string{"dst/model"}, Volatility: target},
 			}}.WithDefaults()
+			v := result.Volatility(target)
 			for _, tt := range []struct {
 				name, target string
 				want         result.Balance
 			}{
-				{"public", "dst/api", result.Balance{
-					Value: 9, Min: 10, Strength: result.StrengthContract, Volatility: result.Volatility(target),
-				}},
-				{"past", "dst/store", result.Balance{
-					Value: pastBalance[higher(source, target)], Min: 10,
-					Strength: result.StrengthFunctional, Volatility: result.Volatility(higher(source, target)),
-				}},
+				{"public", "dst/api", result.Balance{Value: 9, Min: 10, Strength: result.StrengthContract, Volatility: v}},
+				{"model", "dst/model", result.Balance{Value: modelBalance[target], Min: 10, Strength: result.StrengthModel, Volatility: v}},
+				{"past", "dst/store", result.Balance{Value: pastBalance[target], Min: 10, Strength: result.StrengthIntrusive, Volatility: v}},
 			} {
 				t.Run(fmt.Sprintf("%s %s to %s", tt.name, source, target), func(t *testing.T) {
 					_, ok := byRule(change.Judge(p, fileUse("src/a.go", tt.target)), resolved.RuleCoupling)
@@ -228,7 +219,7 @@ func TestJudgeCouplingText(t *testing.T) {
 		From: cmd, To: tc,
 		What: "cmd -> pkg_tc reaches past the public part of pkg_tc", Phrase: "reaches past the public part",
 		Why:     "new knowledge across a module boundary needs a balance of at least 7",
-		Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthFunctional, Volatility: result.VolatilityHigh},
+		Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
 		Next:    fixStep(),
 	}
 	if !ok || !reflect.DeepEqual(got, want) {
@@ -239,6 +230,13 @@ func TestJudgeCouplingText(t *testing.T) {
 	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc")), resolved.RuleCoupling)
 	if got.What != "cmd -> pkg_tc uses the public part of pkg_tc" || got.Phrase != "uses the public part" {
 		t.Errorf("a public use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
+	}
+	tcMod := p.Modules[tc]
+	tcMod.Model = []string{"pkg/tc/netem"}
+	p.Modules[tc] = tcMod
+	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc/netem")), resolved.RuleCoupling)
+	if got.What != "cmd -> pkg_tc uses the model part of pkg_tc" || got.Phrase != "uses the model part" {
+		t.Errorf("a model use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
 	}
 }
 
@@ -434,7 +432,7 @@ func TestBalanceOf(t *testing.T) {
 	}{
 		{"a use of the public part of a low module", fileUse("pkg/chaos/chaos.go", "pkg/util"), &result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
 		{"a use past the public part of a high module", fileUse("cmd/main.go", "pkg/tc/netem"),
-			&result.Balance{Value: 2, Min: 7, Strength: result.StrengthFunctional, Volatility: result.VolatilityHigh}},
+			&result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}},
 		{"a module named on its own means its public part",
 			change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}},
 			&result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityHigh}},

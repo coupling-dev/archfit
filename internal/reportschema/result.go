@@ -127,7 +127,7 @@ func patchResultDefinitions(defs jsonschema.Definitions) error {
 	between(defBalance, "value", 1, 10)
 	between(defBalance, "min", 1, 10)
 	enum(defBalance, "strength", string(result.StrengthContract), string(result.StrengthModel),
-		string(result.StrengthIntrusive), string(result.StrengthFunctional))
+		string(result.StrengthIntrusive))
 	enum(defBalance, "volatility", string(result.VolatilityLow), string(result.VolatilityMedium), string(result.VolatilityHigh))
 	pattern(defException, "expires", datePattern)
 	pattern(defPolicy, "digest", digestPattern)
