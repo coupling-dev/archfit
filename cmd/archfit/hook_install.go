@@ -26,7 +26,7 @@ const gitHookMarker = "# Written by archfit hook install --harness git."
 
 // codexTrustNotice is printed after the Codex hooks are written: Codex runs a
 // hook only once a user trusts it, and archfit cannot.
-const codexTrustNotice = "codex runs these hooks only after you trust them: start codex and approve the hooks, or run it once with --dangerously-bypass-hook-trust"
+const codexTrustNotice = "codex runs these hooks only after you trust them: start codex and approve the hooks"
 
 // harnessHook is one hook archfit installs into a harness.
 type harnessHook struct {

@@ -28,7 +28,7 @@ archfit doctor
 
 This command reports the tools that archfit can find, in two groups: needed for the check, and optional, for the report. The check needs `git`, and `ast-grep` for languages other than Go. Install the tools of the first group for the languages in your repository. A missing tool makes the check `unknown` for the code it cannot read. See [Language support](languages.md#analyzer-tools).
 
-For an agent loop, run `archfit doctor --fix` once in each checkout. It installs the hooks of Claude Code, Codex and git. See [hooks](agents.md#hooks).
+`doctor` also reports missing or inactive hooks. See [Hooks](agents.md#hooks).
 
 ## Set up the repository
 
@@ -44,10 +44,15 @@ archfit init
 $ archfit init
 wrote .archfit.yaml: 4 modules, 0 allowed dependencies, 0 rules, 1 exception
 wrote AGENTS.md: the instruction block for agents
+installed hooks: .claude/settings.json
+installed hooks: .codex/hooks.json
+  codex runs these hooks only after you trust them: start codex and approve the hooks
 exceptions for the owner to review:
   exception: duplication pkg_tc -> pkg_util until 2027-02-08
 next: read .archfit.yaml, then open a pull request with it
 ```
+
+`init` installs repository hooks for Claude Code and Codex by default. To skip them, run `archfit init --no-hooks`. The git pre-commit hook is opt-in.
 
 Read the policy, then open one pull request with it. An owner removes an exception when the code is fixed, and writes rules with `why` and `instead`. Read [Configuration](configuration.md) for the fields and [Rules](rules.md) for the built-in rules, custom rules, and exceptions.
 
