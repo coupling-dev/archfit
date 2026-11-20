@@ -212,10 +212,11 @@ type Balance struct {
 // Surface is the part of a module that other modules may use, as the policy
 // declares it.
 type Surface struct {
-	// Public are the globs of the public part. A module that declares no
-	// surface has its paths here: the whole module is public.
+	// Public are the globs of the public part. A module that declares
+	// neither public nor model has its paths here: the whole module is
+	// public. A module that declares only model has none.
 	Public []string `json:"public"`
-	// Model are the globs of the model part.
+	// Model are the globs of the model part, or none.
 	Model []string `json:"model"`
 }
 

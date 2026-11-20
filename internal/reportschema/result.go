@@ -136,7 +136,6 @@ func patchResultDefinitions(defs jsonschema.Definitions) error {
 	property(defUnread, "line").Minimum = "1"
 
 	one := uint64(1)
-	property(defSurface, "public").MinItems = &one
 	for _, f := range [][2]string{
 		{defResult, "summary"}, {defResult, "engine"}, {defCanAnswer, "from"}, {defCanAnswer, "to"}, {defCanAnswer, "engine"},
 		{defError, "path"}, {defError, propRule}, {defError, "what"}, {defError, "key"},

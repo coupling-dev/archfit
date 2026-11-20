@@ -463,15 +463,14 @@
             "type": "string"
           },
           "type": "array",
-          "minItems": 1,
-          "description": "Public are the globs of the public part. A module that declares no\nsurface has its paths here: the whole module is public."
+          "description": "Public are the globs of the public part. A module that declares\nneither public nor model has its paths here: the whole module is\npublic. A module that declares only model has none."
         },
         "model": {
           "items": {
             "type": "string"
           },
           "type": "array",
-          "description": "Model are the globs of the model part."
+          "description": "Model are the globs of the model part, or none."
         }
       },
       "additionalProperties": false,

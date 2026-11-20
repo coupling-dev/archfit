@@ -118,7 +118,7 @@ Each error has:
 | `rule` | The rule id, or `exception` for an expired exception. |
 | `what`, `why`, `instead` | As in the record. |
 | `balance` | `value` and `min`, for a rule about coupling, with the two inputs of the value: `strength` and `volatility`. `strength` is `contract` for a use of the public part and `functional` for a use past it. `volatility` is the declared volatility the formula used: the target's for `contract`, the higher of the two modules' for `functional`. The schema also lists `model` and `intrusive`; they replace `functional` before 0.9.0, and `functional` then leaves the schema. |
-| `surface` | `public` and `model`: the declared surface of the target module, for a coupling error of a use past it. The engine does not fill it yet. |
+| `surface` | `public` and `model`: the declared surface of the target module, for a coupling error of a use past it. Either list may be empty: a module that declares only `model` has no public part. The engine does not fill it yet. |
 | `next` | `kind` and `text`, and `note` when there is one. `kind` is `fix`, `command` (only an error of an `ask` rule), `wait`, or `restore`. |
 | `from`, `to` | The modules. |
 | `key` | The rule, the modules, and the symbol the error is counted by. |
