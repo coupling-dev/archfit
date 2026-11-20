@@ -1,4 +1,5 @@
 wrote .archfit.yaml: 4 modules, 0 allowed dependencies, 0 rules, 1 exception
-  exception: duplication pkg_tc -> pkg_util
 wrote AGENTS.md: the instruction block for agents
+exceptions for the owner to review:
+  exception: duplication pkg_tc -> pkg_util until 2027-02-08
 next: read .archfit.yaml, then open a pull request with it

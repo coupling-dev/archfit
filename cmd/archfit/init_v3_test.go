@@ -65,6 +65,12 @@ func TestInitAFreshRepository(t *testing.T) {
 	if got.code != 0 || got.stderr != "" {
 		t.Fatalf("init: exit %d, stderr %q", got.code, got.stderr)
 	}
+	if !strings.Contains(got.stdout, "exception: duplication pkg_tc -> pkg_util until 2027-02-08") {
+		t.Errorf("init must list dated decisions: %s", got.stdout)
+	}
+	if policy := readText(t, filepath.Join(dir, defaultConfigPath)); !strings.Contains(policy, "expires: \"2027-02-08\"") {
+		t.Errorf("init must date the exception: %s", policy)
+	}
 	assertCLIGolden(t, initGoldens, "fresh", got.stdout)
 
 	if policy := readText(t, filepath.Join(dir, defaultConfigPath)); !isVersion1([]byte(policy)) {

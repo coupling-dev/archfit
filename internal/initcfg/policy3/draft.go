@@ -35,7 +35,7 @@ const probePrefix = "init-probe-"
 
 // build returns the policy of the code the head facts describe, and its bytes.
 // The bytes load (policyfile.Resolve) and fit the tree (CheckTree).
-func build(root, owner string, facts evidence.CheckFacts) (policyfile.File, []byte, error) {
+func build(root, owner string, facts evidence.CheckFacts, now time.Time) (policyfile.File, []byte, error) {
 	testGlobs := tests(factFiles(facts))
 	genGlobs, err := generated(root, facts.Sources)
 	if err != nil {
@@ -65,7 +65,7 @@ func build(root, owner string, facts evidence.CheckFacts) (policyfile.File, []by
 	if err != nil {
 		return policyfile.File{}, nil, err
 	}
-	f.Exceptions = exceptions(p, facts)
+	f.Exceptions = exceptions(p, facts, now)
 	data, _, err := encode(f, factFiles(facts), header)
 	if err != nil {
 		return policyfile.File{}, nil, err
@@ -252,15 +252,15 @@ func containment(users map[string][]string, modules int) []policyfile.Rule {
 	return rules
 }
 
-// exceptions returns one exception, with no date, for each rule and place
-// where the policy p reports errors on the tree (repostate's Existing): an
-// error that exists already does not fail the first check. The date only
-// judges exceptions, and p has none yet.
-func exceptions(p resolved.Policy, facts evidence.CheckFacts) []policyfile.Exception {
-	existing := repostate.Evaluate(repostate.Input{Policy: p, Head: facts, Today: time.Now()}).Existing
+const exceptionDays = 90
+
+// exceptions dates the errors already present so they do not fail the first check.
+func exceptions(p resolved.Policy, facts evidence.CheckFacts, today time.Time) []policyfile.Exception {
+	existing := repostate.Evaluate(repostate.Input{Policy: p, Head: facts, Today: today}).Existing
+	expires := today.UTC().AddDate(0, 0, exceptionDays).Format(time.DateOnly)
 	out := make([]policyfile.Exception, 0, len(existing))
 	for _, e := range existing {
-		out = append(out, policyfile.Exception{Rule: e.Rule, From: e.From, To: e.To, Why: whyException})
+		out = append(out, policyfile.Exception{Rule: e.Rule, From: e.From, To: e.To, Why: whyException, Expires: expires})
 	}
 	return out
 }

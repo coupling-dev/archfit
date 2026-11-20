@@ -25,6 +25,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
@@ -54,6 +55,7 @@ type Deps struct {
 	// Runner runs git, to read the origin remote.
 	Runner toolrun.Runner
 	Facts  HeadFacts
+	Now    func() time.Time
 }
 
 // Result is what Init wrote and what it could not read.
@@ -98,7 +100,11 @@ func Init(ctx context.Context, deps Deps, root string) (Result, error) {
 	if err != nil {
 		return Result{}, err
 	}
-	file, data, err := build(root, owner, facts)
+	now := time.Now
+	if deps.Now != nil {
+		now = deps.Now
+	}
+	file, data, err := build(root, owner, facts, now())
 	if err != nil {
 		return Result{}, err
 	}
