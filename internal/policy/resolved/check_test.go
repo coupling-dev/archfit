@@ -65,6 +65,11 @@ func TestCheckMessages(t *testing.T) {
 			`modules.pkg_chaos.depends_on: "storage" is not a module`,
 		},
 		{
+			"one glob in public and model",
+			func(p *resolved.Policy) { setChaosModel(p, "pkg/chaos") },
+			`modules.pkg_chaos.model: "pkg/chaos" is also in public: a path is a contract or a model, not both`,
+		},
+		{
 			"unknown module in deny",
 			func(p *resolved.Policy) {
 				p.Rules = []resolved.Rule{{ID: "r", Form: resolved.FormDeny, From: []string{modChaos}, To: []string{"pkg_tcc"}, Why: why}}
@@ -164,6 +169,12 @@ func setLayer(p *resolved.Policy, module, layer string) {
 	p.Modules[module] = m
 }
 
+func setChaosModel(p *resolved.Policy, model ...string) {
+	m := p.Modules[modChaos]
+	m.Model = model
+	p.Modules[modChaos] = m
+}
+
 func setPaths(p *resolved.Policy, module string, paths ...string) {
 	m := p.Modules[module]
 	m.Paths = paths
@@ -204,6 +215,16 @@ func TestCheckTreeMessages(t *testing.T) {
 				p.Modules[modChaos] = m
 			},
 			`modules.pkg_chaos.public: "pkg/chaos/api" matches no file`,
+		},
+		{
+			"model matches no file",
+			func(p *resolved.Policy) { setChaosModel(p, "pkg/chaos/types") },
+			`modules.pkg_chaos.model: "pkg/chaos/types" matches no file`,
+		},
+		{
+			"a file in the public and the model part",
+			func(p *resolved.Policy) { setChaosModel(p, "pkg/chaos/**") },
+			`modules.pkg_chaos: pkg/chaos/chaos.go is in the public and the model part: a path is a contract or a model, not both`,
 		},
 		{
 			"a directory as a module path owns no file",

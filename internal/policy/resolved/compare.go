@@ -136,6 +136,7 @@ func (d *diff) module(key string, b, a Module) {
 	if !wholeModule(b) || !wholeModule(a) {
 		d.globs(key+".public", b.Public, a.Public)
 	}
+	d.globs(key+".model", b.Model, a.Model)
 	if b.Volatility != a.Volatility {
 		dir := Loosens
 		if rank(volatilityRank, a.Volatility) > rank(volatilityRank, b.Volatility) {

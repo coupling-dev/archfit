@@ -76,6 +76,37 @@ func TestIsPublic(t *testing.T) {
 	}
 }
 
+func TestIsModel(t *testing.T) {
+	p := base()
+	p.Modules[modUI] = resolved.Module{Paths: []string{"src/ui/**"}, Model: []string{"src/ui/model/**"}}
+	setChaosModel(&p, "pkg/chaos/types")
+	p = p.WithDefaults()
+	tests := []struct {
+		name, module, target string
+		isFile               bool
+		want                 bool
+	}{
+		{"a model package", modChaos, "pkg/chaos/types", false, true},
+		{"a file of a model package", modChaos, "pkg/chaos/types/types.go", true, true},
+		{"a public package is not model", modChaos, chaosDir, false, false},
+		{"a file under a model tree", modUI, "src/ui/model/user.ts", true, true},
+		{"a file past the model tree", modUI, "src/ui/state/store.ts", true, false},
+		{"no model part", modUtil, "pkg/util/util.go", true, false},
+		{"not a module", "missing", chaosDir, false, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := p.IsModel(tt.module, tt.target, tt.isFile); got != tt.want {
+				t.Errorf("IsModel(%q, %q, %v) = %v, want %v", tt.module, tt.target, tt.isFile, got, tt.want)
+			}
+		})
+	}
+	// A module that names only model has no public part.
+	if p.IsPublic(modUI, "src/ui/state/store.ts", true) || len(p.Modules[modUI].Public) != 0 {
+		t.Errorf("model-only module: public %v, want none", p.Modules[modUI].Public)
+	}
+}
+
 func TestIsTestAndIsGenerated(t *testing.T) {
 	p := resolved.Policy{Tests: []string{testGlob, "e2e/**"}, Generated: []string{"**/*.pb.go"}}
 	tests := []struct {

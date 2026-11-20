@@ -38,6 +38,11 @@ func (p Policy) Check() error {
 	for _, name := range modules {
 		mod := p.Modules[name]
 		key := "modules." + name
+		for _, g := range mod.Model {
+			if slices.Contains(mod.Public, g) {
+				m.add(key+".model", "%q is also in public: a path is a contract or a model, not both", g)
+			}
+		}
 		for _, dep := range mod.DependsOn {
 			p.checkModule(&m, key+".depends_on", dep, modules)
 		}
@@ -159,8 +164,9 @@ func editDistance(a, b string) int {
 
 // CheckTree checks the policy against the files of a tree: every path glob
 // must match a file, and no file may be owned by two modules at the same
-// specificity. A public glob may also match a directory that holds a file:
-// public: [pkg/chaos] names a package directory. Every other glob is matched
+// specificity, and no file may be in both the public and the model part of
+// its module. A public or model glob may also match a directory that holds a
+// file: public: [pkg/chaos] names a package directory. Every other glob is matched
 // against files, as ModuleOf matches them. files are repository-relative and
 // slash-separated. The error lists every message, one per line.
 func (p Policy) CheckTree(files []string) error {
@@ -175,9 +181,16 @@ func (p Policy) CheckTree(files []string) error {
 		first string
 		more  int
 	}
-	overlaps := map[string]*overlap{}
+	overlaps, both := map[string]*overlap{}, map[string]*overlap{}
 	for _, file := range files {
 		owners := p.owners(file)
+		if len(owners) > 0 && p.IsPublic(owners[0], file, true) && p.IsModel(owners[0], file, true) {
+			if o, ok := both[owners[0]]; ok {
+				o.more++
+			} else {
+				both[owners[0]] = &overlap{first: file}
+			}
+		}
 		if len(owners) < 2 {
 			continue
 		}
@@ -195,6 +208,14 @@ func (p Policy) CheckTree(files []string) error {
 			count = fmt.Sprintf(" (%d files in all)", o.more+1)
 		}
 		m.add("modules", "%s own the same files, such as %s%s: make their paths not overlap", pair, o.first, count)
+	}
+	for _, module := range slices.Sorted(maps.Keys(both)) {
+		o := both[module]
+		count := ""
+		if o.more > 0 {
+			count = fmt.Sprintf(" (%d files in all)", o.more+1)
+		}
+		m.add("modules."+module, "%s is in the public and the model part%s: a path is a contract or a model, not both", o.first, count)
 	}
 	return m.err()
 }
@@ -222,6 +243,9 @@ func (p Policy) pathGlobs() []keyedGlob {
 			for _, g := range m.Public {
 				globs = append(globs, keyedGlob{key: "modules." + name + ".public", glob: g, dirs: true})
 			}
+		}
+		for _, g := range m.Model {
+			globs = append(globs, keyedGlob{key: "modules." + name + ".model", glob: g, dirs: true})
 		}
 	}
 	for i, r := range p.Rules {

@@ -39,7 +39,7 @@ func TestDecodeValidFixtures(t *testing.T) {
 		"smallest": {
 			Version: 1,
 			Owners:  []string{owner},
-			Modules: map[string]policyfile.Module{modApp: {Paths: []string{cmdGlob, "pkg/**"}}},
+			Modules: map[string]policyfile.Module{modApp: {Paths: []string{cmdGlob, pkgGlob}}},
 		},
 		"typical": {
 			Version: 1,

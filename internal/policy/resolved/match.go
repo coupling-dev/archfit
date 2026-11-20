@@ -29,7 +29,20 @@ func (p Policy) IsPublic(module, target string, isFile bool) bool {
 	if wholeModule(m) {
 		return true
 	}
-	for _, glob := range m.Public {
+	return inGlobs(m.Public, target, isFile)
+}
+
+// IsModel reports whether target, a file or a directory, is in the model part
+// of module, by the rule IsPublic uses for the public part. False for a name
+// that is not a module, and for a module with no model part.
+func (p Policy) IsModel(module, target string, isFile bool) bool {
+	return inGlobs(p.Modules[module].Model, target, isFile)
+}
+
+// inGlobs reports whether a glob covers target, or, for a file, the directory
+// that holds it.
+func inGlobs(globs []string, target string, isFile bool) bool {
+	for _, glob := range globs {
 		if matchGlob(glob, target) || isFile && matchGlob(glob, path.Dir(target)) {
 			return true
 		}
