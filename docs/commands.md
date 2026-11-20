@@ -58,7 +58,7 @@ The run:
 5. The check reads the base and the working tree and counts the errors of each by rule, modules, and symbol. An error the base does not have, or has fewer times, is added by the change: the status is `fail`. An expired exception fails every change, and the status line ends with `(not from this change)`. See [results](results.md).
 6. On a push (`HEAD` is the tip of the target branch) with a `pass` or `fail` status, the JSON result adds the state of the repository. See [results](results.md#json).
 
-The default text record is also the agent workflow: run `archfit check` without a format flag and follow `next:`. Exit `0` means `pass`, `1` means `fail`, and `2` means `unknown`, wrong usage, or a tool error.
+The default text record is also the agent workflow: run `archfit check` without a format flag and follow `next:`. Exit `0` means `pass`, `1` means `fail`, and `2` means `unknown`, wrong usage, or a tool error. Repeated tool errors share a line with a path count and up to three examples. The JSON retains each path.
 
 The record goes to stdout. Notes, such as a target branch with no policy, and tool errors go to stderr. When no workflow in `.github/workflows/` has a step that uses `coupling-dev/archfit-action` (`uses: coupling-dev/archfit-action@<ref>`), every result carries the line `policy: not protected`, after the status line: the result is a local guide, not change control.
 
