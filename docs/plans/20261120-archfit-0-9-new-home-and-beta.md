@@ -289,12 +289,18 @@ Done when the App is deployed with the 0.9.0 manifest. Tasks 5.1 and 5.2 can sta
       `model`, also in the onboarding template and the policy edit path; the balance with its
       inputs on the request and pull-request pages; the answers to a surface request on the request page (declare as public, declare as model,
       allow until a date, reject with `instead`). The App reads `gate` only from a version 3 policy today;
-      5.2 reads it from version 1 and keeps `# request #N` in the version 1 policy writer.
+      5.2 reads it from version 1 and keeps `# request #N` in the version 1 policy writer. The App
+      writes no policy template, so "the onboarding template" needs no policy change. Its
+      `parseAnswer` rejects the 0.9.0 balance and `surface:` lines today; 5.2 accepts them.
 - [ ] **5.3 Manifest.** One entry: engine `v0.9.0`, its two digests, the Action commit of 4.3.
       First check whether the App can accept the old and the new result together. If it can,
       keep the v4.0.0 entry until task 6.5. If it cannot, epic 6 is a window with a merge
       freeze. 5.3 also moves the runtime references left by 5.1, accepts both Action repositories
       until task 6.5, and makes the onboarding template write `# vX` after the Action commit.
+      Answered 2026-11-20 (5.2): it can. The App accepts the v4.0.0 and the 0.9.0 result, and policy
+      version 3 and version 1, side by side until 6.5: one decoder checks the shape of each
+      `balance` object, and a result that mixes both shapes is refused. This departs from the
+      surfaces design 6.6 ("not accepted side by side"); the owner confirmed it. No merge freeze.
 - [ ] **5.4 Deploy.** Record the running revision for rollback. Deploy. Tag `v0.9.0`. CONFIRM.
 
 ### Epic 6. Move the onboarded repositories
@@ -312,7 +318,10 @@ turn it into a surface declaration, or fix the code.
 - [ ] **6.4 `pumba`.** The gate is required and the policy is read from the target branch, so
       the migration pull request may not be able to pass its own check. The owner relaxes the
       ruleset for that one merge and restores it. HUMAN.
-- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Deploy. CONFIRM.
+- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Remove with them the App's
+      side-by-side path of task 5.2: the v4.0.0 result shape and corpus, the version 3 policy
+      reading, and the old Action repository (`internal/wire/result/module.md` names the code).
+      Deploy. CONFIRM.
 
 ### Epic 7. Close the old home
 
