@@ -217,6 +217,7 @@ Starts after task 1.3.
       the route, the three rungs, each command and page, what `init` and the hooks do by
       default, and what the result and the manifest must already carry in 0.9.0 so that 0.10.0
       breaks nothing. Epic 8 is built from it after the reset. HUMAN to accept.
+      Proposed: `docs/plans/20261120-archfit-onboarding-design.md`.
 
 ### Epic 3. Engine fixes for 0.9.0
 
