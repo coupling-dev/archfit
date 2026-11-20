@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" width="960" height="420" role="img" aria-labelledby="title desc">
+<title id="title">The archfit loop: ask once, and the answer is remembered</title>
+<desc id="desc">A change in pkg/tc imports pkg/util. archfit check fails with a graph error. The author runs archfit request with a reason. The owner approves in the Archfit App with a passkey. One line is added to .archfit.yaml: pkg_tc depends on pkg_util, request 415. archfit check passes. The next change that imports pkg/util passes without a request.</desc>
+<style>
+:root{--box:#f1f5f9;--box-line:#94a3b8;--ink:#0f172a;--ink-soft:#475569;
+--blue:#e0f2fe;--blue-line:#0284c7;--red:#fee2e2;--red-line:#dc2626;--green:#dcfce7;--green-line:#16a34a;--arrow:#64748b}
+@media (prefers-color-scheme:dark){:root{--box:#1e293b;--box-line:#475569;--ink:#e2e8f0;--ink-soft:#94a3b8;
+--blue:#0c4a6e;--blue-line:#38bdf8;--red:#7f1d1d;--red-line:#f87171;--green:#14532d;--green-line:#4ade80;--arrow:#94a3b8}}
+.sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+.box{fill:var(--box);stroke:var(--box-line)}
+.blue{fill:var(--blue);stroke:var(--blue-line)}.red{fill:var(--red);stroke:var(--red-line)}.green{fill:var(--green);stroke:var(--green-line)}
+.title{fill:var(--ink);font-size:14px;font-weight:600}
+.sub{fill:var(--ink-soft);font-size:11.5px}
+.arrow{stroke:var(--arrow);fill:none;stroke-width:1.5}.head{fill:var(--arrow)}
+.label{fill:var(--ink-soft);font-size:12px}
+.panel{fill:#0f172a;stroke:#334155}
+.t{fill:#e2e8f0;font-size:13px;white-space:pre}.m{fill:#94a3b8}.r{fill:#f87171}.g{fill:#4ade80}.band{fill:#1e3a8a}
+@keyframes s0{0%{opacity:0}3%,92%{opacity:1}100%{opacity:0}}
+@keyframes s1{0%,12.5%{opacity:0}15.5%,92%{opacity:1}100%{opacity:0}}
+@keyframes s2{0%,25%{opacity:0}28%,92%{opacity:1}100%{opacity:0}}
+@keyframes s3{0%,37.5%{opacity:0}40.5%,92%{opacity:1}100%{opacity:0}}
+@keyframes s4{0%,50%{opacity:0}53%,92%{opacity:1}100%{opacity:0}}
+@keyframes s5{0%,62.5%{opacity:0}65.5%,92%{opacity:1}100%{opacity:0}}
+@keyframes s6{0%,75%{opacity:0}78%,92%{opacity:1}100%{opacity:0}}
+.s0{animation:s0 16s linear infinite both}
+.s1{animation:s1 16s linear infinite both}
+.s2{animation:s2 16s linear infinite both}
+.s3{animation:s3 16s linear infinite both}
+.s4{animation:s4 16s linear infinite both}
+.s5{animation:s5 16s linear infinite both}
+.s6{animation:s6 16s linear infinite both}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<defs><marker id="tip" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="head" d="M0 0 L8 4 L0 8 z"/></marker></defs>
+<rect class="box" x="22" y="16" width="136" height="66" rx="8"/>
+<rect class="blue s0" x="22" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="90.0" y="44" text-anchor="middle">Change</text>
+<text class="sans sub" x="90.0" y="64" text-anchor="middle">pkg/tc imports pkg/util</text>
+<path class="arrow" d="M160 49.0 H175" marker-end="url(#tip)"/>
+<rect class="box" x="178" y="16" width="136" height="66" rx="8"/>
+<rect class="red s1" x="178" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="246.0" y="44" text-anchor="middle">Check fails</text>
+<text class="sans sub" x="246.0" y="64" text-anchor="middle">graph: not allowed</text>
+<path class="arrow" d="M316 49.0 H331" marker-end="url(#tip)"/>
+<rect class="box" x="334" y="16" width="136" height="66" rx="8"/>
+<rect class="blue s2" x="334" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="402.0" y="44" text-anchor="middle">Request</text>
+<text class="sans sub" x="402.0" y="64" text-anchor="middle">archfit request -m</text>
+<path class="arrow" d="M472 49.0 H487" marker-end="url(#tip)"/>
+<rect class="box" x="490" y="16" width="136" height="66" rx="8"/>
+<rect class="blue s3" x="490" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="558.0" y="44" text-anchor="middle">Owner answers</text>
+<text class="sans sub" x="558.0" y="64" text-anchor="middle">approve, with a passkey</text>
+<path class="arrow" d="M628 49.0 H643" marker-end="url(#tip)"/>
+<rect class="box" x="646" y="16" width="136" height="66" rx="8"/>
+<rect class="blue s4" x="646" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="714.0" y="44" text-anchor="middle">One policy line</text>
+<text class="sans sub" x="714.0" y="64" text-anchor="middle">depends_on: pkg_util</text>
+<path class="arrow" d="M784 49.0 H799" marker-end="url(#tip)"/>
+<rect class="box" x="802" y="16" width="136" height="66" rx="8"/>
+<rect class="green s5" x="802" y="16" width="136" height="66" rx="8" stroke-width="1.5"/>
+<text class="sans title" x="870.0" y="44" text-anchor="middle">Check passes</text>
+<text class="sans sub" x="870.0" y="64" text-anchor="middle">archfit: pass</text>
+<path class="arrow s6" d="M870.0 84 V106 H90.0 V86" marker-end="url(#tip)"/>
+<text class="sans label s6" x="480.0" y="122" text-anchor="middle">the next change that needs pkg/util does not ask</text>
+<rect class="panel" x="22" y="136" width="916" height="272" rx="10"/>
+<circle cx="42" cy="152" r="5" fill="#f87171" opacity="0.8"/>
+<circle cx="58" cy="152" r="5" fill="#fbbf24" opacity="0.8"/>
+<circle cx="74" cy="152" r="5" fill="#4ade80" opacity="0.8"/>
+<rect class="band s4" x="34" y="299" width="892" height="22" rx="4"/>
+<text class="mono t s0" x="48" y="186"><tspan class="m"># pkg/tc/iface.go now imports pkg/util</tspan></text>
+<text class="mono t s1" x="48" y="208">$ archfit check</text>
+<text class="mono t s1" x="48" y="226">pkg/tc/iface.go:3: graph: pkg_tc -&gt; pkg_util is not an allowed dependency</text>
+<text class="mono t s1" x="48" y="244"><tspan class="r">archfit: fail, 1 error</tspan></text>
+<text class="mono t s2" x="48" y="268">$ archfit request -m "tc reuses the shared interface-name rule"</text>
+<text class="mono t s3" x="48" y="290"><tspan class="m"># the owner approves the request in the Archfit App, with a passkey</tspan></text>
+<text class="mono t s4" x="48" y="314"><tspan class="m">.archfit.yaml  </tspan><tspan class="g">+    - pkg_util  # request #415</tspan></text>
+<text class="mono t s5" x="48" y="338">$ archfit check</text>
+<text class="mono t s5" x="48" y="356"><tspan class="g">archfit: pass</tspan></text>
+<text class="mono t s6" x="48" y="378">$ archfit check  <tspan class="m"># the next change imports pkg/util too</tspan></text>
+<text class="mono t s6" x="48" y="396"><tspan class="g">archfit: pass</tspan></text>
+</svg>
