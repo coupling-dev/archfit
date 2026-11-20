@@ -52,7 +52,7 @@ For Claude Code, install the user-level plugin once. It works in fresh clones
 and worktrees when the `archfit` binary is on `PATH`:
 
 ```text
-/plugin marketplace add alexei-led/archfit
+/plugin marketplace add coupling-dev/archfit
 /plugin install archfit@archfit
 ```
 
@@ -130,8 +130,8 @@ The git pre-commit hook works with every harness. Install it with
 
 ```yaml
 repos:
-  - repo: https://github.com/alexei-led/archfit
-    rev: v4.0.0
+  - repo: https://github.com/coupling-dev/archfit
+    rev: v0.9.0
     hooks:
       - id: archfit
 ```

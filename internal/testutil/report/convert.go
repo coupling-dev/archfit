@@ -2,9 +2,9 @@
 package reporttest
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 // Findings converts assessment findings into the stable report view for renderer tests.

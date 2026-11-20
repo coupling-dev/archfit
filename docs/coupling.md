@@ -108,7 +108,7 @@ The same internal call into a module with V=3 has balance 8, with band `low`.
 
 ## The `coupling` rule
 
-Archfit 4 adds a built-in `coupling` rule to the check of policy version 3. It
+Archfit 4 adds a built-in `coupling` rule to the check of policy version 1. It
 is not released yet. The rule judges a dependency a change adds: new knowledge
 across a module boundary needs a balance of at least 7. The balance uses the
 formula above at D=9 and is shown as `9/10 (min 7)`.

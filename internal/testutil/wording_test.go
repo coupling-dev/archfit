@@ -4,7 +4,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 func TestNotUsedIn(t *testing.T) {

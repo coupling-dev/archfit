@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
 )
 
 // leafClass says which comparison input a config leaf belongs to. Comparability
@@ -164,7 +164,7 @@ func TestEveryConfigLeafHasOneClass(t *testing.T) {
 	}
 }
 
-const classificationBaseYAML = `version: 3
+const classificationBaseYAML = `version: 1
 owners: [owner]
 languages:
   go: {enabled: true}

@@ -1,4 +1,4 @@
-// Package policy3 writes the first schema 3 policy of a repository and the
+// Package policy3 writes the first schema 1 policy of a repository and the
 // instruction block for agents (design 10.1 and 11.3).
 //
 // Init reads the head check facts, the facts archfit check reads, finds the
@@ -26,11 +26,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // The files Init writes, relative to the repository root.

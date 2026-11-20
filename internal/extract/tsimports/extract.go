@@ -47,7 +47,7 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Kind says where a specifier resolved.

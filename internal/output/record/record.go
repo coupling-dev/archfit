@@ -38,7 +38,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
 // Options changes what a record prints.

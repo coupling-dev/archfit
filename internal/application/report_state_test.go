@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/assessment/score"
-	"github.com/alexei-led/archfit/v4/internal/assessment/state"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/score"
+	"github.com/coupling-dev/archfit/internal/assessment/state"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 // Shared literals for the shadow-state fixtures.

@@ -1,14 +1,13 @@
 package policyfile_test
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
 )
 
 const (
@@ -38,12 +37,12 @@ func decodeFixture(t *testing.T, path string) (policyfile.File, error) {
 func TestDecodeValidFixtures(t *testing.T) {
 	tests := map[string]policyfile.File{
 		"smallest": {
-			Version: 3,
+			Version: 1,
 			Owners:  []string{owner},
 			Modules: map[string]policyfile.Module{modApp: {Paths: []string{cmdGlob, "pkg/**"}}},
 		},
 		"typical": {
-			Version: 3,
+			Version: 1,
 			Owners:  []string{owner},
 			Gate:    policyfile.GateRequired,
 			Layers:  []string{core, layerCmd},
@@ -84,7 +83,7 @@ func TestDecodeValidFixtures(t *testing.T) {
 			}},
 		},
 		"every-key": {
-			Version: 3,
+			Version: 1,
 			Owners:  []string{owner, "octocat"},
 			Gate:    policyfile.GateAdvisory,
 			Layers:  []string{"domain", "adapter", layerCmd},
@@ -182,10 +181,10 @@ func TestDecodeKeepsAbsentKeysZero(t *testing.T) {
 // invalidFixtures maps each file in testdata/invalid to the messages its error must contain.
 var invalidFixtures = map[string][]string{
 	"unknown-key":        {`unknown field "owner"`, "6:5"},
-	"version-missing":    {`version: missing: add "version: 3"`},
-	"version-2":          {`version 2 is not supported: archfit reads policy version 3; remove the file and run "archfit init" to write a fresh policy`},
-	"version-4":          {"version 4: this engine reads version 3"},
-	"version-string":     {`version "3": this engine reads version 3`},
+	"version-missing":    {`version: missing: add "version: 1"`},
+	"version-2":          {`version 2 is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy`},
+	"version-4":          {`version 4 is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy`},
+	"version-string":     {`version "1" is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy`},
 	"expires-shape":      {`exceptions[0].expires: "19-11-2026" is not a date: use YYYY-MM-DD`},
 	"expires-impossible": {`exceptions[0].expires: "2026-02-30" is not a date: use YYYY-MM-DD`},
 	"rule-two-forms":     {"rules[0] (two-forms): has deny and note: a rule has exactly one of deny, only or note"},
@@ -256,7 +255,7 @@ func TestEveryInvalidFixtureHasExpectedMessages(t *testing.T) {
 // TestDecodeReportsEveryProblem lists all problems at once, so an owner fixes
 // the file in one pass.
 func TestDecodeReportsEveryProblem(t *testing.T) {
-	_, err := policyfile.Decode([]byte(`version: 3
+	_, err := policyfile.Decode([]byte(`version: 1
 owners: []
 modules:
   app:
@@ -276,28 +275,23 @@ builtin:
 }
 
 func TestDecodeVersionNumbers(t *testing.T) {
+	unsupported := func(v string) string {
+		return "version " + v + ` is not supported: archfit reads policy version 1; remove the file and run "archfit init" to write a fresh policy`
+	}
 	tests := []struct {
 		version, wantErr string
-		version2         bool
 	}{
-		{version: "3"},
-		{version: "3.0"},
-		{version: "2", wantErr: `version 2 is not supported: archfit reads policy version 3`, version2: true},
-		{version: "2.0", wantErr: `version 2 is not supported: archfit reads policy version 3`, version2: true},
-		{version: "1", wantErr: "version 1: this engine reads version 3"},
-		{version: "3.5", wantErr: "version 3.5: this engine reads version 3"},
-		{version: "-3", wantErr: "version -3: this engine reads version 3"},
+		{version: "1"},
+		{version: "1.0"},
+		{version: "2", wantErr: unsupported("2")},
+		{version: "3", wantErr: unsupported("3")},
+		{version: "1.5", wantErr: unsupported("1.5")},
+		{version: "-1", wantErr: unsupported("-1")},
 	}
 	for _, tt := range tests {
 		t.Run(tt.version, func(t *testing.T) {
 			data := []byte("version: " + tt.version + "\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n")
 			got, err := policyfile.Decode(data)
-			_, resolveErr := policyfile.Resolve(data)
-			for name, err := range map[string]error{"Decode": err, "Resolve": resolveErr} {
-				if is := errors.Is(err, policyfile.ErrVersion2); is != tt.version2 {
-					t.Errorf("errors.Is(%s error %v, ErrVersion2) = %v, want %v", name, err, is, tt.version2)
-				}
-			}
 			if tt.wantErr != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 					t.Fatalf("error = %v, want %q", err, tt.wantErr)
@@ -329,7 +323,7 @@ func TestDecodeSwitchForms(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.enabled, func(t *testing.T) {
-			got, err := policyfile.Decode([]byte("version: 3\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\nlanguages:\n  go:\n    enabled: " + tt.enabled + "\n"))
+			got, err := policyfile.Decode([]byte("version: 1\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\nlanguages:\n  go:\n    enabled: " + tt.enabled + "\n"))
 			if tt.wantErr != "" {
 				if err == nil || !strings.Contains(err.Error(), tt.wantErr) {
 					t.Fatalf("error = %v, want %q", err, tt.wantErr)
@@ -362,7 +356,7 @@ func TestDecodeNamesForms(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := policyfile.Decode([]byte(`version: 3
+			got, err := policyfile.Decode([]byte(`version: 1
 owners: [alexei-led]
 modules:
   app:

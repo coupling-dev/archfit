@@ -1,4 +1,4 @@
-module github.com/alexei-led/archfit/v4
+module github.com/coupling-dev/archfit
 
 go 1.27.0
 

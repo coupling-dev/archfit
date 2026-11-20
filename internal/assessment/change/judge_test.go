@@ -5,10 +5,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/change"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 const (

@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/extract/astgrep"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/pattern"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/extract/astgrep"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/pattern"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestFind_EmptyPatternsDisableWithoutProbingTools(t *testing.T) {

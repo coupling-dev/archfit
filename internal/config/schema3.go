@@ -1,22 +1,22 @@
 package config
 
 import (
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
-// ReportConfig reads a schema 3 policy and returns the Config the report runs
+// ReportConfig reads a schema 1 policy and returns the Config the report runs
 // on. The report is the Archfit 3 analyze pipeline, which reads Config through
 // its views (ModuleMapView, ForClassify, ForScope, ForExtract, RunOptions,
 // PolicySnapshot and the others). It measures and does not gate (design D2).
 //
 // The modules come from the resolved policy, with the defaults of design 6.1.
-// The language, analyzer and coverage keys that schema 3 keeps come from the
+// The language, analyzer and coverage keys that schema 1 keeps come from the
 // decoded file, because the resolved policy holds them only as flat strings.
-// Every Archfit 3 knob that has no schema 3 key keeps a value that gates
+// Every Archfit 3 knob that has no schema 1 key keeps a value that gates
 // nothing:
 //   - no metrics entries: the default metrics, whose gates need a baseline;
 //   - no module_review and no tool gate: warn, so a missing tool is still
@@ -24,7 +24,7 @@ import (
 //   - coupling advisory tuning as in Default.
 //
 // Module owners and deploy units stay empty, so the run resolves them from
-// CODEOWNERS and git as before. The owners of schema 3 approve requests. They
+// CODEOWNERS and git as before. The owners of schema 1 approve requests. They
 // do not own modules.
 //
 // The report retains its measurement views, not a second policy decoder.
@@ -54,7 +54,7 @@ func reportConfig(f policyfile.File, p resolved.Policy) Config {
 			Layer:      m.Layer,
 			Subdomain:  string(m.Subdomain),
 			Volatility: string(m.Volatility),
-			// In schema 3 no depends_on means no other module. In Archfit 3 a
+			// In schema 1 no depends_on means no other module. In Archfit 3 a
 			// nil list means any module, so the list is never nil.
 			DependsOn: append([]string{}, m.DependsOn...),
 		}
@@ -88,7 +88,7 @@ func reportConfig(f policyfile.File, p resolved.Policy) Config {
 	return cfg
 }
 
-// toolMode maps a schema 3 switch to the enable mode. An absent switch is
+// toolMode maps a schema 1 switch to the enable mode. An absent switch is
 // auto, as in schema 2. Each analyzer reads auto as its own default: syntax
 // and cargo_modules stay off, roslyn runs where its helper is installed.
 func toolMode(s policyfile.Switch) evidenceports.ToolMode {

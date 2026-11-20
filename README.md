@@ -1,8 +1,8 @@
 # archfit
 
-[![CI](https://github.com/alexei-led/archfit/actions/workflows/ci.yaml/badge.svg)](https://github.com/alexei-led/archfit/actions/workflows/ci.yaml)
-[![Release](https://img.shields.io/github/v/tag/alexei-led/archfit?label=version&sort=semver)](https://github.com/alexei-led/archfit/tags)
-[![License](https://img.shields.io/github/license/alexei-led/archfit)](LICENSE)
+[![CI](https://github.com/coupling-dev/archfit/actions/workflows/ci.yaml/badge.svg)](https://github.com/coupling-dev/archfit/actions/workflows/ci.yaml)
+[![Release](https://img.shields.io/github/v/tag/coupling-dev/archfit?label=version&sort=semver)](https://github.com/coupling-dev/archfit/tags)
+[![License](https://img.shields.io/github/license/coupling-dev/archfit)](LICENSE)
 
 **archfit checks whether code changes follow the architecture declared for a repository.**
 
@@ -48,13 +48,13 @@ The check compares the change with its target branch and lists only the errors t
 Install the CLI with Homebrew:
 
 ```sh
-brew install alexei-led/tap/archfit
+brew install coupling-dev/tap/archfit
 ```
 
-Or download a release binary from the [release page](https://github.com/alexei-led/archfit/releases). With Go installed:
+Or download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). With Go installed:
 
 ```sh
-go install github.com/alexei-led/archfit/v4/cmd/archfit@v4.0.0
+go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
 ```
 
 Run these commands from your repository:

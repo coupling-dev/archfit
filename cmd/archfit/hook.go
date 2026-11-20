@@ -23,11 +23,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Events of `archfit hook run`.
@@ -93,7 +93,7 @@ repository that holds the event cwd. They remember the session in
                   The errors an exception covers are left out, as check
                   leaves them out.
                     yes, unknown    exit 0, silent
-                  Without a version 3 policy it is silent.
+                  Without a version 1 policy it is silent.
   stop            runs archfit check, as you would before you finish:
                     fail (first stop)           exit 2; the record on stderr
                     fail, with stop_hook_active exit 0 with a systemMessage

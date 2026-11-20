@@ -16,8 +16,8 @@ import (
 
 	"github.com/alecthomas/kong"
 
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Build-time variables injected by -ldflags.
@@ -56,10 +56,10 @@ const (
 )
 
 const (
-	docsURL          = "https://github.com/alexei-led/archfit/blob/main/docs/getting-started.md"
-	ciDocsURL        = "https://github.com/alexei-led/archfit/blob/main/docs/ci.md"
-	agentDocsURL     = "https://github.com/alexei-led/archfit/blob/main/docs/agents.md"
-	languagesDocsURL = "https://github.com/alexei-led/archfit/blob/main/docs/languages.md"
+	docsURL          = "https://github.com/coupling-dev/archfit/blob/main/docs/getting-started.md"
+	ciDocsURL        = "https://github.com/coupling-dev/archfit/blob/main/docs/ci.md"
+	agentDocsURL     = "https://github.com/coupling-dev/archfit/blob/main/docs/agents.md"
+	languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 )
 
 // cli exposes the seven public commands and the hidden hook entry point.
@@ -139,7 +139,7 @@ type appDeps struct {
 	// Set by each pipeline command from its --refresh flag before the analysis pipeline.
 	refresh bool
 
-	// now is the clock of the version 3 commands: exceptions are judged on
+	// now is the clock of the version 1 commands: exceptions are judged on
 	// its date. nil → time.Now (tests set a fixed date).
 	now func() time.Time
 
@@ -156,7 +156,7 @@ func (d *appDeps) runContext() context.Context {
 	return d.ctx
 }
 
-// clock returns the clock of the version 3 commands.
+// clock returns the clock of the version 1 commands.
 func (d *appDeps) clock() func() time.Time {
 	if d.now != nil {
 		return d.now

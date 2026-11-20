@@ -3,9 +3,9 @@ package evaluation
 import (
 	"fmt"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // toolPythonImports is the Python primary analyzer's coverage name. Assessment is core

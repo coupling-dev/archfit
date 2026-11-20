@@ -1,6 +1,6 @@
 # The typical policy of design 6.1, with the two modules it names but does
 # not declare (pkg_container, pkg_runtime), so that it resolves.
-version: 3
+version: 1
 owners: [alexei-led]
 gate: required              # default: advisory
 layers: [core, cmd]         # inner first

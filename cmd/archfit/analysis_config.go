@@ -4,7 +4,7 @@ import (
 	"errors"
 	"os"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
+	"github.com/coupling-dev/archfit/internal/config"
 )
 
 // loadConfig reads doctor configuration. An absent default policy is optional.

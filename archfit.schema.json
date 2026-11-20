@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/alexei-led/archfit/main/archfit.schema.json",
+  "$id": "https://raw.githubusercontent.com/coupling-dev/archfit/main/archfit.schema.json",
   "$defs": {
     "Analyzer": {
       "properties": {
@@ -666,8 +666,8 @@
   "properties": {
     "version": {
       "type": "integer",
-      "const": 3,
-      "description": "The policy schema version. Always 3."
+      "const": 1,
+      "description": "The policy schema version. Always 1."
     },
     "owners": {
       "items": {
@@ -767,6 +767,6 @@
     "owners",
     "modules"
   ],
-  "title": "Archfit policy (schema 3)",
-  "description": "The Archfit policy, .archfit.yaml: modules, allowed dependencies, rules and exceptions. Archfit 4 reads it. Archfit 3 reads version 2 and uses the schema of tag v3.4.0."
+  "title": "Archfit policy (schema 1)",
+  "description": "The Archfit policy, .archfit.yaml: modules, allowed dependencies, rules and exceptions. Archfit reads policy version 1."
 }

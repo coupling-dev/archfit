@@ -18,23 +18,23 @@ import (
 	"github.com/goccy/go-yaml"
 	"golang.org/x/mod/modfile"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	"github.com/alexei-led/archfit/v4/internal/application/importcheck"
-	"github.com/alexei-led/archfit/v4/internal/application/rulesquery"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	"github.com/coupling-dev/archfit/internal/application/importcheck"
+	"github.com/coupling-dev/archfit/internal/application/rulesquery"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // This file is the composition root of `check`, `can` and `rules` on a
-// version 3 policy: it gives the ports of internal/application/changecheck,
+// version 1 policy: it gives the ports of internal/application/changecheck,
 // canquery and rulesquery their adapters over git, the file system and the
 // check facts. The commands themselves live in change_check.go, can.go and
 // rules.go.
@@ -44,7 +44,7 @@ import (
 var lastFile = filepath.Join(cacheDirName, "last.json")
 
 // actionRepo is the Action a protecting workflow uses (D6).
-const actionRepo = "alexei-led/archfit-action"
+const actionRepo = "coupling-dev/archfit-action"
 
 // usesAction matches a step that uses the Action: a "uses:" key, quoted or
 // not, whose value is the Action at a ref. A comment, another key, or another
@@ -54,7 +54,7 @@ var usesAction = regexp.MustCompile(`(?m)^[ \t]*(?:-[ \t]+)?uses:[ \t]*["']?` + 
 // workflowsDir holds the GitHub workflows, under the repository root.
 var workflowsDir = filepath.Join(".github", "workflows")
 
-// checkout is the repository a version 3 command reads.
+// checkout is the repository a version 1 command reads.
 type checkout struct {
 	// root is the repository root; start is the directory the command runs
 	// in (-C), against which a relative --policy is read.
@@ -65,7 +65,7 @@ type checkout struct {
 }
 
 // openCheckout finds the repository of dir. Not a git repository is an
-// error: the version 3 commands compare git trees.
+// error: the version 1 commands compare git trees.
 func openCheckout(ctx context.Context, deps *appDeps, dir string) (checkout, error) {
 	start, err := filepath.Abs(dir)
 	if err != nil {
@@ -86,7 +86,7 @@ func openCheckout(ctx context.Context, deps *appDeps, dir string) (checkout, err
 	return checkout{root: root, start: start, runner: deps.Runner, engine: engineVersion(), now: deps.clock()}, nil
 }
 
-// policyAt returns the bytes of the policy file a version 3 command reads:
+// policyAt returns the bytes of the policy file a version 1 command reads:
 // file, or .archfit.yaml at the repository root when file is empty. ok is false
 // when there is no file.
 func (co checkout) policyAt(file string) (data []byte, ok bool, err error) {
@@ -126,11 +126,11 @@ func (co checkout) policyArg(file string) string {
 	return filepath.ToSlash(rel)
 }
 
-// isVersion3 reports whether data declares policy version 3, valid or not: the
-// version 3 commands judge it and report what is wrong with it. A file that
-// does not parse, or names another version, is not version 3. As in
+// isVersion1 reports whether data declares policy version 1, valid or not: the
+// version 1 commands judge it and report what is wrong with it. A file that
+// does not parse, or names another version, is not version 1. As in
 // policyfile, a number with no fraction is an integer: 3.0 is 3.
-func isVersion3(data []byte) bool {
+func isVersion1(data []byte) bool {
 	var header struct {
 		Version any `yaml:"version"`
 	}
@@ -180,7 +180,7 @@ func (co checkout) importCheck() importcheck.Service {
 }
 
 // validPolicy is importcheck.Policies: .archfit.yaml at the root, when it is a
-// valid version 3 policy.
+// valid version 1 policy.
 type validPolicy struct{ co checkout }
 
 func (v validPolicy) Local(context.Context) (resolved.Policy, bool, error) {

@@ -3,10 +3,10 @@ package boundary_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics/boundary"
-	signal "github.com/alexei-led/archfit/v4/internal/assessment/signals"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics/boundary"
+	signal "github.com/coupling-dev/archfit/internal/assessment/signals"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 func TestBoundaryMetricsConsumeRelationshipContract(t *testing.T) {

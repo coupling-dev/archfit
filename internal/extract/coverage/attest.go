@@ -10,7 +10,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 const (

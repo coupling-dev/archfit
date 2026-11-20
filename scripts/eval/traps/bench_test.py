@@ -296,7 +296,7 @@ class BenchTest(unittest.TestCase):
         seen = procs.agent_calls[0]
         self.assertEqual(seen["status"], "")
         self.assertNotEqual(seen["origin_main"], self.pin)
-        self.assertIn("version: 3\n", seen["policy"])
+        self.assertIn("version: 1\n", seen["policy"])
         self.assertEqual(seen["base_policy"], seen["policy"].strip())
         self.assertNotEqual(seen["push_url"], str(self.origin))
         self.assertFalse(Path(seen["push_url"]).exists())

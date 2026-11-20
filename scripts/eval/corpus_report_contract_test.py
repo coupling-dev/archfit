@@ -22,7 +22,7 @@ class CorpusReportContractTest(unittest.TestCase):
                 root = Path(temporary)
                 repo = root / "repo"
                 repo.mkdir()
-                (repo / ".archfit.yaml").write_text("version: 3\n", encoding="utf-8")
+                (repo / ".archfit.yaml").write_text("version: 1\n", encoding="utf-8")
                 calls = []
 
                 def runner(command, cwd, calls=calls, version=version):
@@ -67,7 +67,7 @@ class CorpusReportContractTest(unittest.TestCase):
                 root = Path(temporary)
                 repo = root / "repo"
                 repo.mkdir()
-                (repo / ".archfit.yaml").write_text("version: 3\n", encoding="utf-8")
+                (repo / ".archfit.yaml").write_text("version: 1\n", encoding="utf-8")
                 document = dict(state)
                 if missing_evidence:
                     del document["evidence"]

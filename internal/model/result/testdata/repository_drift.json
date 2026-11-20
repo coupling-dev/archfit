@@ -32,7 +32,7 @@
   },
   "policy": {
     "path": ".archfit.yaml",
-    "digest": "sha256:55667237112f6e37f6ca6b92260d4f0a7cd5d6e86e990e9db8a5416f22c15110",
+    "digest": "sha256:bec9de3aa35e04d1e44aa0754f93a63f62f195a512f31350a7bbebf1950b36fd",
     "protected": true,
     "differs": false,
     "target": "origin/main"

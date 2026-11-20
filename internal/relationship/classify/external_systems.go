@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 )
 
 // externalSystemIndex matches a classified edge target against the declared

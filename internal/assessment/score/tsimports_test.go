@@ -3,8 +3,8 @@ package score
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 func TestTSImportsIncompleteCapsCouplingConfidence(t *testing.T) {

@@ -24,6 +24,6 @@ metadata:
      and run it again. If it names the policy, stop and ask an owner.
      Wrong usage and tool errors also exit 2; they are not a pass.
 4. Never edit `.archfit.yaml`. Never copy code to get around a rule.
-5. Claude: `/plugin marketplace add alexei-led/archfit`, then
+5. Claude: `/plugin marketplace add coupling-dev/archfit`, then
    `/plugin install archfit@archfit`. Remove: `/plugin uninstall archfit@archfit`.
    Or use `archfit doctor --fix` per checkout, not both. See docs/agents.md.

@@ -1,13 +1,13 @@
 package main
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
 )
 
 // CanCmd is `archfit can <from> <to>` (internal/application/canquery): may
-// this dependency or library be used. It reads a version 3 policy.
+// this dependency or library be used. It reads a version 1 policy.
 type CanCmd struct {
 	From    string `arg:"" optional:"" help:"The code that would depend: a file, a directory or a module."`
 	To      string `arg:"" optional:"" help:"What it would use: a file, a directory, a module, a Go package or a library."`

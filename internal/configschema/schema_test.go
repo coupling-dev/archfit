@@ -12,9 +12,9 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/santhosh-tekuri/jsonschema/v6"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/configschema"
-	suppliedcoverage "github.com/alexei-led/archfit/v4/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/configschema"
+	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
 )
 
 const (
@@ -116,7 +116,7 @@ func TestSchemaAgreesWithDecoder(t *testing.T) {
 		}
 		cases[filepath.Base(filepath.Dir(file))+"/"+filepath.Base(file)] = data
 	}
-	const head = "version: 3\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n"
+	const head = "version: 1\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n"
 	for name, tail := range map[string]string{
 		"quoted min_balance": "builtin:\n  min_balance: \"7\"\n",
 		"number as why":      "rules:\n  - id: r\n    note: n\n    why: 12\n",
@@ -137,15 +137,15 @@ func TestSchemaAgreesWithDecoder(t *testing.T) {
 		"empty instead":      "rules:\n  - id: r\n    only: { use: process, in: app }\n    why: w\n    instead: \"\"\n",
 		"deny and only":      "rules:\n  - id: r\n    deny: { from: app, to: lib }\n    only: { use: process, in: app }\n    why: w\n",
 		"empty builtin mode": "builtin:\n  graph: \"\"\n",
-		"empty volatility":   "version: 3\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n    volatility: \"\"\n",
-		"empty layer":        "version: 3\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n    layer: \"\"\n",
-		"empty path":         "version: 3\nowners: [o]\nmodules:\n  app:\n    paths: [\"\"]\n",
-		"empty owner":        "version: 3\nowners: [\"\"]\nmodules:\n  app:\n    paths: [cmd/**]\n",
+		"empty volatility":   "version: 1\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n    volatility: \"\"\n",
+		"empty layer":        "version: 1\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n    layer: \"\"\n",
+		"empty path":         "version: 1\nowners: [o]\nmodules:\n  app:\n    paths: [\"\"]\n",
+		"empty owner":        "version: 1\nowners: [\"\"]\nmodules:\n  app:\n    paths: [cmd/**]\n",
 		"empty glob":         "generated: [\"\"]\n",
 		"empty format":       "coverage:\n  sources:\n    - path: c.out\n      format: \"\"\n",
 		"empty timeout":      "analyzers:\n  roslyn:\n    timeout: \"\"\n",
 		"empty enabled":      "languages:\n  go:\n    enabled: \"\"\n",
-		"version float":      "version: 3.0\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n",
+		"version float":      "version: 1.0\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n",
 		"version 2.0":        "version: 2.0\nowners: [o]\nmodules:\n  app:\n    paths: [cmd/**]\n",
 	} {
 		doc := tail

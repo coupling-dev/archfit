@@ -1,6 +1,6 @@
 # Results and JSON contracts
 
-This page explains the output of `archfit check` and `archfit can` with a version 3 policy: the text record, the statuses, the exit codes, JSON, and SARIF. For the removed version 2 formats, see [Retired Archfit 3 outputs](#retired-archfit-3-outputs).
+This page explains the output of `archfit check` and `archfit can` with a version 1 policy: the text record, the statuses, the exit codes, JSON, and SARIF. For the removed version 2 formats, see [Retired Archfit 3 outputs](#retired-archfit-3-outputs).
 
 ## The record
 
@@ -49,7 +49,7 @@ archfit: unknown, no verdict
 - `balance` is shown only for a rule about coupling, as `n/10 (min m)`.
 - Dates show the days left, such as `2026-11-19 (9 days)`.
 - `(not from this change)` ends the status line when every error comes from an expired exception, not from the change.
-- `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `alexei-led/archfit-action`. The result is then a local guide, not change control.
+- `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `coupling-dev/archfit-action`. The result is then a local guide, not change control.
 - `--verbose` adds the policy path and digest, and the engine version, after the status line.
 
 `can` prints one answer and no status line:
@@ -147,7 +147,7 @@ Both commands keep their JSON document, with the git tree id of the working tree
 
 ## The report
 
-`archfit report --format json` writes the `archfit.architecture-state.v2` document of [`archfit.report.schema.json`](../archfit.report.schema.json). This replaces the strict v1 contract. Update v1 consumers to read v2. There is no compatibility flag. On a version 3 policy it has a `repository` object: `state` (`clean`, `drift`, or `expired`), `drift` and `expired` (the errors, in the fields of the record), `expiring` (exceptions within 14 days of their date), `not_checked` (the notes), `balances` (each allowed dependency), `unread` (the places the check could not read, which `state` does not cover), and `protected`. A reader that shows `state` shows `unread` beside it. The report decides nothing and exits `0` whatever it shows. It has no Archfit 3 rule evaluation, waiver status, verdict, decision, or repair tasks. Exceptions affect repository errors, not the measurements. See [commands](commands.md#report).
+`archfit report --format json` writes the `archfit.architecture-state.v2` document of [`archfit.report.schema.json`](../archfit.report.schema.json). This replaces the strict v1 contract. Update v1 consumers to read v2. There is no compatibility flag. On a version 1 policy it has a `repository` object: `state` (`clean`, `drift`, or `expired`), `drift` and `expired` (the errors, in the fields of the record), `expiring` (exceptions within 14 days of their date), `not_checked` (the notes), `balances` (each allowed dependency), `unread` (the places the check could not read, which `state` does not cover), and `protected`. A reader that shows `state` shows `unread` beside it. The report decides nothing and exits `0` whatever it shows. It has no Archfit 3 rule evaluation, waiver status, verdict, decision, or repair tasks. Exceptions affect repository errors, not the measurements. See [commands](commands.md#report).
 
 The report `evidence` object contains the declared scope, bounded snapshot, component origins, observed module pairs, and connascence summary. Pair observations are retained edges, not discovered interfaces. The interface inventory remains unknown. Pair counts cover seam-eligible edges. Connascence counts all retained edges, and evidence-item counts can exceed edge counts. Component origins distinguish assertions, derived values, assumptions, and unknowns. The old seam `volatility_provenance` scalar is removed. Existing effective values and check decisions do not change. See [Evidence](evidence.md#report-evidence) for snapshot and provenance limits.
 
@@ -155,4 +155,4 @@ The report `evidence` object contains the declared scope, bounded snapshot, comp
 
 The agent digest, console, Markdown, scorecard, and architecture-map renderers are removed. `check` and `can` use the text record by default; the check also supports JSON and SARIF through the record renderer. `report` keeps text and JSON. The report schema is now `archfit.report.schema.json`, including its `$id`; the old state-schema filename and agent-result schema are no longer published.
 
-For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/results.md). Current `check` requires a version 3 policy; a version 2 policy is an error.
+For the version 2 output contracts, stored-baseline comparison, and config comparison, see the [Results page of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/results.md). Current `check` requires a version 1 policy; a version 2 policy is an error.

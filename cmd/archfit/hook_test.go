@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 const (
@@ -17,7 +17,7 @@ const (
 	hookViolatingA = "package a\n\nimport \"example.com/test/pkg/b/impl\"\n\n" +
 		"func UseSecret() string { return impl.Secret() }\n"
 	hookImplFile = "pkg/b/impl/impl.go"
-	hookModules  = `version: 3
+	hookModules  = `version: 1
 owners: [owner]
 modules:
   a:

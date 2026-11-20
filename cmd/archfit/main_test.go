@@ -17,7 +17,7 @@ const (
 	flagJSON         = "--json"
 	filePkgAA        = "pkg/a/a.go"
 	goModStub        = "module example.com/test\n\ngo 1.21\n"
-	minimalValidYAML = "version: 3\nowners: [owner]\nmodules: {all: {paths: ['**']}}\n"
+	minimalValidYAML = "version: 1\nowners: [owner]\nmodules: {all: {paths: ['**']}}\n"
 )
 
 func gitInitFixtureRepo(t *testing.T, dir string) {
@@ -110,7 +110,7 @@ const hookRuleSection = `rules:
     instead: Use the public API.
 `
 
-const lintCleanModules = `version: 3
+const lintCleanModules = `version: 1
 owners: [owner]
 modules:
   a:

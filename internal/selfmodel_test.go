@@ -1,4 +1,4 @@
-// The self-model checks that the schema 3 policy describes this source tree.
+// The self-model checks that the schema 1 policy describes this source tree.
 // They check ownership, live selectors, public surfaces, and layers.
 // Run with: go test ./internal/ -run TestSelfModel
 package arch_test
@@ -13,8 +13,8 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 const selfConfigPath = "../.archfit.yaml"

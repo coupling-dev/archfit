@@ -6,12 +6,12 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	"github.com/alexei-led/archfit/v4/internal/config"
-	evidencecontract "github.com/alexei-led/archfit/v4/internal/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/config"
+	evidencecontract "github.com/coupling-dev/archfit/internal/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/report"
 )
 
 type syntheticEvidenceStage struct{ acquired application.Acquired }
@@ -28,7 +28,7 @@ const (
 
 func TestReportSyntheticComponentRetainsUnknownLineage(t *testing.T) {
 	t.Parallel()
-	in, err := config.NewReportInput([]byte("version: 3\nowners: [owner]\nmodules:\n  crate:\n    paths: [crate]\n    public: [crate]\n    volatility: low\n    subdomain: supporting\n"))
+	in, err := config.NewReportInput([]byte("version: 1\nowners: [owner]\nmodules:\n  crate:\n    paths: [crate]\n    public: [crate]\n    volatility: low\n    subdomain: supporting\n"))
 	if err != nil {
 		t.Fatal(err)
 	}

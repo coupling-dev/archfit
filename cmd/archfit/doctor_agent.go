@@ -14,10 +14,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // doctorSchemaVersion versions the `archfit doctor --format json` document.

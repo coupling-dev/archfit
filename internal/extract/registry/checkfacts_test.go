@@ -10,10 +10,10 @@ import (
 	"strings"
 	"testing"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/registry"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/registry"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 	keyKind    = "kind"
 	fixImport  = "fix the import"
 	fixSyntax  = "fix the syntax error"
-	fixAstGrep = "install ast-grep: https://github.com/alexei-led/archfit/blob/main/docs/languages.md#install-analyzers"
+	fixAstGrep = "install ast-grep: https://github.com/coupling-dev/archfit/blob/main/docs/languages.md#install-analyzers"
 )
 
 func writeFiles(t *testing.T, root string, files map[string]string) {

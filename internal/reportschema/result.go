@@ -8,10 +8,10 @@ import (
 
 	"github.com/invopop/jsonschema"
 
-	"github.com/alexei-led/archfit/v4/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
-const resultSchemaID = "https://raw.githubusercontent.com/alexei-led/archfit/main/archfit.result.schema.json"
+const resultSchemaID = "https://raw.githubusercontent.com/coupling-dev/archfit/main/archfit.result.schema.json"
 
 // Patterns the result contract pins on its strings.
 const (
@@ -52,7 +52,7 @@ func GenerateResult(srcDir string) ([]byte, error) {
 	r := &jsonschema.Reflector{}
 	// AddGoComments keys each comment by path.Join(base, the walked dir), so
 	// base is this package's import path: srcDir is relative to it.
-	if err := r.AddGoComments("github.com/alexei-led/archfit/v4/internal/reportschema", srcDir); err != nil {
+	if err := r.AddGoComments("github.com/coupling-dev/archfit/internal/reportschema", srcDir); err != nil {
 		return nil, fmt.Errorf("reportschema: AddGoComments: %w", err)
 	}
 

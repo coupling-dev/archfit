@@ -7,29 +7,29 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
-func TestIsVersion3(t *testing.T) {
+func TestIsVersion1(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct {
 		data string
 		want bool
 	}{
-		{"version: 3\nowners: [a]\n", true},
-		{"version: 3.0\n", true},
-		{"version: 3\nnot: [valid\n", false},
-		{"version: 3\nmodules: {}\n", true},
+		{"version: 1\nowners: [a]\n", true},
+		{"version: 1.0\n", true},
+		{"version: 1\nnot: [valid\n", false},
+		{"version: 1\nmodules: {}\n", true},
 		{"version: 2\n", false},
-		{version1, false},
+		{version3, false},
 		{"version: 4\n", false},
-		{"version: \"3\"\n", false},
+		{"version: \"1\"\n", false},
 		{"owners: [a]\n", false},
 		{"", false},
 	} {
-		if got := isVersion3([]byte(tc.data)); got != tc.want {
-			t.Errorf("isVersion3(%q) = %v, want %v", tc.data, got, tc.want)
+		if got := isVersion1([]byte(tc.data)); got != tc.want {
+			t.Errorf("isVersion1(%q) = %v, want %v", tc.data, got, tc.want)
 		}
 	}
 }
@@ -61,11 +61,11 @@ func TestProtectionNeedsAStepThatUsesTheAction(t *testing.T) {
 		name, workflow string
 		want           bool
 	}{
-		{"a step", "steps:\n  - uses: alexei-led/archfit-action@v4\n", true},
-		{"quoted", "steps:\n  - name: check\n    uses: \"alexei-led/archfit-action@v4\"\n", true},
-		{"commented out", "steps:\n  # - uses: alexei-led/archfit-action@v4\n", false},
-		{"a mention", "steps:\n  - run: echo alexei-led/archfit-action@v4\n", false},
-		{"another Action", "steps:\n  - uses: alexei-led/archfit-action-foo@v1\n", false},
+		{"a step", "steps:\n  - uses: coupling-dev/archfit-action@v4\n", true},
+		{"quoted", "steps:\n  - name: check\n    uses: \"coupling-dev/archfit-action@v4\"\n", true},
+		{"commented out", "steps:\n  # - uses: coupling-dev/archfit-action@v4\n", false},
+		{"a mention", "steps:\n  - run: echo coupling-dev/archfit-action@v4\n", false},
+		{"another Action", "steps:\n  - uses: coupling-dev/archfit-action-foo@v1\n", false},
 		{"no workflow", "", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

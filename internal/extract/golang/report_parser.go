@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
 )
 
 // extractParsedImports keeps the report's dependency graph available without

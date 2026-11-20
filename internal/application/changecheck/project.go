@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/repostate"
-	"github.com/alexei-led/archfit/v4/internal/assessment/change"
-	"github.com/alexei-led/archfit/v4/internal/assessment/count"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/application/repostate"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
+	"github.com/coupling-dev/archfit/internal/assessment/count"
+	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
 // project is the one place that builds the result of a check: the status

@@ -8,15 +8,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
-const smallestPolicy = "version: 3\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [cmd/**, pkg/**]\n"
+const smallestPolicy = "version: 1\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [cmd/**, pkg/**]\n"
 
 // withModule is the smallest policy with the module app replaced by body.
 func withModule(body string) string {
-	return "version: 3\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [pkg/**]\n" + body
+	return "version: 1\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [pkg/**]\n" + body
 }
 
 func resolve(t *testing.T, src string) resolved.Policy {

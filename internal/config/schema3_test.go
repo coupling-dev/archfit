@@ -14,13 +14,13 @@ import (
 
 	"github.com/goccy/go-yaml"
 
-	"github.com/alexei-led/archfit/v4/internal/application"
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
-	suppliedcoverage "github.com/alexei-led/archfit/v4/internal/extract/coverage"
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
+	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func readFixture(t *testing.T, path string) []byte {
@@ -171,7 +171,7 @@ func TestReportConfigToolKeysReachTheirViews(t *testing.T) {
 
 // flippedSwitches sets every switch to the value every-key.yaml does not use,
 // so each switch is seen on and off across the two policies.
-const flippedSwitches = `version: 3
+const flippedSwitches = `version: 1
 owners: [octocat]
 modules:
   app:
@@ -260,7 +260,7 @@ func TestReportConfigRefusesWhatResolveRefuses(t *testing.T) {
 	}{
 		"Archfit 3 policy":  {src: string(readFixture(t, "policyfile/testdata/invalid/version-2.yaml")), want: "archfit init"},
 		"unknown module":    {src: string(readFixture(t, "policyfile/testdata/valid/typical.yaml")), want: `"pkg_container" is not a module`},
-		"not a policy file": {src: "version: 3\nowners: [a]\n", want: "modules"},
+		"not a policy file": {src: "version: 1\nowners: [a]\n", want: "modules"},
 	}
 	for name, tt := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -276,7 +276,7 @@ func TestReportConfigRefusesWhatResolveRefuses(t *testing.T) {
 // reportPolicy declares two modules. The check would report the imports of
 // a.go: a has no depends_on, a deny rule names a -> b, and they point from the
 // inner layer out. The report only measures them.
-const reportPolicy = `version: 3
+const reportPolicy = `version: 1
 owners: [octocat]
 gate: required
 layers: [core, app]
@@ -319,7 +319,7 @@ func writeRepo(t *testing.T, files map[string]string) string {
 	return root
 }
 
-// The analyze pipeline runs on a schema 3 policy: it measures, and what the
+// The analyze pipeline runs on a schema 1 policy: it measures, and what the
 // check would report gives no gate result.
 func TestReportPipelineRunsOnSchema3AndDoesNotGate(t *testing.T) {
 	if testing.Short() {

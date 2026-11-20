@@ -1,15 +1,15 @@
-// Package config projects schema 3 policies into report measurement inputs.
+// Package config projects schema 1 policies into report measurement inputs.
 package config
 
 import (
 	"sort"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // Config is an internal report projection, not a policy file format.
-// ReportConfig constructs it from the schema 3 policy decoder.
+// ReportConfig constructs it from the schema 1 policy decoder.
 type Config struct {
 	Exclude         []string
 	Languages       LanguagesConfig

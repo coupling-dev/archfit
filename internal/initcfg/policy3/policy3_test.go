@@ -13,14 +13,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/change"
-	"github.com/alexei-led/archfit/v4/internal/assessment/copies"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition/checkfacts"
-	"github.com/alexei-led/archfit/v4/internal/initcfg/policy3"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/assessment/change"
+	"github.com/coupling-dev/archfit/internal/assessment/copies"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
+	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const (
@@ -276,7 +276,7 @@ var goFacts = fixed{
 // byte for byte, and nothing else is written.
 func TestInitNeverOverwritesAPolicy(t *testing.T) {
 	for name, content := range map[string]string{
-		"version 3": "version: 3\nowners: [acme]\nmodules:\n  app:\n    paths: [\"**\"]\n",
+		"version 1": "version: 1\nowners: [acme]\nmodules:\n  app:\n    paths: [\"**\"]\n",
 		"version 2": "version: 2\nmodules: {}\n",
 	} {
 		t.Run(name, func(t *testing.T) {

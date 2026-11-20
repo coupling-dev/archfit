@@ -5,11 +5,11 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 const (
@@ -398,10 +398,10 @@ func TestRoslynEnabledDefaultsOn(t *testing.T) {
 		body string
 		want bool
 	}{
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: auto\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: true\n", true},
-		{"version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: false\n", false},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: auto\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: true\n", true},
+		{"version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\n" + "analyzers:\n  roslyn:\n    enabled: false\n", false},
 	} {
 		cfg, err := config.ReportConfig([]byte(tc.body))
 		if err != nil {

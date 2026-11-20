@@ -22,7 +22,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // Scan walks root looking for go.mod and package.json files and returns any

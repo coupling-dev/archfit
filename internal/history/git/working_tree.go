@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // cacheDir is archfit's cache directory at the repository root.

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/application/request"
+	"github.com/coupling-dev/archfit/internal/application/request"
 )
 
 func TestCanSourceReachesSender(t *testing.T) {

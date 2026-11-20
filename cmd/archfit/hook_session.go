@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/importcheck"
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/application/importcheck"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // sessionDirName holds the session files under the cache directory.
@@ -140,7 +140,7 @@ func sessionStart(ctx context.Context, deps *appDeps, dir, id string) error {
 // are the ones the check reads (the head check facts), on lines added since
 // the session base (internal/application/importcheck), with the errors an
 // exception covers left out. A yes, an unknown, or a tree without a valid
-// version 3 policy is silent: the stop hook reports what the check makes of
+// version 1 policy is silent: the stop hook reports what the check makes of
 // it. The answer of the first no is stored for archfit request, as archfit
 // can stores its answer. A failure of the hook's own is a message, never a
 // stop.

@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/application/rulesquery"
+	"github.com/coupling-dev/archfit/internal/application/rulesquery"
 )
 
 // RulesCmd is `archfit rules` (internal/application/rulesquery): the rules
-// that apply, in plain words. It reads a version 3 policy.
+// that apply, in plain words. It reads a version 1 policy.
 type RulesCmd struct {
 	Args  []string `arg:"" optional:"" name:"path-or-rule" help:"Paths (relative to the repository root), or one rule id."`
 	Graph bool     `help:"The modules by layer, with their allowed dependencies."`

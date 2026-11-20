@@ -2,10 +2,10 @@
 
 A rule is anything `archfit check` enforces on a change. The built-in rules have fixed ids and need no entry in `.archfit.yaml`. The custom rules are in its `rules` list. An exception permits an error of one rule in one place. Every key of the policy is in [Configuration](configuration.md).
 
-This page describes a version 3 policy. A version 2 policy (Archfit 3) has other rules: see [Version 2 (Archfit 3)](#version-2-archfit-3).
+This page describes a version 1 policy. A version 2 policy (Archfit 3) has other rules: see [Version 2 (Archfit 3)](#version-2-archfit-3).
 
 ```yaml
-version: 3
+version: 1
 owners: [alexei-led]
 modules:
   pkg_chaos:
@@ -168,8 +168,8 @@ generated: ["internal/gen/**"]
 
 ## Version 2 (Archfit 3)
 
-A version 2 policy has rule types (`forbidden_dependency`, `module_dependencies`, `forbidden_layer_direction`, `module_cycle`, `public_api_only`, `forbidden_pattern`, and others), a `gate` of `fail`, `warn`, or `off` on each rule, and waivers. `check` and `report` require version 3. The full reference is the [Rules page of v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/rules.md).
+A version 2 policy has rule types (`forbidden_dependency`, `module_dependencies`, `forbidden_layer_direction`, `module_cycle`, `public_api_only`, `forbidden_pattern`, and others), a `gate` of `fail`, `warn`, or `off` on each rule, and waivers. `check` and `report` require version 1. The full reference is the [Rules page of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/rules.md).
 
 ### Waivers
 
-Archfit 3 accepted findings with `waivers`: a rule ID, selectors, a reason, approver metadata, and an expiry date. In version 3, exceptions replace them. See the [waivers of v3.4.0](https://github.com/alexei-led/archfit/blob/v3.4.0/docs/rules.md#waivers).
+Archfit 3 accepted findings with `waivers`: a rule ID, selectors, a reason, approver metadata, and an expiry date. In version 1, exceptions replace them. See the [waivers of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/rules.md#waivers).

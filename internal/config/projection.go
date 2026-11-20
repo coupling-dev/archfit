@@ -6,15 +6,15 @@ import (
 	"io"
 	"os"
 
-	"github.com/alexei-led/archfit/v4/internal/evidence/acquisition"
-	"github.com/alexei-led/archfit/v4/internal/extract/acquire"
-	suppliedcoverage "github.com/alexei-led/archfit/v4/internal/extract/coverage"
-	"github.com/alexei-led/archfit/v4/internal/extract/registry"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/evidence/acquisition"
+	"github.com/coupling-dev/archfit/internal/extract/acquire"
+	suppliedcoverage "github.com/coupling-dev/archfit/internal/extract/coverage"
+	"github.com/coupling-dev/archfit/internal/extract/registry"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
-const languagesDocsURL = "https://github.com/alexei-led/archfit/blob/main/docs/languages.md"
+const languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 
 // PolicySnapshot converts decoded config into the authoritative policy model.
 // The config package remains a YAML lifecycle adapter and the policy package

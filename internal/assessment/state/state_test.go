@@ -6,7 +6,7 @@ package state_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/state"
+	"github.com/coupling-dev/archfit/internal/assessment/state"
 )
 
 // TestNewMeasuresNothing is the abstain-not-fake contract at the state level. A

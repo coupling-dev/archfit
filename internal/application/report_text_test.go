@@ -9,12 +9,12 @@ import (
 	"testing"
 	"unicode/utf8"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	"github.com/alexei-led/archfit/v4/internal/assessment/score"
-	"github.com/alexei-led/archfit/v4/internal/assessment/state"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	reporttest "github.com/alexei-led/archfit/v4/internal/testutil/report"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	"github.com/coupling-dev/archfit/internal/assessment/score"
+	"github.com/coupling-dev/archfit/internal/assessment/state"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	reporttest "github.com/coupling-dev/archfit/internal/testutil/report"
 )
 
 const (

@@ -7,12 +7,12 @@ import (
 	"sync"
 	"testing"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
 
 	"golang.org/x/tools/go/packages"
 
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // writeWorkspaceFixture materialises a two-member go.work workspace where

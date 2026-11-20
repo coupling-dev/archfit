@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"testing"
 
-	gitpkg "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 func TestWorkingTreeCacheIgnoreSources(t *testing.T) {

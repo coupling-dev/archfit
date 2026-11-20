@@ -4,7 +4,7 @@
 BINARY         := archfit
 CMD            := ./cmd/archfit
 BIN_DIR        := .bin
-MODULE         := github.com/alexei-led/archfit/v4
+MODULE         := github.com/coupling-dev/archfit
 ARCHFIT_CONFIG := .archfit.yaml
 ARCHFIT_REPORT := .archfit-cache/reports/archfit-report.txt
 
@@ -199,7 +199,7 @@ release: ## cross-compile release binaries into dist/ with SHA256SUMS
 docker-build: ## build multi-arch Docker image for linux/amd64 and linux/arm64
 	docker buildx build \
 		--platform linux/amd64,linux/arm64 \
-		-t ghcr.io/alexei-led/$(BINARY):$(VERSION) \
+		-t ghcr.io/coupling-dev/$(BINARY):$(VERSION) \
 		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) \
 		.
 
@@ -208,7 +208,7 @@ docker-build: ## build multi-arch Docker image for linux/amd64 and linux/arm64
 docker-push: ## push multi-arch image to ghcr.io (run: docker login ghcr.io first)
 	docker buildx build \
 		--platform linux/amd64,linux/arm64 \
-		-t ghcr.io/alexei-led/$(BINARY):$(VERSION) \
+		-t ghcr.io/coupling-dev/$(BINARY):$(VERSION) \
 		--build-arg VERSION=$(VERSION) --build-arg COMMIT=$(COMMIT) --build-arg DATE=$(DATE) \
 		--push \
 		.
@@ -216,7 +216,7 @@ docker-push: ## push multi-arch image to ghcr.io (run: docker login ghcr.io firs
 ## docker-run: smoke-test the published image with --help
 .PHONY: docker-run
 docker-run: ## run archfit --help from the GHCR image (smoke test)
-	docker run --rm ghcr.io/alexei-led/$(BINARY):$(VERSION) --help
+	docker run --rm ghcr.io/coupling-dev/$(BINARY):$(VERSION) --help
 
 ## bench-gate: cold vs warm fact-cache gate timing on this repo (reported number, not a CI assert)
 .PHONY: bench-gate

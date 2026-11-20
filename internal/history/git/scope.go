@@ -6,7 +6,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // Exit code git rev-parse, merge-base and cat-file use for "no such object" or

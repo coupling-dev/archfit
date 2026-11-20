@@ -8,7 +8,7 @@ package metricstest
 import (
 	"math"
 
-	"github.com/alexei-led/archfit/v4/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/relationship"
 )
 
 // Node kinds carried by relationship node IDs.

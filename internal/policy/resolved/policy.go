@@ -1,4 +1,4 @@
-// Package resolved is the Archfit 4 policy model: a schema 3 policy with the
+// Package resolved is the Archfit 4 policy model: a schema 1 policy with the
 // defaults of design section 6.1 applied, so that every consumer reads the same
 // meaning from a short file.
 //
@@ -82,7 +82,7 @@ var BuiltinRules = []string{RuleGraph, RuleCoupling, RuleDuplication, RuleCycle,
 // policy names none.
 const DefaultMinBalance = 7
 
-// Policy is a resolved schema 3 policy.
+// Policy is a resolved schema 1 policy.
 type Policy struct {
 	// Digest is "sha256:" and the hex digest of the file bytes.
 	Digest string

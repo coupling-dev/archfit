@@ -29,9 +29,9 @@ import (
 	"path/filepath"
 	"slices"
 
-	"github.com/alexei-led/archfit/v4/internal/config"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/config"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 // facts is the one output shape both sides of the comparison write. Node
@@ -126,7 +126,7 @@ func run(ctx context.Context, args []string, stdin io.Reader, stdout io.Writer) 
 	return enc.Encode(out)
 }
 
-// loadConfig reads schema 3 only, just as the engine does. No path means no config.
+// loadConfig reads schema 1 only, just as the engine does. No path means no config.
 func loadConfig(_ context.Context, path string) (config.Config, string, error) {
 	if path == "" {
 		return config.Config{}, "no config: no module map", nil

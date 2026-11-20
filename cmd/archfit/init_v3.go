@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/config/policyfile"
-	"github.com/alexei-led/archfit/v4/internal/initcfg/policy3"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // agentLines are the five lines for agents that init writes into AGENTS.md.
@@ -17,9 +17,9 @@ import (
 const agentLines = policy3.Lines
 
 // RepoInitCmd is `archfit init` (internal/initcfg/policy3): set up a
-// repository. It writes what is missing and never changes a version 3
-// policy: a fresh repository gets a version 3 policy and the instruction
-// block for agents; a repository with a version 3 policy gets only a missing
+// repository. It writes what is missing and never changes a version 1
+// policy: a fresh repository gets a version 1 policy and the instruction
+// block for agents; a repository with a version 1 policy gets only a missing
 // block; any other policy file is an error. It writes no workflow file
 // (D11: the workflow waits for Action 4).
 type RepoInitCmd struct {
@@ -28,15 +28,15 @@ type RepoInitCmd struct {
 
 func (*RepoInitCmd) Help() string {
 	return `Set up a repository for archfit. It writes what is missing and never
-changes a version 3 policy.
+changes a version 1 policy.
 
-  No .archfit.yaml      writes a version 3 policy from the code: modules,
+  No .archfit.yaml      writes a version 1 policy from the code: modules,
                         public, depends_on as the dependencies that exist,
                         tests, generated, owners from the origin remote,
                         and an exception for each error that exists today,
                         so the first check passes
-  Version 3 policy      leaves it as it is
-  Any other policy      fails: archfit reads version 3 only
+  Version 1 policy      leaves it as it is
+  Any other policy      fails: archfit reads version 1 only
 
 Each case that succeeds writes the five lines for agents between the archfit markers in
 AGENTS.md; text outside the markers stays as it is.
@@ -65,7 +65,7 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	switch {
 	case !found:
 		err = co.initFresh(ctx, &b)
-	case isVersion3(data):
+	case isVersion1(data):
 		err = co.initBlock(&b)
 	default:
 		_, err = policyfile.Decode(data)
@@ -93,14 +93,14 @@ func (co checkout) initFresh(ctx context.Context, b *strings.Builder) error {
 	return nil
 }
 
-// initBlock is init in a repository with a version 3 policy: only the
+// initBlock is init in a repository with a version 1 policy: only the
 // instruction block can be missing.
 func (co checkout) initBlock(b *strings.Builder) error {
 	wrote, err := policy3.WriteBlock(co.root)
 	if err != nil {
 		return err
 	}
-	b.WriteString("left " + policy3.PolicyFile + " as it is: archfit init never changes a version 3 policy\n")
+	b.WriteString("left " + policy3.PolicyFile + " as it is: archfit init never changes a version 1 policy\n")
 	if wrote {
 		b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
 	} else {

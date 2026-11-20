@@ -1,8 +1,8 @@
 package balance
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
-	"github.com/alexei-led/archfit/v4/internal/relationship/scoring"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/relationship/scoring"
 )
 
 // Of returns the balance of module source reaching module target with

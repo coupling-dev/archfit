@@ -19,15 +19,15 @@ import (
 	"slices"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/assessment/count"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/assessment/count"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // Policies reads the local policy. ok is false when there is none, or when
-// the file is not a valid version 3 policy: then there is nothing to ask can
+// the file is not a valid version 1 policy: then there is nothing to ask can
 // with, and the check reports why.
 type Policies interface {
 	Local(ctx context.Context) (p resolved.Policy, ok bool, err error)

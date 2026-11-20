@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/initcfg/policy3"
+	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
 )
 
 // initGoldens holds the text of `archfit init`.
@@ -67,8 +67,8 @@ func TestInitAFreshRepository(t *testing.T) {
 	}
 	assertCLIGolden(t, initGoldens, "fresh", got.stdout)
 
-	if policy := readText(t, filepath.Join(dir, defaultConfigPath)); !isVersion3([]byte(policy)) {
-		t.Errorf("the written policy is not version 3:\n%s", policy)
+	if policy := readText(t, filepath.Join(dir, defaultConfigPath)); !isVersion1([]byte(policy)) {
+		t.Errorf("the written policy is not version 1:\n%s", policy)
 	}
 	if agents := readText(t, filepath.Join(dir, policy3.AgentsFile)); agents != agentsNotes+"\n"+policy3.Block {
 		t.Errorf("AGENTS.md =\n%s\nwant the notes, then the block", agents)
@@ -85,9 +85,9 @@ func TestInitAFreshRepository(t *testing.T) {
 	}
 }
 
-// TestInitWithAVersion3Policy: init leaves the policy as it is and writes
+// TestInitWithAVersion1Policy: init leaves the policy as it is and writes
 // only a missing block; a second run writes nothing. Both exit 0.
-func TestInitWithAVersion3Policy(t *testing.T) {
+func TestInitWithAVersion1Policy(t *testing.T) {
 	t.Parallel()
 	dir := initRepo(t, fixtureFiles())
 	before := readText(t, filepath.Join(dir, defaultConfigPath))
@@ -113,8 +113,8 @@ func TestInitErrorsExit2(t *testing.T) {
 	t.Parallel()
 	unbalanced := initFixture()
 	unbalanced[policy3.AgentsFile] = "<!-- archfit:start -->\nno end\n"
-	oldVersion := initFixture()
-	oldVersion[defaultConfigPath] = version1
+	otherVersion := initFixture()
+	otherVersion[defaultConfigPath] = version3
 	archfit3 := initFixture()
 	archfit3[defaultConfigPath] = archfit3Policy
 	noRemote := initFixture()
@@ -125,7 +125,7 @@ func TestInitErrorsExit2(t *testing.T) {
 		want   string
 	}{
 		{name: "unbalanced markers", files: unbalanced, remote: true, want: "markers are unbalanced"},
-		{name: "a version 1 policy", files: oldVersion, remote: true, want: "this engine reads version 3"},
+		{name: "a version 3 policy", files: otherVersion, remote: true, want: "version 3 is not supported"},
 		{name: "a version 2 policy", files: archfit3, remote: true, want: "version 2 is not supported"},
 		{name: "no origin remote", files: noRemote, want: "origin"},
 	} {

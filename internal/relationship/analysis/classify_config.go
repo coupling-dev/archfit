@@ -1,10 +1,10 @@
 package analysis
 
 import (
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship/classify"
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship/classify"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 )
 
 // augmentConfig returns cfg with the synthetic-module augmentation and

@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	modulePrefix = "github.com/alexei-led/archfit/v4/"
+	modulePrefix = "github.com/coupling-dev/archfit/"
 	goSourceExt  = ".go"
 
 	// Directories every repo walk in this package skips: not first-party source.
@@ -780,7 +780,7 @@ func assertAdaptersNoAssessmentApplicationImport(t *testing.T, loaded map[string
 var cmdDomainAdapterFiles = map[string]string{
 	"application_wiring.go": "composition root: selects concrete stage implementations",
 	"change_wiring.go":      "composition root of check, can and rules: adapters for their application ports",
-	"init_v3.go":            "init writes the version 3 policy and the agent block; initcfg/policy3 is its writer",
+	"init_v3.go":            "init writes the version 1 policy and the agent block; initcfg/policy3 is its writer",
 }
 
 func TestCommandStagesDoNotImportDomainInternals(t *testing.T) {

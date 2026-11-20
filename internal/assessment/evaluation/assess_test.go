@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/evaluation"
-	"github.com/alexei-led/archfit/v4/internal/assessment/result"
-	modevidence "github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/scope"
+	"github.com/coupling-dev/archfit/internal/assessment/evaluation"
+	"github.com/coupling-dev/archfit/internal/assessment/result"
+	modevidence "github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/scope"
 )
 
 const (

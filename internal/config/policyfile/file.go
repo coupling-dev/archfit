@@ -1,5 +1,5 @@
 // Package policyfile is the policy file contract of Archfit 4: the types of a
-// schema 3 `.archfit.yaml` and a strict decoder.
+// schema 1 `.archfit.yaml` and a strict decoder.
 //
 // The types mirror the file. An absent key keeps its zero value (nil slice, empty
 // string, nil pointer), so the policy model can tell an absent key from a set one
@@ -21,11 +21,11 @@ import (
 )
 
 // Version is the only policy schema version this package reads.
-const Version = 3
+const Version = 1
 
 // File is an Archfit policy: modules, allowed dependencies, rules and exceptions.
 type File struct {
-	// The policy schema version. Always 3.
+	// The policy schema version. Always 1.
 	Version int `yaml:"version" jsonschema:"required"`
 	// GitHub logins of the people who write the policy and answer requests.
 	Owners []string `yaml:"owners" jsonschema:"required,minItems=1"`

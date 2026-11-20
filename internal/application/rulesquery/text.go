@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 // builtinTexts say each built-in rule in the words of design 6.2. coupling

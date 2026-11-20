@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/factcache"
 )
 
 func TestTreeFactsKeyChangesWithEveryInput(t *testing.T) {

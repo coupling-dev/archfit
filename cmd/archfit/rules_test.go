@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/testutil"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 // rulesGoldens holds the text of each form of `archfit rules`. Regenerate
@@ -15,7 +15,7 @@ const rulesGoldens = "testdata/rules"
 
 // rulesPolicy adds layers, a public part, a note and an exception to the
 // fixture policy, so each form has something to show.
-const rulesPolicy = `version: 3
+const rulesPolicy = `version: 1
 owners: [alexei-led]
 layers: [core, adapters]
 modules:
@@ -76,7 +76,7 @@ func assertRulesGolden(t *testing.T, name, got string) {
 	assertCLIGolden(t, rulesGoldens, name, got)
 }
 
-// assertCLIGolden compares got with the golden dir/name.txt of a version 3
+// assertCLIGolden compares got with the golden dir/name.txt of a version 1
 // command, or writes it with ARCHFIT_UPDATE_CLI=1.
 func assertCLIGolden(t *testing.T, dir, name, got string) {
 	t.Helper()

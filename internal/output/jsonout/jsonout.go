@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/alexei-led/archfit/v4/internal/model/report"
-	reportports "github.com/alexei-led/archfit/v4/internal/report/ports"
+	"github.com/coupling-dev/archfit/internal/model/report"
+	reportports "github.com/coupling-dev/archfit/internal/report/ports"
 )
 
 // Renderer marshals the architecture-state contract as JSON at the document

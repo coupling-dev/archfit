@@ -3,7 +3,7 @@ package scoring
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 )
 
 // TestScoreBand_Severity pins the v7 severity table across a module boundary

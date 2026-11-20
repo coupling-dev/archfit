@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 func TestDigest(t *testing.T) {
-	smallest := "version: 3\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [cmd/**, pkg/**]\n"
-	const want = "sha256:c482e499dc88f1c036864461493fb14806607166ba068bed2e5513918efe0729"
+	smallest := "version: 1\nowners: [alexei-led]\nmodules:\n  app:\n    paths: [cmd/**, pkg/**]\n"
+	const want = "sha256:17916240d7ea7a93c7a27fc2547961290093c2db7b7b777327845502fd487454"
 	tests := []struct {
 		name string
 		file string

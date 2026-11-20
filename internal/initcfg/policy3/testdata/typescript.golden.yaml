@@ -1,6 +1,6 @@
 # The Archfit policy, written by archfit init from the code as it is today.
 # Review the modules, public, depends_on and exceptions, then commit it.
-version: 3
+version: 1
 owners:
   - acme
 modules:

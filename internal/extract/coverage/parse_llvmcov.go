@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // llvmCovJSONParser parses llvm-cov export JSON. Per-file line summaries are

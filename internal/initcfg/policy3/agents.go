@@ -41,7 +41,7 @@ func spliceFile(path string) ([]byte, error) {
 
 // WriteBlock writes Block into the AGENTS.md of the repository at root when
 // the file does not hold it yet, as Init does, and reports whether it wrote.
-// It is what `archfit init` writes in a repository that has a version 3
+// It is what `archfit init` writes in a repository that has a version 1
 // policy: the policy itself is never touched.
 func WriteBlock(root string) (bool, error) {
 	path := filepath.Join(root, AgentsFile)

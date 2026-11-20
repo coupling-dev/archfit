@@ -13,17 +13,17 @@ import (
 
 	"github.com/bmatcuk/doublestar/v4"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/dotnet"
-	"github.com/alexei-led/archfit/v4/internal/extract/golang"
-	"github.com/alexei-led/archfit/v4/internal/extract/literals"
-	"github.com/alexei-led/archfit/v4/internal/extract/pyimports"
-	"github.com/alexei-led/archfit/v4/internal/extract/rust"
-	"github.com/alexei-led/archfit/v4/internal/extract/tsimports"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/graph"
-	"github.com/alexei-led/archfit/v4/internal/scope"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/dotnet"
+	"github.com/coupling-dev/archfit/internal/extract/golang"
+	"github.com/coupling-dev/archfit/internal/extract/literals"
+	"github.com/coupling-dev/archfit/internal/extract/pyimports"
+	"github.com/coupling-dev/archfit/internal/extract/rust"
+	"github.com/coupling-dev/archfit/internal/extract/tsimports"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/graph"
+	"github.com/coupling-dev/archfit/internal/scope"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // ToolAstGrep is the parser the check needs for TypeScript, JavaScript and

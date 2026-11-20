@@ -255,7 +255,7 @@ type ArchitectureState struct {
 	// envelope keeps the common shape every dimension uses.
 	Seams []Seam `json:"seams"`
 	// Repository is the state of the repository for owners. Only `archfit
-	// report` on a version 3 policy sets it.
+	// report` on a version 1 policy sets it.
 	Repository *RepositoryState `json:"repository,omitempty"`
 }
 

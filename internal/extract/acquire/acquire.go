@@ -4,19 +4,19 @@ package acquire
 import (
 	"context"
 
-	evidenceports "github.com/alexei-led/archfit/v4/internal/evidence/ports"
-	"github.com/alexei-led/archfit/v4/internal/extract/astgrep"
-	"github.com/alexei-led/archfit/v4/internal/extract/deployunit"
-	"github.com/alexei-led/archfit/v4/internal/extract/dynimports"
-	"github.com/alexei-led/archfit/v4/internal/extract/loc"
-	"github.com/alexei-led/archfit/v4/internal/extract/manifest"
-	runtimedetect "github.com/alexei-led/archfit/v4/internal/extract/runtime"
-	"github.com/alexei-led/archfit/v4/internal/factcache"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/fileclass"
-	"github.com/alexei-led/archfit/v4/internal/policy"
-	"github.com/alexei-led/archfit/v4/internal/syntax"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	evidenceports "github.com/coupling-dev/archfit/internal/evidence/ports"
+	"github.com/coupling-dev/archfit/internal/extract/astgrep"
+	"github.com/coupling-dev/archfit/internal/extract/deployunit"
+	"github.com/coupling-dev/archfit/internal/extract/dynimports"
+	"github.com/coupling-dev/archfit/internal/extract/loc"
+	"github.com/coupling-dev/archfit/internal/extract/manifest"
+	runtimedetect "github.com/coupling-dev/archfit/internal/extract/runtime"
+	"github.com/coupling-dev/archfit/internal/factcache"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/fileclass"
+	"github.com/coupling-dev/archfit/internal/policy"
+	"github.com/coupling-dev/archfit/internal/syntax"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 const (

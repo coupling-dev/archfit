@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
 
 // TestParseAddedLinesNumbersAddedLinesOnly: a context line moves the line

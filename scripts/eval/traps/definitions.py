@@ -14,7 +14,7 @@ from dataclasses import dataclass
 class Trap:
     name: str
     repo_url: str
-    # Source-tree pin; the branch and origin ref point at the schema 3 policy
+    # Source-tree pin; the branch and origin ref point at the schema 1 policy
     # commit created on top of it during setup.
     branch: str
     commit: str

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
 // TestGoldensMatchTheTypes reads the golden of every example of design 8.1

@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	historygit "github.com/alexei-led/archfit/v4/internal/history/git"
-	"github.com/alexei-led/archfit/v4/internal/toolrun"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // errSharedHooksDir marks a hooks directory outside the repository, such as a

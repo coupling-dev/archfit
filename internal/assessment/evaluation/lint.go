@@ -5,7 +5,7 @@ import (
 	"slices"
 	"sort"
 
-	"github.com/alexei-led/archfit/v4/internal/policy"
+	"github.com/coupling-dev/archfit/internal/policy"
 )
 
 // Severity of a module-value diagnostic reported by PolicyWarnings.

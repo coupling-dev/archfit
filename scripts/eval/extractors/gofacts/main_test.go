@@ -25,8 +25,8 @@ func TestCommandsRejectVersion2(t *testing.T) {
 func TestConfigUsesSchema3WithoutFallback(t *testing.T) {
 	t.Parallel()
 	for _, tc := range []struct{ name, body, want string }{
-		{"version 1", "version: 1\n", "version"},
-		{"unknown key", "version: 3\nowners: [owner]\nmodules: {app: {paths: ['**']}}\nunknown: true\n", "unknown"},
+		{"version 3", "version: 3\n", "version"},
+		{"unknown key", "version: 1\nowners: [owner]\nmodules: {app: {paths: ['**']}}\nunknown: true\n", "unknown"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), "policy.yaml")

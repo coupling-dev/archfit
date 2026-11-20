@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/alexei-led/archfit/v4/internal/application/changecheck"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/output/record"
+	"github.com/coupling-dev/archfit/internal/application/changecheck"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
 )
 
 // Exit codes of the CLI: 0 pass, yes or
@@ -18,7 +18,7 @@ const (
 	exitUnknown = 2
 )
 
-// noVerdict is an error of a version 3 command: wrong usage or a tool error.
+// noVerdict is an error of a version 1 command: wrong usage or a tool error.
 // It exits 2 with the message on stderr.
 func noVerdict(err error) error {
 	return &exitError{code: exitUnknown, msg: "archfit: " + err.Error()}
@@ -44,7 +44,7 @@ func exitWith(code int) error {
 	return &exitError{code: code}
 }
 
-// changeFormat is the one output format of a version 3 check.
+// changeFormat is the one output format of a version 1 check.
 func (c *CheckCmd) changeFormat() (string, error) {
 	switch {
 	case len(c.Format) == 0:
@@ -57,7 +57,7 @@ func (c *CheckCmd) changeFormat() (string, error) {
 	return c.Format[0], nil
 }
 
-// runChange is `archfit check` on a version 3 policy: the status of the
+// runChange is `archfit check` on a version 1 policy: the status of the
 // change (internal/application/changecheck), as a record, JSON or SARIF on
 // stdout. The notes of the run go to stderr.
 func (c *CheckCmd) runChange(deps *appDeps) error {

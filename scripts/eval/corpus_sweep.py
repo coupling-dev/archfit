@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate Archfit 4 reports, change records, formats and determinism on a corpus.
 
-Repositories must already have a reviewed version 3 policy. The sweep never
+Repositories must already have a reviewed version 1 policy. The sweep never
 creates or converts a policy. Only missing repositories may be explicitly
 accepted as unverified; a command error or malformed output always fails.
 """

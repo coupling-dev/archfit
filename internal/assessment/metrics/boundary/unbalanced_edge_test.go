@@ -3,12 +3,12 @@ package boundary_test
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/assessment/finding"
-	"github.com/alexei-led/archfit/v4/internal/assessment/metrics/boundary"
-	assessmentresult "github.com/alexei-led/archfit/v4/internal/assessment/result"
-	signal "github.com/alexei-led/archfit/v4/internal/assessment/signals"
-	"github.com/alexei-led/archfit/v4/internal/relationship"
-	"github.com/alexei-led/archfit/v4/internal/testutil/metricstest"
+	"github.com/coupling-dev/archfit/internal/assessment/finding"
+	"github.com/coupling-dev/archfit/internal/assessment/metrics/boundary"
+	assessmentresult "github.com/coupling-dev/archfit/internal/assessment/result"
+	signal "github.com/coupling-dev/archfit/internal/assessment/signals"
+	"github.com/coupling-dev/archfit/internal/relationship"
+	"github.com/coupling-dev/archfit/internal/testutil/metricstest"
 )
 
 func TestUnbalancedEdge_Count(t *testing.T) {

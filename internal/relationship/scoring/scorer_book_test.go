@@ -3,7 +3,7 @@ package scoring
 import (
 	"testing"
 
-	"github.com/alexei-led/archfit/v4/internal/relationship/coupling"
+	"github.com/coupling-dev/archfit/internal/relationship/coupling"
 )
 
 // TestBookScorer_OrdinalsAndFormulaPinned locks the book ordinals and formula.

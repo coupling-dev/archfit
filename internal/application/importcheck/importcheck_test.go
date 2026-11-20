@@ -7,11 +7,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alexei-led/archfit/v4/internal/application/canquery"
-	"github.com/alexei-led/archfit/v4/internal/application/importcheck"
-	"github.com/alexei-led/archfit/v4/internal/model/evidence"
-	"github.com/alexei-led/archfit/v4/internal/model/result"
-	"github.com/alexei-led/archfit/v4/internal/policy/resolved"
+	"github.com/coupling-dev/archfit/internal/application/canquery"
+	"github.com/coupling-dev/archfit/internal/application/importcheck"
+	"github.com/coupling-dev/archfit/internal/model/evidence"
+	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
 const (
@@ -107,7 +107,7 @@ func TestRefusals(t *testing.T) {
 			wantLines: []int{3, 5}, wantAsked: []string{toUtil, stdlibFmt, forbidden, toNowhere}},
 		{name: "a no an exception covers is dropped", policy: policies{ok: true, p: resolved.Policy{Exceptions: []resolved.Exception{graphException}}},
 			wantLines: []int{5}, wantAsked: []string{toUtil, stdlibFmt, forbidden, toNowhere}},
-		{name: "no valid version 3 policy: nothing to ask", policy: policies{}},
+		{name: "no valid version 1 policy: nothing to ask", policy: policies{}},
 	} {
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
