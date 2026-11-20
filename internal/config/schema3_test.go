@@ -117,6 +117,7 @@ modules:
 		{"a package a model directory names", change.End{Path: "c/models"}, "package:c/models", strModel},
 		{"a file below a public directory", change.End{Path: "c/api/deep/y.ts", IsFile: true}, "file:c/api/deep/y.ts", strIntrusive},
 		{"a package past the surface", change.End{Path: "c/impl", Files: []string{"c/impl/i.go"}}, "package:c/impl", strIntrusive},
+		{"a .NET project in a public directory", change.End{Path: "c/api/Api.csproj", IsFile: true}, "project:c/api/Api.csproj", strContract},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

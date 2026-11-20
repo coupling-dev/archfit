@@ -552,12 +552,14 @@ func namesFilesIn(globs []string, dir string) bool {
 	return false
 }
 
-// isFileNode reports whether a graph node id names a file. A package or a
-// project node names a directory or a unit, which the surface matches as a
-// whole.
+// isFileNode reports whether a graph node id names a file: a file node, or a
+// .NET project node, whose path is its .csproj file. The check treats every
+// target that is not a directory as a file, so the directory that holds it
+// matches too. A package node names a directory, which the surface matches
+// as a whole.
 func isFileNode(id string) bool {
 	kind, _, _ := strings.Cut(id, ":")
-	return graph.NodeKind(kind) == graph.NodeKindFile
+	return graph.NodeKind(kind) == graph.NodeKindFile || graph.NodeKind(kind) == graph.NodeKindProject
 }
 
 // classifyDistance names the boundary of an edge. A module boundary is the far
