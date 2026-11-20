@@ -38,7 +38,7 @@ help: ## show this help message
 
 ## all: fmt lint test arch-lint
 .PHONY: all
-all: fmt lint test arch-lint ## fmt + lint + architecture change gate
+all: fmt names lint test arch-lint ## fmt + lint + architecture change gate
 
 ## build: compile the archfit binary
 .PHONY: build
@@ -120,6 +120,11 @@ archfit-report: build ## write .archfit-cache/reports/archfit-report.txt for hum
 .PHONY: lint
 lint: ## run golangci-lint
 	golangci-lint run -c .golangci.yaml ./...
+
+## names: fail on references to the old home of archfit (scripts/check-names.sh)
+.PHONY: names
+names: ## fail on references to the old home of archfit
+	sh scripts/check-names.sh
 
 ## workflows: lint GitHub Actions workflow files and test the release tag rule
 .PHONY: workflows
