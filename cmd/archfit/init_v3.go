@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -18,12 +19,13 @@ const agentLines = policy3.Lines
 
 // RepoInitCmd is `archfit init` (internal/initcfg/policy3): set up a
 // repository. It writes what is missing and never changes a version 1
-// policy: a fresh repository gets a version 1 policy and the instruction
-// block for agents; a repository with a version 1 policy gets only a missing
-// block; any other policy file is an error. It writes no workflow file
+// policy: a fresh repository gets a version 1 policy. A repository with any
+// other policy version is an error. Successful setup writes the instruction
+// block and, unless disabled, the agent hooks. It writes no workflow file
 // (D11: the workflow waits for Action 4).
 type RepoInitCmd struct {
-	Dir string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
+	NoHooks bool   `name:"no-hooks" help:"Do not install the Claude Code and Codex hooks."`
+	Dir     string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
 }
 
 func (*RepoInitCmd) Help() string {
@@ -41,6 +43,9 @@ changes a version 1 policy.
 Each case that succeeds writes the five lines for agents between the archfit markers in
 AGENTS.md; text outside the markers stays as it is.
 
+Init installs Claude Code and Codex hooks unless you use --no-hooks.
+It does not install the git pre-commit hook.
+
 Then read .archfit.yaml and open a pull request with it.
 
 Exit codes:
@@ -50,6 +55,8 @@ Exit codes:
 
 // initNext is the last line of init: the owner's step.
 const initNext = "next: read " + policy3.PolicyFile + ", then open a pull request with it"
+
+const initAgentHooksByDefault = true
 
 func (c *RepoInitCmd) Run(deps *appDeps) error {
 	ctx := deps.runContext()
@@ -62,9 +69,10 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 		return noVerdict(err)
 	}
 	var b strings.Builder
+	var draft policy3.Result
 	switch {
 	case !found:
-		err = co.initFresh(ctx, &b)
+		draft, err = co.initFresh(ctx, &b)
 	case isVersion1(data):
 		err = co.initBlock(&b)
 	default:
@@ -74,6 +82,14 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	if err != nil {
 		return noVerdict(err)
 	}
+	if initAgentHooksByDefault && !c.NoHooks {
+		installInitHooks(ctx, deps, co.root, &b)
+	}
+	if !found {
+		writeUnread(&b, draft.Unknown)
+		writeExceptionDecisions(&b, draft.File.Exceptions)
+		b.WriteString(initNext + "\n")
+	}
 	if _, err := io.WriteString(deps.Stdout, b.String()); err != nil {
 		return noVerdict(err)
 	}
@@ -81,21 +97,40 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 }
 
 // initFresh writes the first policy of a repository.
-func (co checkout) initFresh(ctx context.Context, b *strings.Builder) error {
+func (co checkout) initFresh(ctx context.Context, b *strings.Builder) (policy3.Result, error) {
 	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig()), Now: co.now}, co.root)
 	if err != nil {
-		return err
+		return policy3.Result{}, err
 	}
 	writePolicySummary(b, "wrote", res.File)
 	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
-	writeUnread(b, res.Unknown)
-	writeExceptionDecisions(b, res.File.Exceptions)
-	b.WriteString(initNext + "\n")
-	return nil
+	return res, nil
 }
 
-// initBlock is init in a repository with a version 1 policy: only the
-// instruction block can be missing.
+// installInitHooks is best effort: the repository setup is usable even when
+// hook settings need manual repair. Init only writes inside the checkout.
+func installInitHooks(ctx context.Context, deps *appDeps, root string, b *strings.Builder) {
+	for _, harness := range []string{harnessClaude, harnessCodex} {
+		rel := harnessConfigFile(harness)
+		if !within(root, filepath.Join(root, rel)) {
+			fmt.Fprintf(b, "warning: skipped %s: resolves outside the repository\n", rel)
+			continue
+		}
+		if _, err := installHarnessHooks(root, harness); err != nil {
+			fmt.Fprintf(b, "warning: could not install hooks in %s: %v\n", rel, err)
+			continue
+		}
+		fmt.Fprintf(b, "installed hooks: %s\n", rel)
+		if gitIgnores(ctx, deps, root, rel) {
+			b.WriteString("  " + ignoredWarning(rel) + "\n")
+		}
+		if harness == harnessCodex {
+			b.WriteString("  " + codexTrustNotice + "\n")
+		}
+	}
+}
+
+// initBlock adds the agent instructions without changing an existing policy.
 func (co checkout) initBlock(b *strings.Builder) error {
 	wrote, err := policy3.WriteBlock(co.root)
 	if err != nil {

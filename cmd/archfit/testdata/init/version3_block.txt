@@ -1,2 +1,5 @@
 left .archfit.yaml as it is: archfit init never changes a version 1 policy
 wrote AGENTS.md: the instruction block for agents
+installed hooks: .claude/settings.json
+installed hooks: .codex/hooks.json
+  codex runs these hooks only after you trust them: start codex and approve the hooks

@@ -155,12 +155,17 @@ next: ask an owner     (open a pull request first if there is none)
 
 New exceptions expire 90 days after the run. The final list names them as decisions for the owner.
 
-In each case it writes the five lines for agents between the `<!-- archfit:start -->` and `<!-- archfit:end -->` markers in `AGENTS.md`, and creates the file when it is missing. Text outside the markers stays as it is. When the block is already there, nothing is written and the command still exits `0`.
+In each case it writes the five lines for agents between the `<!-- archfit:start -->` and `<!-- archfit:end -->` markers in `AGENTS.md`, and creates the file when it is missing. Text outside the markers stays as it is. When the block is already there, it stays as it is.
+
+`init` installs the Claude Code and Codex repository hooks unless you pass `--no-hooks`. It leaves the git pre-commit hook alone. If it cannot install a hook, it reports why and keeps the repository setup.
 
 ```text
 $ archfit init
 wrote .archfit.yaml: 4 modules, 0 allowed dependencies, 0 rules, 1 exception
 wrote AGENTS.md: the instruction block for agents
+installed hooks: .claude/settings.json
+installed hooks: .codex/hooks.json
+  codex runs these hooks only after you trust them: start codex and approve the hooks
 exceptions for the owner to review:
   exception: duplication pkg_tc -> pkg_util until 2027-02-08
 next: read .archfit.yaml, then open a pull request with it

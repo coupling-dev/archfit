@@ -163,3 +163,81 @@ func TestInitErrorsExit2(t *testing.T) {
 		t.Errorf("outside a repository: exit %d, stderr %q", got.code, got.stderr)
 	}
 }
+
+func TestInitInstallsAgentHooks(t *testing.T) {
+	dir := initRepo(t, initFixture())
+	claude := harnessConfigFile(harnessClaude)
+	codex := harnessConfigFile(harnessCodex)
+	writeFixtureFile(t, dir, claude, userClaudeSettings)
+	chdirIsolated(t, dir)
+	subdir := filepath.Join(dir, "pkg", "tc")
+
+	before := hookStates(doctorJSON(t).AgentLoop)
+	if got := before["claude Stop"]; got != hookInactive+" ("+reasonNotInstalled+")" {
+		t.Fatalf("doctor before init: Claude Stop = %q", got)
+	}
+	first := runCLI(t, fixtureDate, cmdInit, "-C", subdir)
+	if first.code != 0 || !strings.Contains(first.stdout, codexTrustNotice) {
+		t.Fatalf("init: %+v", first)
+	}
+	after := hookStates(doctorJSON(t).AgentLoop)
+	for hook, want := range map[string]string{
+		"claude Stop":          hookActive,
+		harnessCodex + " Stop": hookInactive + " (" + reasonNotTrusted + ")",
+		"git pre-commit":       hookInactive + " (" + reasonNotInstalled + ")",
+	} {
+		if got := after[hook]; got != want {
+			t.Errorf("doctor after init: %s = %q, want %q", hook, got, want)
+		}
+	}
+	wantClaude := readText(t, filepath.Join(dir, claude))
+	if !strings.Contains(wantClaude, "opus") || !strings.Contains(wantClaude, "echo bye") {
+		t.Errorf("init lost existing settings or hooks: %s", wantClaude)
+	}
+	wantCodex := readText(t, filepath.Join(dir, codex))
+	if rerun := runCLI(t, fixtureDate, cmdInit, "-C", subdir); rerun.code != 0 {
+		t.Fatalf("repeat init: %+v", rerun)
+	}
+	for path, want := range map[string]string{claude: wantClaude, codex: wantCodex} {
+		if got := readText(t, filepath.Join(dir, path)); got != want {
+			t.Errorf("repeat init changed %s", path)
+		}
+	}
+}
+
+func TestInitNoHooks(t *testing.T) {
+	dir := initRepo(t, initFixture())
+	claude := harnessConfigFile(harnessClaude)
+	writeFixtureFile(t, dir, claude, userClaudeSettings)
+	got := runCLI(t, fixtureDate, cmdInit, "--no-hooks", "-C", dir)
+	if got.code != 0 {
+		t.Fatalf("init --no-hooks: %+v", got)
+	}
+	if after := readText(t, filepath.Join(dir, claude)); after != userClaudeSettings {
+		t.Errorf("init --no-hooks changed Claude settings: %s", after)
+	}
+	if _, err := os.Stat(filepath.Join(dir, harnessConfigFile(harnessCodex))); !os.IsNotExist(err) {
+		t.Errorf("Codex config should not exist, stat error = %v", err)
+	}
+}
+
+func TestInitDoesNotWriteHooksOutsideCheckout(t *testing.T) {
+	dir := initRepo(t, initFixture())
+	outside := t.TempDir()
+	rel := harnessConfigFile(harnessClaude)
+	target := filepath.Join(outside, filepath.Base(rel))
+	writeFixtureFile(t, outside, filepath.Base(rel), userClaudeSettings)
+	if err := os.Symlink(outside, filepath.Join(dir, filepath.Dir(rel))); err != nil {
+		t.Fatal(err)
+	}
+	got := runCLI(t, fixtureDate, cmdInit, "-C", dir)
+	if got.code != 0 || !strings.Contains(got.stdout, "resolves outside the repository") {
+		t.Fatalf("init: %+v", got)
+	}
+	if after := readText(t, target); after != userClaudeSettings {
+		t.Errorf("init changed external Claude settings: %s", after)
+	}
+	if _, err := os.Stat(filepath.Join(dir, harnessConfigFile(harnessCodex))); err != nil {
+		t.Errorf("Codex config missing: %v", err)
+	}
+}
