@@ -116,7 +116,7 @@ and text renders repository state, evidence gaps, and measurements.
 | `dynamic_connascence_signals`                  | Review hints from dynamic imports and runtime async relations. Each signal is unmeasured and advisory.                                                                           |
 | `distance_config_candidates`                   | Static external, dynamic, and async evidence that can prompt config review. It does not change distance or config.                                                                  |
 | `runtime_async`, `runtime_async_edges`         | Detected async integration sites. Missing evidence does not prove synchronous coupling. These sites do not affect score or distance.                                                |
-| `local_coupling`                               | Same-module coupling and cohesion signals. Unknown strength abstains. These edges do not enter `coupling_balance`.                                                                  |
+| `local_coupling`                               | Same-module coupling and cohesion signals. A declared surface speaks only to other modules, so a same-module edge has no strength and abstains (not measured). These edges do not enter `coupling_balance`.                                                                  |
 | `distance_context`, `classified_edges`         | Distance basis and scoring inputs, abstentions, volatility provenance, drivers, module-pair concentration, and tail risk. These explain the score; they do not create another gate. |
 
 The Go producer records connascence evidence for resolved names and identified
