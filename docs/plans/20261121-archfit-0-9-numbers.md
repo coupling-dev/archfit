@@ -51,7 +51,7 @@ In short:
 | Item | Value |
 | --- | --- |
 | Baseline | `~/Workspace/archfit.reset-evidence/baseline/`: v5.0.0 (`d5a6f8d`) outputs at archfit-4-mechanics `1f95386e`, archfit `301c6b23`, ccgram `c672b31f`, pumba `23968548`, taken 2026-11-20. |
-| New engine | `8f04ffe4`, built from `git archive` with `GOWORK=off go build`. A local build reports engine `dev`. |
+| New engine | `8f04ffe4`, built from `git archive` with `GOWORK=off go build`. A local build reports engine `dev`. `main` has since gained #19 (`CHANGELOG.md` and test fixtures only), which changes no output of `check` or `report`. |
 | Input of the new engine | `rc1-work/<repo>` branch `rc1`: the baseline commit plus one commit whose whole diff is `version: 3` → `version: 1` in `.archfit.yaml`. `analyze.py` checks both facts, and that the run used that commit. |
 | Control | The same v5.0.0 binary, run again on the baseline commits. It reproduces every recorded JSON output except `date`, so the host and its tools did not change. |
 | Raw outputs | `~/Workspace/archfit.reset-evidence/v0.9.0/` (README, `run.env`, `new/`, `control/`, `analysis/`). |
