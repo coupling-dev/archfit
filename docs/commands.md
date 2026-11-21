@@ -71,7 +71,7 @@ Each run except a `--policy` preview keeps its JSON output and the git tree id o
 ```text
 $ archfit can pkg/tc pkg/util
 pkg_tc -> pkg_util: graph: not an allowed dependency
-  balance: 9/10 (min 7)
+  balance: 9/10 (min 7): contract, pkg_util is low
   next: archfit request -m "<why you need it>"
 ```
 
@@ -130,7 +130,7 @@ Without a GitHub remote, the request is printed and exits `2`; show it to an own
 ```text
 $ archfit request -m "netem needs the shared retry helper"
 pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util
-  balance: 9/10 (min 7)
+  balance: 9/10 (min 7): contract, pkg_util is low
 request: netem needs the shared retry helper
 next: ask an owner     (open a pull request first if there is none)
 ```

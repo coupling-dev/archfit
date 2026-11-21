@@ -28,7 +28,7 @@ A dependency only an owner can allow:
 $ archfit check
 pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util is not an allowed dependency
   why: a new dependency between modules needs an owner
-  balance: 9/10 (min 7)
+  balance: 9/10 (min 7): contract, pkg_util is low
   next: archfit request -m "<why you need it>"     (do not copy the code)
 archfit: fail, 1 error
 ```
@@ -46,7 +46,7 @@ archfit: unknown, no verdict
 - `next` is `fix the code`, a command to run, `wait for an owner: #n`, or a short instruction such as `git fetch --unshallow`. A note in parentheses can follow it.
 - An error with no file, such as an expired exception, names `.archfit.yaml` and no line.
 - A reason for `unknown` names its cause instead of a rule: `policy`, `base`, `tool`, or `import`.
-- `balance` is shown only for a rule about coupling, as `n/10 (min m)`.
+- `balance` is shown only for a rule about coupling, as `n/10 (min m): strength, module is volatility`: the strength of the use (`contract`, `model` or `intrusive`), then the target module and its declared volatility, the two inputs the number comes from. JSON holds the same inputs as `balance.strength` and `balance.volatility`.
 - Dates show the days left, such as `2026-11-19 (9 days)`.
 - `(not from this change)` ends the status line when every error comes from an expired exception, not from the change.
 - `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `coupling-dev/archfit-action`. The result is then a local guide, not change control.
@@ -57,7 +57,7 @@ archfit: unknown, no verdict
 ```text
 $ archfit can pkg/tc pkg/util
 pkg_tc -> pkg_util: graph: not an allowed dependency
-  balance: 9/10 (min 7)
+  balance: 9/10 (min 7): contract, pkg_util is low
   next: archfit request -m "<why you need it>"
 ```
 

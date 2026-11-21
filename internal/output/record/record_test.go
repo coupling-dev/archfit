@@ -27,12 +27,13 @@ const (
 	file      = "x.go"
 	engine    = "4.0.0"
 	passLine  = "archfit: pass"
+	pkgTC     = "pkg_tc"
 )
 
 // TestGoldensMatchDesignExamples renders every example of design 8.1 and
 // compares it byte for byte with its golden.
 func TestGoldensMatchDesignExamples(t *testing.T) {
-	for _, name := range []string{"pass", "deny", ruleGraph, "duplication", "policy_differs", "expired_exception"} {
+	for _, name := range []string{"pass", "deny", ruleGraph, ruleCoupling, "duplication", "policy_differs", "expired_exception"} {
 		t.Run(name, func(t *testing.T) {
 			var r result.Result
 			decodeExample(t, name, &r)
@@ -108,19 +109,23 @@ func TestResultLines(t *testing.T) {
 			r: result.Result{
 				Summary: failOne,
 				Errors: []result.Error{{
-					Path: file, Line: 5, Rule: "coupling", What: "w",
-					Why: "y", Instead: "i", Balance: &result.Balance{Value: 3, Min: 7}, Next: result.Next{Text: fixCode},
+					Path: file, Line: 5, Rule: ruleCoupling, What: "w", To: pkgTC,
+					Why: "y", Instead: "i", Balance: &result.Balance{Value: 3, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityHigh},
+					Next: result.Next{Text: fixCode},
 				}},
 			},
-			want: "x.go:5: coupling: w\n  why: y\n  instead: i\n  balance: 3/10 (min 7)\n  next: fix the code\narchfit: fail, 1 error\n",
+			want: "x.go:5: coupling: w\n  why: y\n  instead: i\n  balance: 3/10 (min 7): model, pkg_tc is high\n  next: fix the code\narchfit: fail, 1 error\n",
 		},
 		{
 			name: "balance at the ends of the scale",
 			r: result.Result{
 				Summary: failOne,
-				Errors:  []result.Error{{Path: file, Line: 5, Rule: "coupling", What: "w", Balance: &result.Balance{Value: 10, Min: 1}, Next: result.Next{Text: "n"}}},
+				Errors: []result.Error{{
+					Path: file, Line: 5, Rule: ruleCoupling, What: "w", To: pkgTC,
+					Balance: &result.Balance{Value: 10, Min: 1, Strength: result.StrengthContract, Volatility: result.VolatilityLow}, Next: result.Next{Text: "n"},
+				}},
 			},
-			want: "x.go:5: coupling: w\n  balance: 10/10 (min 1)\n  next: n\narchfit: fail, 1 error\n",
+			want: "x.go:5: coupling: w\n  balance: 10/10 (min 1): contract, pkg_tc is low\n  next: n\narchfit: fail, 1 error\n",
 		},
 		{
 			name: "a note in parentheses after the next step",
@@ -187,8 +192,8 @@ func TestAnswerLines(t *testing.T) {
 	}{
 		{
 			name: "yes with the balance it would have",
-			a:    result.CanAnswer{From: "a", To: "b", Answer: result.ReplyYes, Balance: &result.Balance{Value: 8, Min: 7}},
-			want: "a -> b: yes\n  balance: 8/10 (min 7)\n",
+			a:    result.CanAnswer{From: "a", To: "b", Answer: result.ReplyYes, Balance: &result.Balance{Value: 8, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityLow}},
+			want: "a -> b: yes\n  balance: 8/10 (min 7): model, b is low\n",
 		},
 		{
 			name: "no with every field",
@@ -222,9 +227,9 @@ func TestAnswerLines(t *testing.T) {
 		},
 		{
 			name:        "a policy no workflow protects adds a line after the answer",
-			a:           result.CanAnswer{From: "a", To: "b", Answer: result.ReplyYes, Balance: &result.Balance{Value: 8, Min: 7}},
+			a:           result.CanAnswer{From: "a", To: "b", Answer: result.ReplyYes, Balance: &result.Balance{Value: 8, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityLow}},
 			unprotected: true,
-			want:        "a -> b: yes\n  balance: 8/10 (min 7)\npolicy: not protected\n",
+			want:        "a -> b: yes\n  balance: 8/10 (min 7): model, b is low\npolicy: not protected\n",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -281,5 +286,28 @@ func assertGolden(t *testing.T, name, got string) {
 	}
 	if got != string(want) {
 		t.Errorf("record differs from design 8.1:\n--- got\n%s--- golden\n%s", got, want)
+	}
+}
+
+// TestBalanceLine names the inputs of a balance: the strength, then the
+// target module and its volatility (the surfaces design 6.1).
+func TestBalanceLine(t *testing.T) {
+	for _, tc := range []struct {
+		b    result.Balance
+		to   string
+		want string
+	}{
+		{result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityHigh}, "architecture-policy",
+			"balance: 9/10 (min 7): contract, architecture-policy is high"},
+		{result.Balance{Value: 7, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityMedium}, "assessment-repair",
+			"balance: 7/10 (min 7): model, assessment-repair is medium"},
+		{result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}, "assessment-repair",
+			"balance: 2/10 (min 7): intrusive, assessment-repair is high"},
+		{result.Balance{Value: 10, Min: 1, Strength: result.StrengthContract, Volatility: result.VolatilityLow}, "pkg_util",
+			"balance: 10/10 (min 1): contract, pkg_util is low"},
+	} {
+		if got := record.BalanceLine(tc.b, tc.to); got != tc.want {
+			t.Errorf("BalanceLine(%+v, %q) = %q, want %q", tc.b, tc.to, got, tc.want)
+		}
 	}
 }

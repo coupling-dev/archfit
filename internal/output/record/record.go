@@ -8,7 +8,7 @@
 //	error       = path [ ":" line ] ": " rule-id ": " what NL fields next-line
 //	unknown     = [ path [ ":" line ] ": " ] cause ": " what NL fields next-line
 //	fields      = [ "  why: " text NL ] [ "  instead: " text NL ]
-//	              [ "  balance: " n "/10 (min " m ")" NL ]
+//	              [ "  balance: " n "/10 (min " m "): " strength ", " to " is " volatility NL ]
 //	next-line   = "  next: " text [ "     (" note ")" ] NL
 //	status-line = "archfit: " status [ ", " count ] [ " (not from this change)" ] NL
 //	              [ unprotected ]
@@ -56,11 +56,11 @@ func Result(w io.Writer, r result.Result, opts Options) error {
 	var b strings.Builder
 	for _, e := range r.Errors {
 		writeHead(&b, location(e.Path, e.Line), e.Rule, e.What)
-		writeDetails(&b, e.Why, e.Instead, e.Balance, &e.Next)
+		writeDetails(&b, e.Why, e.Instead, e.Balance, e.To, &e.Next)
 	}
 	for _, u := range groupToolReasons(r.Unknown) {
 		writeHead(&b, location(u.Path, u.Line), string(u.Cause), u.What)
-		writeDetails(&b, u.Why, "", nil, &u.Next)
+		writeDetails(&b, u.Why, "", nil, "", &u.Next)
 	}
 	b.WriteString(r.Summary + "\n")
 	writeUnprotected(&b, r.Policy)
@@ -125,7 +125,7 @@ func Answer(w io.Writer, a result.CanAnswer, opts Options) error {
 		label = string(a.Answer)
 	}
 	writeHead(&b, a.From+" -> "+a.To, label, a.What)
-	writeDetails(&b, a.Why, a.Instead, a.Balance, a.Next)
+	writeDetails(&b, a.Why, a.Instead, a.Balance, a.To, a.Next)
 	writeUnprotected(&b, a.Policy)
 	if opts.Verbose {
 		writeVerbose(&b, a.Policy, a.Engine)
@@ -154,7 +154,18 @@ func writeHead(b *strings.Builder, where, label, what string) {
 	b.WriteString("\n")
 }
 
-func writeDetails(b *strings.Builder, why, instead string, balance *result.Balance, next *result.Next) {
+// BalanceLine is the balance of a dependency with its inputs (the surfaces
+// design 6.1): "balance: 7/10 (min 7): model, architecture-policy is high".
+// to is the target module, whose volatility the balance takes. The record,
+// SARIF and the request preview print it; it has no indent and no newline.
+func BalanceLine(b result.Balance, to string) string {
+	return "balance: " + strconv.Itoa(b.Value) + "/10 (min " + strconv.Itoa(b.Min) + "): " +
+		string(b.Strength) + ", " + to + " is " + string(b.Volatility)
+}
+
+// writeDetails writes the indented fields of an error or an answer; to is
+// the target module a balance names.
+func writeDetails(b *strings.Builder, why, instead string, balance *result.Balance, to string, next *result.Next) {
 	if why != "" {
 		b.WriteString("  why: " + why + "\n")
 	}
@@ -162,7 +173,7 @@ func writeDetails(b *strings.Builder, why, instead string, balance *result.Balan
 		b.WriteString("  instead: " + instead + "\n")
 	}
 	if balance != nil {
-		b.WriteString("  balance: " + strconv.Itoa(balance.Value) + "/10 (min " + strconv.Itoa(balance.Min) + ")\n")
+		b.WriteString("  " + BalanceLine(*balance, to) + "\n")
 	}
 	if next != nil {
 		b.WriteString("  next: " + next.Text)

@@ -14,13 +14,13 @@ A real run in [pumba](https://github.com/alexei-led/pumba): [#414](https://githu
 
 ## What the check says
 
-This record comes from a deliberate probe on archfit's own repository, at commit `cebdbc57`: one import from `internal/scope` to `internal/policy`, added to show the record and never committed.
+This record comes from a deliberate probe on archfit's own repository, at commit `954c72c8`: one import from `internal/scope` to `internal/policy`, added to show the record and never committed.
 
 ```text
 $ archfit check
 internal/scope/scope.go:12: graph: analysis-scope -> architecture-policy is not an allowed dependency
   why: a new dependency between modules needs an owner
-  balance: 9/10 (min 7)
+  balance: 9/10 (min 7): contract, architecture-policy is high
   next: archfit request -m "<why you need it>"     (do not copy the code)
 internal/scope/scope.go:12: layers: analysis-scope (support) -> architecture-policy (core) goes against the layer order
   why: a module may depend only on its own layer or an inner one

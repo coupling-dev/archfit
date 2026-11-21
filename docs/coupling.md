@@ -116,7 +116,9 @@ The same use past the surface of a module with V=3 has balance 8, with band
 Archfit 4 adds a built-in `coupling` rule to the check of policy version 1. It
 is not released yet. The rule judges a dependency a change adds: new knowledge
 across a module boundary needs a balance of at least 7. The balance uses the
-formula above at D=9 and is shown as `9/10 (min 7)`.
+formula above at D=9. The record names its inputs: the strength, then the
+target module and its declared volatility, as in
+`balance: 7/10 (min 7): model, architecture-policy is high`.
 
 | Target volatility | Public part (`contract`) | Model part (`model`) | Past the surface (`intrusive`) | Copy |
 | ----------------- | -----------------------: | -------------------: | -----------------------------: | ---: |
