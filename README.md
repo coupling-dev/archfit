@@ -39,7 +39,7 @@ archfit init     # write .archfit.yaml from the code; today's errors become exce
 archfit check    # the change: pass, fail, or unknown
 ```
 
-Read the policy `init` writes, then open a pull request with it. [Getting started](docs/getting-started.md) has the other ways to install, the tools each language needs, the agent hooks, and CI.
+Read the policy `init` writes, then open a pull request with it. [Getting started](docs/getting-started.md) has the other ways to install (`go install` needs Go 1.27 or newer), the tools each language needs, the agent hooks, and CI.
 
 ## What archfit is and is not
 
