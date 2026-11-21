@@ -303,7 +303,9 @@ Done when the App is deployed with the 0.9.0 manifest. Tasks 5.1 and 5.2 can sta
       version 3 and version 1, side by side until 6.5: one decoder checks the shape of each
       `balance` object, and a result that mixes both shapes is refused. This departs from the
       surfaces design 6.6 ("not accepted side by side"); the owner confirmed it. No merge freeze. App #234 (the migration path below) and #235 (the manifest entry beside v4.0.0). The App's workflow template was dead code and is deleted: `archfit setup` (0.10.0) writes `# vX`, and epic 6 writes the four `uses:` lines by hand.
-- [ ] **5.4 Deploy.** Record the running revision for rollback. Deploy. Tag `v0.9.0`. CONFIRM.
+- [x] **5.4 Deploy.** Record the running revision for rollback. Deploy. Tag `v0.9.0`. CONFIRM.
+      Deployed 2026-11-21 by release run 44906507642 (the owner started it); App tag `v0.9.0` on
+      `69ecdc20`. `RELEASE_ON_PUSH` stays `false` until the owner turns it on after epic 6.
 
 ### Epic 6. Move the onboarded repositories
 
@@ -444,7 +446,7 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Action history in the new home | `main` at `9669571`, pushed 2026-11-20 without tags. | 4.1 |
 | Action `v0.9.0` commit | `53e0c49d80627efa4262d7ee78c56dd6054a6e43` (tag object `5b5400ee`). | 4.3 |
 | App revision before the deploy (rollback) | `archfit-public-r44313883919-1` and `archfit-worker-r44313883919-1`, image `sha256:7683035f4c483e1e3e6d691a6bbbd9d20ec46b4901ac8ad8f0eef2893de5acb0` (release of `499131d3`). Rollback: deploy workflow `mode: traffic` with those revisions. | 5.4 |
-| App revision of 0.9.0 | | 5.4 |
+| App revision of 0.9.0 | `archfit-public-r44906507642-1` and `archfit-worker-r44906507642-1`, image `sha256:55424d766574200e580294c65d168320a26c9ff08468719e355e38f016c0d47f`, commit `69ecdc20`, tag `v0.9.0`. | 5.4 |
 | Deferred past 0.9.0 | The report text prints a bare balance (a report-model change). `archfit can` allows `reporttext` -> `output/record` while the Go architecture test forbids it. The engine's `scripts/check-names.sh` uses `\b`, which `git grep -E` on macOS does not support. The App's owner review page diffs the policy from `base.sha` on a stale branch (display only). | 3.6, 4.2, 5.3 |
 | Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). The owner set it to `false` on 2026-11-20 (16:42 UTC) until after epic 6; task 5.4 releases by `workflow_dispatch`. `init` fails without ast-grep, as the review says: a Go repository with one JavaScript file exits 2 and writes no policy (reproduced on `5bd583e7` in a container; task 3.6 fixes it). | as found |
 
