@@ -15,25 +15,26 @@ named cause. Nothing is left unexplained. The seam table for archfit is in the
 | archfit | head | pass (0) | pass (0) | 7 | | | | | 4 | | 1 | 2 |
 | archfit | base | pass (0) | unknown (2) | 15 | | | | | 3 | 9 | 1 | 2 |
 | archfit | base-v1 | pass (0) | pass (0) | 6 | | | | | 3 | | 1 | 2 |
-| archfit | report | drift (0) | drift (0) | 452 | 237 | 28 | 7 | 118 | 60 | | 1 | 1 |
+| archfit | report | drift (0) | drift (0) | 443 | 237 | 28 | 7 | 109 | 60 | | 1 | 1 |
 | archfit-4-mechanics | head | pass (0) | pass (0) | 7 | | | | | 4 | | 1 | 2 |
 | archfit-4-mechanics | base | pass (0) | unknown (2) | 20 | | | | | 8 | 9 | 1 | 2 |
 | archfit-4-mechanics | base-v1 | pass (0) | pass (0) | 7 | | | | | 4 | | 1 | 2 |
 | archfit-4-mechanics | report | clean (0) | clean (0) | 12 | | | | | 10 | | 1 | 1 |
 | ccgram | head | pass (0) | pass (0) | 7 | | | | | 4 | | 1 | 2 |
-| ccgram | base | pass (0) | unknown (2) | 16 | | | | | 3 | 10 | 1 | 2 |
+| ccgram | base | pass (0) | unknown (2) | 16 | | | | | 2 | 11 | 1 | 2 |
 | ccgram | base-policy | pass (0) | unknown (2) | text | | | | | | status | | |
-| ccgram | base-v1 | pass (0) | unknown (2) | not comparable | | | | | | | | |
+| ccgram | base-v1 (not comparable) | pass (0) | unknown (2) | 16 | | | | | 3 | 10 | 1 | 2 |
 | ccgram | report | clean (0) | clean (0) | 83 | | | | | 81 | | 1 | 1 |
 | pumba | head | pass (0) | pass (0) | 7 | | | | | 4 | | 1 | 2 |
-| pumba | base | pass (0) | unknown (2) | 16 | | | | | 3 | 10 | 1 | 2 |
+| pumba | base | pass (0) | unknown (2) | 16 | | | | | 2 | 11 | 1 | 2 |
 | pumba | base-policy | pass (0) | unknown (2) | text | | | | | | status | | |
-| pumba | base-v1 | pass (0) | unknown (2) | not comparable | | | | | | | | |
+| pumba | base-v1 (not comparable) | pass (0) | unknown (2) | 16 | | | | | 3 | 10 | 1 | 2 |
 | pumba | report | clean (0) | clean (0) | 50 | 21 | | | | 27 | | 1 | 1 |
-| **Total** | | | | **705** | **258** | **28** | **7** | **118** | **218** | **38** | **14** | **24** |
+| **Total** | | | | **728** | **258** | **28** | **7** | **109** | **222** | **60** | **16** | **28** |
 
 "Fields" counts the normalized JSON fields that differ (section 3). The cause columns add up to
-it in every row. The text and the JSON of each leg exit with the same code.
+it in every row. The base-policy legs are recorded only as text, so they are compared by verdict
+and exit code. The text and the JSON of each leg exit with the same code.
 
 In short:
 
@@ -51,7 +52,7 @@ In short:
 | --- | --- |
 | Baseline | `~/Workspace/archfit.reset-evidence/baseline/`: v5.0.0 (`d5a6f8d`) outputs at archfit-4-mechanics `1f95386e`, archfit `301c6b23`, ccgram `c672b31f`, pumba `23968548`, taken 2026-11-20. |
 | New engine | `8f04ffe4`, built from `git archive` with `GOWORK=off go build`. A local build reports engine `dev`. |
-| Input of the new engine | `rc1-work/<repo>` branch `rc1`: the baseline commit plus one commit that changes only `version: 3` to `version: 1` in `.archfit.yaml`. The harness checks both facts. |
+| Input of the new engine | `rc1-work/<repo>` branch `rc1`: the baseline commit plus one commit whose whole diff is `version: 3` → `version: 1` in `.archfit.yaml`. `analyze.py` checks both facts, and that the run used that commit. |
 | Control | The same v5.0.0 binary, run again on the baseline commits. It reproduces every recorded JSON output except `date`, so the host and its tools did not change. |
 | Raw outputs | `~/Workspace/archfit.reset-evidence/v0.9.0/` (README, `run.env`, `new/`, `control/`, `analysis/`). |
 | Harness | `run.sh`, `norm.py`, `analyze.py` in `~/Workspace/archfit-beta-team/reports/b9-numbers/`, with a copy in `v0.9.0/harness/`. |
@@ -71,19 +72,26 @@ Each leg ran with `--format json` and `--format text`.
 ## 3. Method
 
 1. **Normalize.** Every array of objects becomes a map keyed by a stable id: seams by
-   `from -> to`, findings by rule and module pair (never by finding id, which hashes the score),
-   metrics by name, observations by edge, references by path and selector. Nothing is dropped.
-   Two arrays keep their index (`evidence.snapshot.unknowns`, `repository.unread`); neither
-   differs.
+   `from -> to`, findings by rule and module pair (also in the coupling dimension's finding list),
+   metrics by name, observations by edge, references by path and selector. A finding id is a hash
+   that changes when the finding's group changes, so it is a field, not a key. Nothing is
+   dropped. Two arrays keep their index (`evidence.snapshot.unknowns`, `repository.unread`;
+   listed in `summary.json`); neither differs.
 2. **Attribute.** Each differing field gets one cause from section 4. A seam gets its cause from
    its edges (below). Findings and metrics get "B-derived" only after the recomputation in step 3
-   holds. A field with no cause fails the run. There are none.
-3. **Reconcile.** `analysis/checks.md` lists 87 checks; all pass:
+   holds. The check-leg rules test the evidence: V1-base needs the new result's only `unknown` to
+   be `version N is not supported`; the repository-state rule needs the recorded base to be
+   HEAD. A field with no cause fails the run. There are none.
+3. **Reconcile.** `analysis/checks.md` lists 97 checks; all pass:
    - **The new report follows the 3.1 rule on every seam.** For each edge, the target package
      either matches the target module's `public` globs (contract) or does not (intrusive, with
      the target's volatility). The scores are contract 9, intrusive into `high` 2, intrusive into
      `medium` 5. The predicted strength and the n, min, max and mean of every seam equal the
-     report: archfit 67 seams, pumba 8.
+     report: archfit 67 seams, pumba 8. This is a consistency check of the new report against the
+     rule, not an independent run of the engine: the globs come from the report's own evidence
+     (tied to the policy by a separate check: each module's `public`, or its `paths` when `public`
+     is omitted), and the three scores are read from the report. Its strength is that one rule
+     and three numbers give the n, min, max and mean of all 75 seams.
    - **Metrics.** `critical_band_edges`, `high_or_worse_edges` and `tight_seams` equal the sums
      over the seams, before and after. `qualifying_edges` and `unbalanced_edge` equal the
      intrusive edges into a `high` target. `distributed_monolith_seams` equals the tight
@@ -105,8 +113,8 @@ Each leg ran with `--format json` and `--format text`.
 | B | Task 3.1 B. A use past the target's declared surface is `intrusive`. In v5.0.0 the report guessed it from Go types as `functional` or `model`. |
 | B+C | Task 3.1 B and C. As B, and the intrusive use takes the target's volatility. The source is `high` and the target `medium`, so it scores 5, where the source's volatility would give 2. |
 | B-derived | Findings and coupling and modularity metrics, recomputed from the B and B+C edges (section 3). |
-| V1-fixture | Policy version 1, as input. The one-line policy edit changes the policy digest, the policy references, the snapshot and identity digests, the head commit and tree, the default base (the first parent of the fixture commit) and `differs`. On the base leg of archfit-4-mechanics, the recorded base was HEAD (a push, which shows the repository state); now HEAD is the fixture commit. |
-| V1-base | Policy version 1, as behaviour. 0.9.0 reads only `version: 1`. A base with a version 2 or 3 policy gives `unknown` with `version N is not supported` (section 5). |
+| V1-fixture | Policy version 1, as input. The one-line policy edit changes the policy digest, the policy references, the snapshot and identity digests, the head commit and tree, the default base (the first parent of the fixture commit) and, against a version 3 base, `differs`. On the base leg of archfit-4-mechanics, the recorded base was HEAD (a push, which shows the repository state); now HEAD is the fixture commit. |
+| V1-base | Policy version 1, as behaviour. 0.9.0 reads only `version: 1`. A base with a version 2 or 3 policy gives `unknown` with `version N is not supported` (section 5). For a version 2 base, v5.0.0 used the local policy, printed no `target` and said `differs: false`; 0.9.0 reads the base policy, so `target` appears and `differs` is true. |
 | R | Task 1.5 rename. `protected` is true when a workflow uses `coupling-dev/archfit-action`. The four workflows still pin `alexei-led/archfit-action`, so `protected` goes from `true` to `false` on every leg. Epic 6 changes the `uses:` line and restores it. |
 | M | Metadata: the run date, and the engine version of the local build (`dev`). |
 
@@ -118,9 +126,11 @@ not run, and the fixture policies predate #15. The evidence for #15 is separate
 exercised either. Task 3.6 changes `init`, `doctor` and the text of `report`. The first two do
 not run here, and the text is not compared (section 8).
 
-Outside the JSON, one line of stderr differs. The ccgram report's unresolved-import hint said
-`archfit config update`; it now says `archfit doctor`. Task 1.4 deleted the `config update`
-hints.
+Outside the JSON, stderr differs in two places. The ccgram report's warning "0 of 2481 edges
+scored" was followed by `→ run: archfit config update`; it is now followed by
+`→ run: archfit doctor`. Task 1.4 deleted the `config update` hints. On the base legs of ccgram
+and pumba, the v5.0.0 line "has a version 2 .archfit.yaml: judged with the local policy" is
+gone (V1-base).
 
 ## 5. Base checks
 
@@ -139,25 +149,28 @@ check cannot give that pull request a verdict.
 
 The migrated-base fixture (`base-v1`) is the secondary comparison:
 
-- archfit and archfit-4-mechanics: `base-v1` is the recorded base plus `version: 3` →
-  `version: 1`. The check passes as before. The 6 and 7 fields that differ are V1-fixture, R and
-  M only.
+- archfit: `base-v1` is the recorded base plus `version: 3` → `version: 1`. The check passes as
+  before. The 6 fields that differ are V1-fixture, R and M only.
+- archfit-4-mechanics: the recorded base was HEAD, so `base-v1` is the fixture commit itself.
+  The check judges an empty change and passes; this shows only that a version 1 base is read.
+  7 fields: V1-fixture, R and M.
 - ccgram and pumba: not comparable. Their base policy has the module field `owner`, removed
   before policy version 1. A change of the version line alone leaves it invalid, so `base-v1` is
-  the unchanged version 2 base and gives the same `unknown` as the base leg.
+  the unchanged version 2 base and gives the same `unknown` as the base leg. Its 16 fields each
+  have the causes of the base leg.
 
 ## 6. Per repository
 
 ### archfit
 
-Head 7, base 15 and base-v1 6 fields: section 1. The report differs in 452 fields:
+Head 7, base 15 and base-v1 6 fields: section 1. The report differs in 443 fields:
 
 | Cause | Fields | Entities |
 | --- | ---: | --- |
 | A | 237 | 42 seams: `model` → `contract` |
 | B | 28 | 6 seams become `intrusive` |
 | B+C | 7 | 1 seam: `policy-config-adapter -> evidence-adapters` |
-| B-derived | 118 | 7 findings (88 fields), their 4 entries in the coupling dimension (20), 6 coupling metrics (6), `encapsulation` (4) |
+| B-derived | 109 | 7 findings (88 fields), the coupling dimension's finding list (11: one id, two new entries), 6 coupling metrics (6), `encapsulation` (4) |
 | V1-fixture | 60 | 51 policy references, 6 snapshot digests, the scope policy reference, 2 identity digests |
 | R | 1 | `repository.protected` |
 | M | 1 | `identity.engine_version` |
@@ -203,13 +216,13 @@ V1-fixture, V1-base (base only), R and M.
 ### ccgram
 
 The report scores none of its 2481 Python edges, in v5.0.0 and in 0.9.0. So it has no seams,
-findings or coupling metrics to change. Head 7, base 16 and report 83 fields: V1-fixture (81 in
+findings or coupling metrics to change. Head 7, base 16, base-v1 16 and report 83 fields: V1-fixture (81 in
 the report: 72 policy references across 24 modules, 6 snapshot digests, 3 identity and scope
 digests), V1-base (base only), R and M.
 
 ### pumba
 
-Head 7 and base 16 fields: section 1. The report differs in 50 fields: A 21, V1-fixture 27, R 1,
+Head 7, base 16 and base-v1 16 fields: section 1. The report differs in 50 fields: A 21, V1-fixture 27, R 1,
 M 1. 4 of 8 seams changed, all by A:
 
 | Seam | v5.0.0: strength, min / mean / max | 0.9.0 | Edges |
@@ -250,5 +263,5 @@ python3 ~/Workspace/archfit-beta-team/reports/b9-numbers/analyze.py \
   ~/Workspace/archfit.reset-evidence/baseline <new-dir> <new-dir>/analysis
 ```
 
-`analyze.py` exits 1 when a field has no cause or a check fails. Two runs on 2026-11-21 gave the
-same summary.
+`analyze.py` exits 1 when a field has no cause or a check fails. An earlier full run on
+2026-11-21 (not kept in the evidence) gave the same per-repository summary.
