@@ -1,7 +1,7 @@
 # Archfit: check this change and send the result to the Archfit App at
 # https://app.coupling.dev, which decides the archfit/gate check.
 #
-# The only step is the Archfit Action, pinned to the v4.0.0 release commit. The
+# The only step is the Archfit Action, pinned to the v0.9.0 release commit. The
 # Action checks out the change itself without persisting credentials, runs the
 # pinned engine image, and checks the pull request head, pushed commit or merge
 # group commit against the target branch's policy. It uploads the result with the
@@ -26,7 +26,7 @@ jobs:
   archfit:
     runs-on: ubuntu-latest
     steps:
-      - uses: alexei-led/archfit-action@9669571b7b25e3f37fd7f1d99d7b89741c6c95d6 # v4.0.0
+      - uses: coupling-dev/archfit-action@53e0c49d80627efa4262d7ee78c56dd6054a6e43 # v0.9.0
         with:
           endpoint: "https://app.coupling.dev"
           audience: "https://app.coupling.dev"

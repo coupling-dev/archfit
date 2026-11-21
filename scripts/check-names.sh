@@ -8,9 +8,7 @@
 # old repository, image, tap or /vN module path in a current file sends a user
 # to a release that is no longer maintained. People's logins are not matched.
 #
-# Excluded: history (docs/archived, docs/plans) and the repository's own
-# archfit workflow, which pins the old Action until it is migrated (plan
-# task 6.2); remove that exclusion then.
+# Excluded: history (docs/archived, docs/plans).
 set -eu
 
 # No \b: git grep -E on macOS ignores it, so a /vN path went unmatched there.
@@ -19,7 +17,6 @@ pattern='alexei-led/(archfit|homebrew-tap|tap/archfit)|ghcr\.io/alexei-led|archf
 if git grep -n -I -E "$pattern" -- \
 	':!docs/archived/**' \
 	':!docs/plans/**' \
-	':!.github/workflows/archfit.yaml' \
 	':!scripts/check-names.sh'; then
 	echo "check-names: the lines above name the old home; use the names in section 3 of the beta plan" >&2
 	exit 1
