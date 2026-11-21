@@ -314,8 +314,8 @@ manifest lists nothing older. For each repository: one pull request with the new
 and `version: 1`; compare `check` and `report` with the baseline; give each exception a date,
 turn it into a surface declaration, or fix the code.
 
-- [ ] **6.1 `archfit-4-mechanics`**, the rehearsal. One request approved with the passkey
-      proves the whole loop. HUMAN for the passkey. Path: one pull request that changes only `.archfit.yaml` (to `version: 1`) and the `uses:` line; its check is `unknown` until an owner approves it in the App (passkey); after the merge the owner confirms the new policy (passkey). The engine alone stays `unknown` for this pull request (task 3.7).
+- [x] **6.1 `archfit-4-mechanics`**, the rehearsal. One request approved with the passkey
+      proves the whole loop. HUMAN for the passkey. Path: one pull request that changes only `.archfit.yaml` (to `version: 1`) and the `uses:` line; its check is `unknown` until an owner approves it in the App (passkey); after the merge the owner confirms the new policy (passkey). The engine alone stays `unknown` for this pull request (task 3.7). Done 2026-11-21: archfit-4-mechanics #9 (554fe5a7), owner approval and confirm with passkeys; master gate `pass` on 0.9.0; report `clean` as in the baseline.
 - [ ] **6.2 `coupling-dev/archfit`.** Install the App on the organization and admit it. Turn
       the workflow on. First approval. Add `archfit/gate` to the required checks. HUMAN. The policy is already `version: 1` and `archfit/gate` is not required: the workflow pull request needs no approval to merge. Then the first approval, then add the required check.
 - [ ] **6.3 `ccgram`.** Advisory gate. Path: App approval, as in 6.1; the ruleset requires `archfit/gate`.
