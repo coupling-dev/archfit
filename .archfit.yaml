@@ -531,122 +531,82 @@ exceptions:
   - rule: coupling
     from: analysis-application
     to: assessment-repair
+    expires: "2027-02-18"
     why: Existing dependency from internal/application/analysis.go:14 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
     from: analysis-application
     to: relationship-analysis
+    expires: "2027-02-18"
     why: Existing dependency from internal/application/analysis.go:24 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
-    from: cli-composition
-    to: assessment-repair
-    why: Existing dependency from cmd/archfit/init.go:13 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: cli-composition
-    to: relationship-analysis
-    why: Existing dependency from cmd/archfit/config_update_adapters.go:26 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: config-lifecycle
-    to: analysis-application
-    why: Existing dependency from internal/initcfg/policy3/convert_map.go:16 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
     from: config-lifecycle
     to: assessment-repair
+    expires: "2027-02-18"
     why: Existing dependency from internal/initcfg/policy3/draft.go:15 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: config-lifecycle
-    to: evidence-acquisition
-    why: Existing dependency from internal/initcfg/policy3/convert.go:14 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: config-lifecycle
-    to: policy-config-adapter
-    why: Existing dependency from internal/configschema/schema.go:17 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: development-tools
-    to: relationship-analysis
-    why: Existing dependency from cmd/calibrate/main.go:24 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
     from: evidence-acquisition
     to: assessment-repair
+    expires: "2027-02-18"
     why: Existing dependency from internal/evidence/acquisition/service.go:17 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
     from: evidence-acquisition
     to: evidence-adapters
+    expires: "2027-02-18"
     why: Existing dependency from internal/evidence/acquisition/coverage.go:6 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
     from: policy-config-adapter
-    to: assessment-repair
-    why: Existing dependency from internal/config/projection.go:11 reaches a non-public package; retain until that boundary changes.
-  - rule: coupling
-    from: policy-config-adapter
     to: evidence-adapters
+    expires: "2027-02-18"
     why: Existing dependency from internal/config/projection.go:14 reaches a non-public package; retain until that boundary changes.
   - rule: coupling
     from: policy-config-adapter
     to: relationship-analysis
+    expires: "2027-02-18"
     why: Existing dependency from internal/config/views.go:12 reaches a non-public package; retain until that boundary changes.
   - rule: duplication
     from: analysis-application
     to: assessment-repair
+    expires: "2027-02-18"
     why: Existing duplicate at internal/application/rulesquery/text.go:15; this literal already lives in internal/assessment/change/judge.go:18; retain until consolidated.
-  - rule: duplication
-    from: analysis-application
-    to: cli-composition
-    why: Existing duplicate at internal/application/compare.go:139; this literal already lives in cmd/archfit/config_compare.go:47; retain until consolidated.
-  - rule: duplication
-    from: architecture-policy
-    to: config-lifecycle
-    why: Existing duplicate at internal/model/rule/rule.go:11; this literal already lives in internal/initcfg/policy3/convert_map.go:79; retain until consolidated.
   - rule: duplication
     from: architecture-policy
     to: policy-config-adapter
+    expires: "2027-02-18"
     why: Existing duplicate at internal/policy/resolved/check.go:75; this literal already lives in internal/config/policyfile/decode.go:141; retain until consolidated.
-  - rule: duplication
-    from: architecture-policy
-    to: report-adapters
-    why: Existing duplicate at internal/model/rule/rule.go:18; this literal already lives in internal/output/agentout/agentout.go:94; retain until consolidated.
   - rule: duplication
     from: assessment-repair
     to: evidence-adapters
+    expires: "2027-02-18"
     why: Existing duplicate at internal/assessment/evaluation/dimensions.go:1075; this literal already lives in internal/extract/astgrep/syntax.go:427; retain until the modules stop sharing the code.
   - rule: duplication
     from: assessment-repair
-    to: report-adapters
-    why: Existing duplicate at internal/assessment/evaluation/uncovered.go:227; this literal already lives in internal/output/agentout/agentout.go:138; retain until consolidated.
-  - rule: duplication
-    from: assessment-repair
     to: report-contract
+    expires: "2027-02-18"
     why: Existing duplicate at internal/assessment/evaluation/dimensions.go:35; this literal already lives in internal/model/report/state.go:100; retain until consolidated.
   - rule: duplication
     from: cli-composition
-    to: config-lifecycle
-    why: Existing duplicate at cmd/archfit/agentsmd.go:24; this literal already lives in internal/initcfg/policy3/agents.go:17; retain until consolidated.
-  - rule: duplication
-    from: cli-composition
-    to: persistence-adapters
-    why: Existing duplicate at cmd/archfit/config_enrich_adapters.go:349; this literal already lives in internal/ownership/ownership.go:60; retain until consolidated.
-  - rule: duplication
-    from: cli-composition
     to: policy-config-adapter
+    expires: "2027-02-18"
     why: Existing duplicate at cmd/archfit/main.go:66; this literal already lives in internal/config/projection.go:20; retain until consolidated.
   - rule: duplication
     from: cli-composition
     to: report-adapters
+    expires: "2027-02-18"
     why: Existing duplicate at cmd/archfit/request.go:109; this literal already lives in internal/output/reporttext/reporttext.go:69; retain until consolidated.
   - rule: duplication
     from: config-lifecycle
-    to: evidence-adapters
-    why: Existing duplicate at internal/initcfg/policy3/discover.go:31; this literal already lives in internal/extract/acquire/acquire.go:41; retain until consolidated.
-  - rule: duplication
-    from: config-lifecycle
     to: report-adapters
+    expires: "2027-02-18"
     why: Existing duplicate at internal/configschema/schema.go:22; this literal already lives in internal/reportschema/schema.go:25; retain until consolidated.
   - rule: cycle
     from: evidence-adapters
     to: persistence-adapters
+    expires: "2027-02-18"
     why: Existing module cycle includes the dependency at internal/extract/acquire/acquire.go:18; retain until the cycle is removed.
   - rule: cycle
     from: persistence-adapters
     to: evidence-adapters
+    expires: "2027-02-18"
     why: Existing module cycle includes the dependency at internal/factcache/runner.go:11; retain until the cycle is removed.
 generated:
   - internal/evidence/ports/extractor_moq.go
