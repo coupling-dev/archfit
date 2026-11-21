@@ -82,6 +82,11 @@ func moduleBlock(w *writer, p resolved.Policy, date time.Time, name string, file
 	w.line(1, "volatility: %s", volatility)
 	w.line(1, "layer: %s", orNone(m.Layer))
 	w.line(1, "allowed dependencies: %s", listOrNone(m.DependsOn))
+	// Each allowed dependency with its surface: what a file here may use
+	// (the surfaces design 6.9).
+	for _, dep := range m.DependsOn {
+		w.line(2, "%s: %s", dep, surfaceText(p.Modules[dep]))
+	}
 	rulesThatApply(w, p, name, files)
 	exceptions(w, p, date, func(e resolved.Exception) bool {
 		return e.Rule != resolved.RuleUnowned && checked(p, e.Rule) && (e.From == name || e.To == name)

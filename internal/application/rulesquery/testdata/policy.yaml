@@ -44,6 +44,10 @@ modules:
   pkg_util:
     paths:
       - pkg/util/**
+    public:
+      - pkg/util
+    model:
+      - pkg/util/types
     volatility: low
     layer: core
   cmd_pumba:

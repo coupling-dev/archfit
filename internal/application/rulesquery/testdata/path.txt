@@ -3,6 +3,8 @@ pkg/chaos/run.go: module pkg_chaos
   volatility: high
   layer: core
   allowed dependencies: pkg_container, pkg_util
+    pkg_container: pkg/container/** (public)
+    pkg_util: pkg/util (public), pkg/util/types (model)
   rules that apply:
     graph: a dependency between two modules must be an allowed dependency (ask: an owner may approve)
     coupling: new knowledge across a module boundary needs a balance of at least 8 (deny: fix the code)

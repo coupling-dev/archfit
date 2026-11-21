@@ -3,6 +3,7 @@ pkg/chaos/netem/delay.go: module pkg_chaos_netem
   volatility: high
   layer: core
   allowed dependencies: pkg_chaos
+    pkg_chaos: pkg/chaos (public), pkg/chaos/cliflags (public)
   rules that apply:
     graph: a dependency between two modules must be an allowed dependency (ask: an owner may approve)
     coupling: new knowledge across a module boundary needs a balance of at least 8 (deny: fix the code)
