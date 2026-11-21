@@ -76,7 +76,7 @@ Read the policy, then open one pull request with it. An owner removes an excepti
    ```text
    $ archfit can pkg/tc pkg/util
    pkg_tc -> pkg_util: graph: not an allowed dependency
-     balance: 9/10 (min 7)
+     balance: 9/10 (min 7): contract, pkg_util is low
      next: archfit request -m "<why you need it>"
    ```
 
