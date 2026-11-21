@@ -75,12 +75,24 @@ pkg_tc -> pkg_util: graph: not an allowed dependency
   next: archfit request -m "<why you need it>"
 ```
 
+A use past the surface of the target names the surface and asks one question: should this package be part of the surface? This is the answer on archfit's own repository:
+
+```text
+$ archfit can internal/application/analysis.go internal/assessment/score
+analysis-application -> assessment-repair: coupling: internal/assessment/score is past the surface
+  balance: 2/10 (min 7): intrusive, assessment-repair is high
+  surface: internal/assessment/finding (public)
+  next: use the surface, or: archfit request -m "<why score belongs to the surface>"
+```
+
+Use what the `surface:` line lists, or ask an owner to declare the package `public` or `model`. A use past the surface is never approved as it is: only the declaration changes.
+
 Each side is a module name, a file or a directory relative to the repository root, or a Go import path that a `go.mod` of the checkout maps. `<to>` can also be a library, such as `github.com/spf13/cobra`. A module name as `<to>` means the public part of the module. A path that does not exist yet is judged by the module its glob gives.
 
 | Answer | Exit | The record shows |
 | --- | --- | --- |
 | yes | `0` | The balance, when the two sides are different modules. |
-| no | `1` | The rule, its `why` for a custom rule, `instead`, the balance, and `next`. |
+| no | `1` | The rule, its `why` for a custom rule, `instead`, the balance, the surface for a use past it, and `next`. |
 | unknown | `2` | A path in no module, or a question only a file can answer, and the command to run next. |
 
 A directory is judged one file at a time, as `check` judges it. When its files answer differently, the answer is `unknown`.
@@ -102,7 +114,7 @@ The answer is approximate in two cases. It applies no exception, and it does not
 | Form | Shows |
 | --- | --- |
 | `archfit rules` | The paths form for the files the change adds lines to, against the base `check` uses. |
-| `archfit rules <path>...` | For each path: its module, the public part, volatility, layer, and allowed dependencies, then the rules that apply with their modes and the exceptions that apply with their dates. A path in no module, a declared test, or a generated path says so. |
+| `archfit rules <path>...` | For each path: its module, the public part, volatility, layer, and allowed dependencies with the surface of each (its `public` and `model` globs), then the rules that apply with their modes and the exceptions that apply with their dates. A path in no module, a declared test, or a generated path says so. |
 | `archfit rules <rule-id>` | One rule in full, with its exceptions. Built-in rule ids work too. |
 | `archfit rules --graph` | The modules by layer, inner first, with their allowed dependencies. |
 
@@ -117,7 +129,9 @@ The notes of the policy are listed as "not checked". Dates show the days left, s
 
 `archfit request -m "<why>" [--expires DATE] [flags]` asks an owner to change the policy. It takes the errors of the last `archfit check`, or the dependency of the last `archfit can` answer, from `.archfit-cache/last.json`, so you write only the reason. The output is used only while `HEAD` and the working tree are the ones it was produced on: after an edit, run `archfit check` again.
 
-Only an error whose `next` is `archfit request` joins the request: an error of a rule an owner may allow. An error that says `fix the code`, or `wait for an owner: #n`, does not.
+Only an error whose `next` is `archfit request` joins the request: an error of a rule an owner may allow, or a use past the surface. An error that says `fix the code`, or `wait for an owner: #n`, does not.
+
+A use past the surface asks one question: should its package be part of the surface? The printed request shows it on a `question:` line; the App asks the owner to declare the package `public` or `model`, or to reject the request.
 
 With a GitHub remote, `archfit request` posts `/archfit request <why> [--expires DATE]` as a comment on the one open pull request for the current branch. The target repository is `origin`, or a configured GitHub `upstream` for a fork. The head uses the push remote's owner, falling back to the `origin` owner. Several matching pull requests means nothing is sent: the error names their numbers. A detached HEAD or a branch without an upstream has no matching pull request.
 
@@ -132,6 +146,18 @@ $ archfit request -m "netem needs the shared retry helper"
 pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util
   balance: 9/10 (min 7): contract, pkg_util is low
 request: netem needs the shared retry helper
+next: ask an owner     (open a pull request first if there is none)
+```
+
+The request for a use past the surface, on archfit's own repository:
+
+```text
+$ archfit request -m "views needs the score of a seam"
+internal/config/views.go:4: coupling: policy-config-adapter -> assessment-repair
+  balance: 2/10 (min 7): intrusive, assessment-repair is high
+  question: should internal/assessment/score be part of the surface of assessment-repair?
+request: views needs the score of a seam
+policy: not protected
 next: ask an owner     (open a pull request first if there is none)
 ```
 

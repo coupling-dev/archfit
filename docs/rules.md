@@ -61,19 +61,20 @@ builtin: { graph: off, duplication: deny, min_balance: 8 }
 
 ### `coupling`
 
-The balance of a dependency is shown as `n/10 (min m)`. It follows the volatility of the modules and how deep the use reaches:
+The balance of a dependency is shown as `n/10 (min m): strength, module is volatility`. It follows where the use lands in the surface of the target and the volatility that applies:
 
-| Volatility that applies | Use of the public part | Use past the public part | Copy |
-| --- | ---: | ---: | ---: |
-| `low` | 9 or 8 | 8 | 8 |
-| `medium` | 9 or 7 | 5 | 5 |
-| `high` | 9 or 7 | 2 | 1 |
+| Volatility that applies | Use of the public part (`contract`) | Use of the model part (`model`) | Use past the surface (`intrusive`) | Copy |
+| --- | ---: | ---: | ---: | ---: |
+| `low` | 9 | 8 | 8 | 8 |
+| `medium` | 9 | 7 | 5 | 5 |
+| `high` | 9 | 7 | 2 | 1 |
 
-- For a use of the public part, the volatility of the target applies. For a use past it, and for a copy, the higher volatility of the two modules applies.
+- For every use, the volatility of the target applies. For a copy, the higher volatility of the two modules applies.
 - The check uses the declared volatility (`volatility`, else from `subdomain`, else `high`).
-- A use of the public part is a use of a path that the `public` globs of the target module match. A module with no `public` is public as a whole.
+- The `public` and `model` globs of the target module are its surface. A module that declares neither is public as a whole.
+- A use past the surface names the package and the surface, and asks one question: should this package be part of the surface? See [Coupling](coupling.md).
 
-In words: a module may use the public part of a module it is allowed to depend on. It may reach past the public part only into a module declared `low`. The `coupling` rule applies inside allowed dependencies too. See [Coupling](coupling.md).
+In words: a module may use the surface of a module it is allowed to depend on: its public part, and its model part when the balance allows. It may reach past the surface only into a module declared `low`. The `coupling` rule applies inside allowed dependencies too. `archfit rules <path>` lists the surface of each allowed dependency.
 
 ### `duplication`
 

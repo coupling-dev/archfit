@@ -47,6 +47,7 @@ archfit: unknown, no verdict
 - An error with no file, such as an expired exception, names `.archfit.yaml` and no line.
 - A reason for `unknown` names its cause instead of a rule: `policy`, `base`, `tool`, or `import`.
 - `balance` is shown only for a rule about coupling, as `n/10 (min m): strength, module is volatility`: the strength of the use (`contract`, `model` or `intrusive`), then the target module and its declared volatility, the two inputs the number comes from. JSON holds the same inputs as `balance.strength` and `balance.volatility`.
+- A coupling error of a use past the surface has a fixed `what`: `<from module> -> <package> is past the surface` in `check`, and `<package> is past the surface` in `can`. A `surface:` line follows the balance with the declared surface of the target, each glob with its role, such as `surface: internal/assessment/finding (public), internal/assessment/result (model)`, or `surface: none declared`. JSON holds them as `surface` and `package`.
 - Dates show the days left, such as `2026-11-19 (9 days)`.
 - `(not from this change)` ends the status line when every error comes from an expired exception, not from the change.
 - `policy: not protected` follows the status line when no workflow in `.github/workflows/` uses `coupling-dev/archfit-action`. The result is then a local guide, not change control.
@@ -118,8 +119,9 @@ Each error has:
 | `rule` | The rule id, or `exception` for an expired exception. |
 | `what`, `why`, `instead` | As in the record. |
 | `balance` | `value` and `min`, for a rule about coupling, with the two inputs of the value: `strength` and `volatility`. `strength` is `contract` for a use of the target's public part, `model` for a use of its model part, and `intrusive` for a use past its surface. `volatility` is the declared volatility the formula used: always the target's. |
-| `surface` | `public` and `model`: the declared surface of the target module, for a coupling error of a use past it. Either list may be empty: a module that declares only `model` has no public part. The engine does not fill it yet. |
-| `next` | `kind` and `text`, and `note` when there is one. `kind` is `fix`, `command` (only an error of an `ask` rule), `wait`, or `restore`. |
+| `surface` | `public` and `model`: the declared surface of the target module, for a coupling error of a use past it. Either list may be empty: a module that declares only `model` has no public part. |
+| `package` | For a coupling error of a use past the surface: the path past it, the package or file an owner may declare `public` or `model`. |
+| `next` | `kind` and `text`, and `note` when there is one. `kind` is `fix`, `command` (an error of an `ask` rule, or a use past the surface), `wait`, or `restore`. |
 | `from`, `to` | The modules. |
 | `key` | The rule, the modules, and the symbol the error is counted by. |
 | `from_change` | `false` for an expired exception that another change added. |
@@ -138,7 +140,7 @@ An expired exception is not in `repository`. `errors[]` lists it, as on every ru
 
 A pull-request run has no `repository`. A push also has none when its status is `unknown`, when a later push moved the tip before the run read it, or when it is a `--policy` preview. A missing `repository` means "no state". It never means `clean`.
 
-`archfit can --format json` writes `archfit.can.v1`, in the same schema file: `from`, `to`, `answer` (`yes`, `no`, `unknown`), `rule`, `what`, `why`, `instead`, `balance`, `surface`, `next`, `policy`, `head`, `date`, and `engine`.
+`archfit can --format json` writes `archfit.can.v1`, in the same schema file: `from`, `to`, `answer` (`yes`, `no`, `unknown`), `rule`, `what`, `why`, `instead`, `balance`, `surface`, `package`, `next`, `policy`, `head`, `date`, and `engine`.
 
 Both commands keep their JSON document, with the git tree id of the working tree, in `.archfit-cache/last.json` for `archfit request`. A `check --policy` preview keeps nothing.
 
