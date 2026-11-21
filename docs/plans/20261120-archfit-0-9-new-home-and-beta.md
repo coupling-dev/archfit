@@ -257,8 +257,10 @@ explained. Tasks 3.1 to 3.4 are from the 4.1 design; its sections are named.
       word list of the design. `request` and its guide agree. `doctor` reads the pinned version from the
       `# vX` comment at the end of the Action's `uses:` line, with no network call; a missing comment is
       "cannot tell", never a mismatch.
-- [ ] **3.7 Explain the numbers.** Run the fixed engine on the four repositories and compare
-      with the baseline. Every changed balance, status and count has a written reason.
+- [x] **3.7 Explain the numbers.** Run the fixed engine on the four repositories and compare
+      with the baseline. Every changed balance, status and count has a written reason. #20:
+      [the numbers of 0.9.0](20261121-archfit-0-9-numbers.md). Every head check passes and every
+      report keeps its state; the recorded base check is `unknown` on all four (policy version 1).
 - [ ] **3.8 Release.** A new `CHANGELOG.md` that starts at 0.9.0. Tag `v0.9.0`. Check Go,
       Homebrew, the image and the binaries. Record the two image digests. CONFIRM for the tag.
 
@@ -435,6 +437,7 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Steps and minutes of the cold run today | Terminal part, measured by `archfit-76` on 2026-11-20 with `v0.9.0-rc.1` on a fresh clone of `nektos/act`: 4 commands, about 10 s of machine time. `doctor` lists cargo, cargo-modules, archfit-roslyn and dotnet in a Go-only repository; hooks not installed; `init` writes a 151-line policy with 3 exceptions, none with `expires`; `check` passes; `.archfit-cache/` is not ignored. ast-grep was installed, so the review's `init` failure was not reproduced (task 3.6 reproduces it). App part: not measured; the review's 11 steps in 4 places stand until it is. | 0.4 |
 | Issues to open again in the new home | None. | 0.1 |
 | Engine `v0.9.0-rc.1` commit | `cebdbc57` (tag object `e8c4a284`). | 1.8 |
+| Numbers of 0.9.0 against the baseline | Engine `8f04ffe4`: all 728 differing JSON fields of `check` and `report` have a cause (task 3.1 A/B/C, policy version 1, the Action rename, metadata). With the recorded `--base`, every base check goes `pass` → `unknown` (exit 2): 0.9.0 reads only policy version 1 and the recorded bases carry version 2 or 3. So in epic 6 the `--base` check of every migration pull request is `unknown` until its base branch has a version 1 policy, in all four repositories. `protected` is false until a workflow pins `coupling-dev/archfit-action`. Raw outputs: `~/Workspace/archfit.reset-evidence/v0.9.0/`. | 3.7 |
 | Engine `v0.9.0` commit | | 3.8 |
 | Image digest `linux/amd64` | | 3.8 |
 | Image digest `linux/arm64` | | 3.8 |
