@@ -183,6 +183,10 @@ The policy version is separate from the Archfit release version.
 
 A version 2 file is the Archfit 3 format. No command reads it: each rejects it with an error that says to remove the file and run `archfit init` for a fresh version 1 policy. The full reference is the [Configuration page of v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/configuration.md). The starter configurations in [`examples/`](../examples) are version 2 files.
 
+## Version 1 from Archfit 1.x
+
+Archfit 1.x and older wrote `version: 1` with another schema. `check` rejects such a file with one error when it has a key of that format, such as a top-level `coupling` or `ai`. See [Troubleshooting](troubleshooting.md#policy-from-archfit-1x-or-older).
+
 ### AI provider
 
 No command uses a model. `archfit init` drops these settings during conversion. See [v3.4.0](https://github.com/coupling-dev/archfit/blob/2692cd6b8aab23e559d0aa76712a192d69b4229f/docs/configuration.md#ai-provider).
