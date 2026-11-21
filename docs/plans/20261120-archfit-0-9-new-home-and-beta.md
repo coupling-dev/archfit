@@ -212,12 +212,14 @@ Starts after task 1.3.
       the migration links leave the README. #6. The record is a probe on the engine; task 3.2 refreshes it.
 - [ ] **2.3 Other front pages.** The Action README and the App README use the same sentence and
       the same names. The "input contract" paragraph leaves the App README. Action: archfit-action #2. App: after App #231 (task 5.1).
-- [ ] **2.4 Onboarding design.** One document for the engine and the App, written while
+- [x] **2.4 Onboarding design.** One document for the engine and the App, written while
       epics 1 and 3 run and accepted before task 3.8. It uses the count of task 0.4. It names
       the route, the three rungs, each command and page, what `init` and the hooks do by
       default, and what the result and the manifest must already carry in 0.9.0 so that 0.10.0
       breaks nothing. Epic 8 is built from it after the reset. HUMAN to accept.
-      Proposed: `docs/plans/20261120-archfit-onboarding-design.md`.
+      `docs/plans/20261120-archfit-onboarding-design.md`, #8. Accepted by the owner on 2026-11-20,
+      with O1 amended (see task 8.9). The `v0.9.0` tag no longer waits for it; the App part of
+      task 0.4 (O3) stays open.
 
 ### Epic 3. Engine fixes for 0.9.0
 
@@ -287,12 +289,18 @@ Done when the App is deployed with the 0.9.0 manifest. Tasks 5.1 and 5.2 can sta
       `model`, also in the onboarding template and the policy edit path; the balance with its
       inputs on the request and pull-request pages; the answers to a surface request on the request page (declare as public, declare as model,
       allow until a date, reject with `instead`). The App reads `gate` only from a version 3 policy today;
-      5.2 reads it from version 1 and keeps `# request #N` in the version 1 policy writer.
+      5.2 reads it from version 1 and keeps `# request #N` in the version 1 policy writer. The App
+      writes no policy template, so "the onboarding template" needs no policy change. Its
+      `parseAnswer` rejects the 0.9.0 balance and `surface:` lines today; 5.2 accepts them.
 - [ ] **5.3 Manifest.** One entry: engine `v0.9.0`, its two digests, the Action commit of 4.3.
       First check whether the App can accept the old and the new result together. If it can,
       keep the v4.0.0 entry until task 6.5. If it cannot, epic 6 is a window with a merge
       freeze. 5.3 also moves the runtime references left by 5.1, accepts both Action repositories
       until task 6.5, and makes the onboarding template write `# vX` after the Action commit.
+      Answered 2026-11-20 (5.2): it can. The App accepts the v4.0.0 and the 0.9.0 result, and policy
+      version 3 and version 1, side by side until 6.5: one decoder checks the shape of each
+      `balance` object, and a result that mixes both shapes is refused. This departs from the
+      surfaces design 6.6 ("not accepted side by side"); the owner confirmed it. No merge freeze.
 - [ ] **5.4 Deploy.** Record the running revision for rollback. Deploy. Tag `v0.9.0`. CONFIRM.
 
 ### Epic 6. Move the onboarded repositories
@@ -310,7 +318,10 @@ turn it into a surface declaration, or fix the code.
 - [ ] **6.4 `pumba`.** The gate is required and the policy is read from the target branch, so
       the migration pull request may not be able to pass its own check. The owner relaxes the
       ruleset for that one merge and restores it. HUMAN.
-- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Deploy. CONFIRM.
+- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Remove with them the App's
+      side-by-side path of task 5.2: the v4.0.0 result shape and corpus, the version 3 policy
+      reading, and the old Action repository (`internal/wire/result/module.md` names the code).
+      Deploy. CONFIRM.
 
 ### Epic 7. Close the old home
 
@@ -363,6 +374,8 @@ App:
 - [ ] **8.9 One setup page.** The page shows the state of one repository and one next action.
       It never asks the user to copy a workflow by hand. The last action is "Make it
       required": the approval of task 8.1, the first approval and the ruleset belong there.
+      Before the first approval, the page lists every policy change since the setup pull
+      request, with who merged it and its request (onboarding design, O1).
 - [ ] **8.10 Welcome and digest.** A comment on the setup pull request: how to ask, what
       happens next. After seven days: checked, quiet, asked.
 
@@ -429,5 +442,5 @@ Filled in as tasks finish. A later task reads its inputs here.
 | Action `v0.9.0` commit | | 4.3 |
 | App revision before the deploy (rollback) | | 5.4 |
 | App revision of 0.9.0 | | 5.4 |
-| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). | as found |
+| Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). The owner set it to `false` on 2026-11-20 (16:42 UTC) until after epic 6; task 5.4 releases by `workflow_dispatch`. `init` fails without ast-grep, as the review says: a Go repository with one JavaScript file exits 2 and writes no policy (reproduced on `5bd583e7` in a container; task 3.6 fixes it). | as found |
 
