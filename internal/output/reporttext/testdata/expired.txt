@@ -12,5 +12,5 @@ evidence:
   snapshot: unknown
   policy binding: unknown
   relationships: unknown
-  interface inventory: unknown
+  interface facts: unknown
   snapshot gaps: 1

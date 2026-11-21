@@ -12,7 +12,7 @@ func TestReportTextIncludesEvidenceAndLimits(t *testing.T) {
 	if got.code != 0 {
 		t.Fatalf("exit %d: %s", got.code, got.stderr)
 	}
-	for _, want := range []string{"evidence:\n", "snapshot: stable by pre/post check", "policy binding: match", "seam-eligible edges:", "all retained edges:", "volatility origins:", "interface inventory: unknown", "snapshot gaps:"} {
+	for _, want := range []string{"evidence:\n", "snapshot: stable by pre/post check", "policy binding: match", "seam-eligible edges:", "all retained edges:", "volatility origins:", "interface facts: unknown", "snapshot gaps:"} {
 		if !strings.Contains(got.stdout, want) {
 			t.Errorf("report text missing %q:\n%s", want, got.stdout)
 		}

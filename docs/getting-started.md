@@ -92,7 +92,7 @@ When no workflow uses the Archfit Action, every result carries the line `policy:
 
 ## When a rule is in your way
 
-Some rules need an owner: a new dependency between modules (`graph`), or a copy of a literal another module holds (`duplication`). Their `next` is `archfit request`. After `archfit check` (or `archfit can`), run:
+Some rules need an owner: a new dependency between modules (`graph`), or a copy of a literal another module holds (`duplication`). A dependency past a declared surface can also ask an owner. Its request asks whether the package belongs to that surface. Their `next` is `archfit request`. After `archfit check` (or `archfit can`), run:
 
 ```sh
 archfit request -m "netem needs the shared retry helper"

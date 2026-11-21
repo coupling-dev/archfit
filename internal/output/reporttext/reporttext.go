@@ -111,7 +111,7 @@ func writeRepository(b *strings.Builder, r report.RepositoryState) {
 	}
 	if len(r.Unread) > 0 {
 		b.WriteString("not read:\n")
-		for _, u := range r.Unread {
+		for _, u := range groupUnread(r.Unread) {
 			b.WriteString("  ")
 			if u.Path != "" {
 				b.WriteString(location(u.Path, u.Line) + ": ")

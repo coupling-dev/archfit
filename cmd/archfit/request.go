@@ -37,8 +37,9 @@ func (*RequestCmd) Help() string {
 archfit check (or the dependency of the last archfit can answer) on this tree,
 so you write only the reason.
 
-Only an error whose next step is archfit request joins the request. Run
-archfit check again after an edit: a request never uses an older tree.
+Only an error whose next step is archfit request joins the request. A use
+past a surface joins the request and asks whether the package belongs there.
+Run archfit check again after an edit: a request never uses an older tree.
 
 With one open pull request, post the request as a comment. Before a pull
 request exists, only a can answer may open an issue. Uses GH_TOKEN, then
