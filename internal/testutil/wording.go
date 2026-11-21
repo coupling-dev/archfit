@@ -13,7 +13,7 @@ import (
 // listed: section 5 forbids it only as the name of the report, which
 // cmd/archfit checks by name (TestReportIsNeverNamedReview).
 var notUsedWords = []string{
-	"config", "architecture file", "classification", "component", "surface",
+	"config", "architecture file", "classification", "component",
 	"approved pair", "edge", "relation", "law", "intent", "decision", "guardrail",
 	"waiver", "baseline entry", "debt", "temporary decision", "finding", "violation",
 	"blocker", "problem", "task", "gate", "scan", "blocked", "denied",

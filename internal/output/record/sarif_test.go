@@ -153,9 +153,10 @@ func TestSARIFMapping(t *testing.T) {
 		out, _ := renderSARIF(t, result.Result{Status: result.StatusFail, Errors: []result.Error{{
 			Path: file, Line: 5, Rule: ruleCoupling, What: "w", Why: "y", Instead: "i", To: pkgTC,
 			Balance: &result.Balance{Value: 3, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityHigh},
+			Surface: &result.Surface{Public: []string{"pkg/tc"}, Model: []string{}},
 			Next:    result.Next{Text: requestCmd, Note: hint},
 		}}})
-		want := "w\nwhy: y\ninstead: i\nbalance: 3/10 (min 7): model, pkg_tc is high\nnext: archfit request     (a hint)"
+		want := "w\nwhy: y\ninstead: i\nbalance: 3/10 (min 7): model, pkg_tc is high\nsurface: pkg/tc (public)\nnext: archfit request     (a hint)"
 		if got := out.Runs[0].Results[0].Message.Text; got != want {
 			t.Errorf("message:\n--- got\n%s\n--- want\n%s", got, want)
 		}

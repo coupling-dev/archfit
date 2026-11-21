@@ -1,6 +1,6 @@
 // Package record renders a check result and a `can` answer as the text
 // record of design section 8: where, which rule, what; then why, instead,
-// balance, next; the status line last, as in a linter.
+// balance, surface, next; the status line last, as in a linter.
 //
 // The grammar:
 //
@@ -9,6 +9,7 @@
 //	unknown     = [ path [ ":" line ] ": " ] cause ": " what NL fields next-line
 //	fields      = [ "  why: " text NL ] [ "  instead: " text NL ]
 //	              [ "  balance: " n "/10 (min " m "): " strength ", " to " is " volatility NL ]
+//	              [ "  surface: " ( glob " (" role ")" { ", " glob " (" role ")" } | "none declared" ) NL ]
 //	next-line   = "  next: " text [ "     (" note ")" ] NL
 //	status-line = "archfit: " status [ ", " count ] [ " (not from this change)" ] NL
 //	              [ unprotected ]
@@ -56,11 +57,11 @@ func Result(w io.Writer, r result.Result, opts Options) error {
 	var b strings.Builder
 	for _, e := range r.Errors {
 		writeHead(&b, location(e.Path, e.Line), e.Rule, e.What)
-		writeDetails(&b, e.Why, e.Instead, e.Balance, e.To, &e.Next)
+		writeDetails(&b, e.Why, e.Instead, e.Balance, e.To, e.Surface, &e.Next)
 	}
 	for _, u := range groupToolReasons(r.Unknown) {
 		writeHead(&b, location(u.Path, u.Line), string(u.Cause), u.What)
-		writeDetails(&b, u.Why, "", nil, "", &u.Next)
+		writeDetails(&b, u.Why, "", nil, "", nil, &u.Next)
 	}
 	b.WriteString(r.Summary + "\n")
 	writeUnprotected(&b, r.Policy)
@@ -125,7 +126,7 @@ func Answer(w io.Writer, a result.CanAnswer, opts Options) error {
 		label = string(a.Answer)
 	}
 	writeHead(&b, a.From+" -> "+a.To, label, a.What)
-	writeDetails(&b, a.Why, a.Instead, a.Balance, a.To, a.Next)
+	writeDetails(&b, a.Why, a.Instead, a.Balance, a.To, a.Surface, a.Next)
 	writeUnprotected(&b, a.Policy)
 	if opts.Verbose {
 		writeVerbose(&b, a.Policy, a.Engine)
@@ -163,9 +164,26 @@ func BalanceLine(b result.Balance, to string) string {
 		string(b.Strength) + ", " + to + " is " + string(b.Volatility)
 }
 
+// surfaceLine is the declared surface of a target module, for a use past it
+// (the surfaces design 6.9): each public glob, then each model glob, with its
+// role. A module with no declared part has "none declared".
+func surfaceLine(s result.Surface) string {
+	parts := make([]string, 0, len(s.Public)+len(s.Model))
+	for _, g := range s.Public {
+		parts = append(parts, g+" (public)")
+	}
+	for _, g := range s.Model {
+		parts = append(parts, g+" (model)")
+	}
+	if len(parts) == 0 {
+		return "surface: none declared"
+	}
+	return "surface: " + strings.Join(parts, ", ")
+}
+
 // writeDetails writes the indented fields of an error or an answer; to is
 // the target module a balance names.
-func writeDetails(b *strings.Builder, why, instead string, balance *result.Balance, to string, next *result.Next) {
+func writeDetails(b *strings.Builder, why, instead string, balance *result.Balance, to string, surface *result.Surface, next *result.Next) {
 	if why != "" {
 		b.WriteString("  why: " + why + "\n")
 	}
@@ -174,6 +192,9 @@ func writeDetails(b *strings.Builder, why, instead string, balance *result.Balan
 	}
 	if balance != nil {
 		b.WriteString("  " + BalanceLine(*balance, to) + "\n")
+	}
+	if surface != nil {
+		b.WriteString("  " + surfaceLine(*surface) + "\n")
 	}
 	if next != nil {
 		b.WriteString("  next: " + next.Text)

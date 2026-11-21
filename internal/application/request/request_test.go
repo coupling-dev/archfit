@@ -20,10 +20,12 @@ import (
 const contractExamples = "../../model/result/testdata"
 
 const (
-	exampleHead = "1a954628a960aaef81d7b2d4521929579f3541e6"
-	treeAtCheck = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
-	reasonGraph = "netem needs the shared retry helper"
-	reasonCopy  = "tc parses the interface name before pkg_util is loaded"
+	exampleHead   = "1a954628a960aaef81d7b2d4521929579f3541e6"
+	treeAtCheck   = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+	reasonGraph   = "netem needs the shared retry helper"
+	reasonCopy    = "tc parses the interface name before pkg_util is loaded"
+	reasonSurface = "netem belongs to the surface of pkg_tc"
+	netemPackage  = "pkg/tc/netem"
 	// laterDay is a day after the check, on an unchanged tree.
 	laterDay = "2026-11-14"
 	// yearAndADay is 366 days after the check's date.
@@ -41,6 +43,9 @@ func TestRequestsOfTheDesignExamples(t *testing.T) {
 		{name: "graph", last: checked(t, "graph"), in: request.Input{Reason: reasonGraph}},
 		{name: "duplication", last: checked(t, "duplication"), in: request.Input{Reason: reasonCopy, Expires: "2026-12-10"}},
 		{name: "can", last: answered(t), in: request.Input{Reason: "  " + reasonGraph + "\n"}},
+		// A use past the surface asks whether the package belongs to it. The
+		// wire carries no package: the App reads its own verified result.
+		{name: "coupling", last: checked(t, "coupling"), in: request.Input{Reason: reasonSurface}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			out, err := service(tc.last).Ask(context.Background(), tc.in)
@@ -158,6 +163,24 @@ func TestOnlyAskErrorsJoin(t *testing.T) {
 	}
 	if len(out.Request.Errors) != 1 || out.Request.Errors[0].Rule != "graph" {
 		t.Errorf("errors = %+v, want only the graph error", out.Request.Errors)
+	}
+}
+
+// TestSurfaceRequestKeepsThePackage: the error of a use past the surface keeps
+// its package for the question the CLI prints, outside the request document.
+func TestSurfaceRequestKeepsThePackage(t *testing.T) {
+	out, err := service(checked(t, "coupling")).Ask(context.Background(), request.Input{Reason: reasonSurface})
+	if err != nil {
+		t.Fatalf("Ask: %v", err)
+	}
+	if len(out.Request.Errors) != 1 || out.Request.Errors[0].Package != netemPackage {
+		t.Errorf("errors = %+v, want the coupling error with package pkg/tc/netem", out.Request.Errors)
+	}
+	can := answered(t)
+	can.Can.Rule, can.Can.Package = "coupling", netemPackage
+	out, err = service(can).Ask(context.Background(), request.Input{Reason: reasonSurface})
+	if err != nil || out.Request.Errors[0].Package != netemPackage {
+		t.Errorf("from can: errors = %+v, %v; want package pkg/tc/netem", out.Request.Errors, err)
 	}
 }
 

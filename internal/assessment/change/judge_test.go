@@ -16,6 +16,11 @@ import (
 const (
 	chaos     = "pkg_chaos"
 	tc        = "pkg_tc"
+	tcDir     = "pkg/tc"
+	netemDir  = "pkg/tc/netem"
+	dst       = "dst"
+	dstAPI    = "dst/api"
+	dstModel  = "dst/model"
 	util      = "pkg_util"
 	container = "pkg_container"
 	runtime   = "pkg_runtime"
@@ -61,7 +66,7 @@ func policy() resolved.Policy {
 				Paths: []string{"pkg/chaos/**"}, Public: []string{"pkg/chaos", "pkg/chaos/cliflags"},
 				Volatility: resolved.VolatilityHigh, Layer: core, DependsOn: []string{container, util},
 			},
-			tc:        {Paths: []string{"pkg/tc/**"}, Public: []string{"pkg/tc"}, Volatility: resolved.VolatilityHigh, Layer: core},
+			tc:        {Paths: []string{"pkg/tc/**"}, Public: []string{tcDir}, Volatility: resolved.VolatilityHigh, Layer: core},
 			util:      {Paths: []string{"pkg/util/**"}, Volatility: resolved.VolatilityLow, Layer: core},
 			container: {Paths: []string{"pkg/container/**"}, Volatility: resolved.VolatilityMedium, Layer: core},
 			runtime:   {Paths: []string{runtimeGlob}, Volatility: resolved.VolatilityMedium, Layer: core},
@@ -142,7 +147,9 @@ func TestJudgeModes(t *testing.T) {
 		use  change.Use
 	}{
 		{resolved.RuleGraph, func(b *resolved.Builtin, m resolved.Mode) { b.Graph = m }, fileUse("pkg/tc/tc.go", "pkg/util")},
-		{resolved.RuleCoupling, func(b *resolved.Builtin, m resolved.Mode) { b.Coupling = m }, fileUse("cmd/main.go", "pkg/tc/netem")},
+		// A use of the public part below a min of 10 follows the mode; a use
+		// past the surface has its own step (TestJudgePastSurfaceInEveryMode).
+		{resolved.RuleCoupling, func(b *resolved.Builtin, m resolved.Mode) { b.Coupling, b.MinBalance = m, 10 }, fileUse("cmd/main.go", tcDir)},
 		{resolved.RuleLayers, func(b *resolved.Builtin, m resolved.Mode) { b.Layers = m }, fileUse("pkg/util/util.go", "cmd")},
 	}
 	for _, tt := range tests {
@@ -164,6 +171,20 @@ func TestJudgeModes(t *testing.T) {
 	}
 }
 
+// TestJudgePastSurfaceInEveryMode: a use past the surface asks for the
+// surface in deny and in ask mode, never for the use itself (the surfaces
+// design 6.9).
+func TestJudgePastSurfaceInEveryMode(t *testing.T) {
+	for _, mode := range []resolved.Mode{resolved.ModeDeny, resolved.ModeAsk} {
+		p := policy()
+		p.Builtin.Coupling = mode
+		got, ok := byRule(change.Judge(p, fileUse("cmd/main.go", netemDir)), resolved.RuleCoupling)
+		if !ok || got.Next != surfaceStep("netem") {
+			t.Errorf("%s: next %+v, %v; want %+v", mode, got.Next, ok, surfaceStep("netem"))
+		}
+	}
+}
+
 // The surfaces design 6.1: the declared surface of the target gives the
 // strength, and every strength takes the target's volatility. A use of the
 // public part passes at every volatility, a use of the model part passes at
@@ -175,16 +196,16 @@ func TestJudgeCouplingMatrix(t *testing.T) {
 	for _, source := range volatilities {
 		for _, target := range volatilities {
 			p := resolved.Policy{Modules: map[string]resolved.Module{
-				"src": {Paths: []string{"src/**"}, Volatility: source, DependsOn: []string{"dst"}},
-				"dst": {Paths: []string{"dst/**"}, Public: []string{"dst/api"}, Model: []string{"dst/model"}, Volatility: target},
+				"src": {Paths: []string{"src/**"}, Volatility: source, DependsOn: []string{dst}},
+				dst:   {Paths: []string{"dst/**"}, Public: []string{dstAPI}, Model: []string{dstModel}, Volatility: target},
 			}}.WithDefaults()
 			v := result.Volatility(target)
 			for _, tt := range []struct {
 				name, target string
 				want         result.Balance
 			}{
-				{"public", "dst/api", result.Balance{Value: 9, Min: 10, Strength: result.StrengthContract, Volatility: v}},
-				{"model", "dst/model", result.Balance{Value: modelBalance[target], Min: 10, Strength: result.StrengthModel, Volatility: v}},
+				{"public", dstAPI, result.Balance{Value: 9, Min: 10, Strength: result.StrengthContract, Volatility: v}},
+				{"model", dstModel, result.Balance{Value: modelBalance[target], Min: 10, Strength: result.StrengthModel, Volatility: v}},
 				{"past", "dst/store", result.Balance{Value: pastBalance[target], Min: 10, Strength: result.StrengthIntrusive, Volatility: v}},
 			} {
 				t.Run(fmt.Sprintf("%s %s to %s", tt.name, source, target), func(t *testing.T) {
@@ -198,6 +219,17 @@ func TestJudgeCouplingMatrix(t *testing.T) {
 					got, _ := byRule(change.Judge(strict, fileUse("src/a.go", tt.target)), resolved.RuleCoupling)
 					if got.Balance == nil || *got.Balance != tt.want {
 						t.Fatalf("balance = %+v, want %+v", got.Balance, tt.want)
+					}
+					// Only a use past the surface names the surface, the
+					// package and a request for the surface; the others keep
+					// the rule's own next step.
+					if tt.want.Strength == result.StrengthIntrusive {
+						wantSurface := &result.Surface{Public: []string{dstAPI}, Model: []string{dstModel}}
+						if !reflect.DeepEqual(got.Surface, wantSurface) || got.Package != tt.target || got.Next != surfaceStep("store") {
+							t.Errorf("past the surface: surface %+v, package %q, next %+v", got.Surface, got.Package, got.Next)
+						}
+					} else if got.Surface != nil || got.Package != "" || got.Next != fixStep() {
+						t.Errorf("%s: surface %+v, package %q, next %+v; want none and fix the code", tt.want.Strength, got.Surface, got.Package, got.Next)
 					}
 					// The named inputs alone give the value: they are the
 					// inputs the formula used, not a description of them.
@@ -213,28 +245,30 @@ func TestJudgeCouplingMatrix(t *testing.T) {
 }
 
 func TestJudgeCouplingText(t *testing.T) {
-	got, ok := byRule(change.Judge(policy(), fileUse("cmd/main.go", "pkg/tc/netem")), resolved.RuleCoupling)
+	got, ok := byRule(change.Judge(policy(), fileUse("cmd/main.go", netemDir)), resolved.RuleCoupling)
 	want := change.Error{
-		Key:  change.Key{Rule: resolved.RuleCoupling, From: cmd, To: tc, Symbol: "pkg/tc/netem"},
+		Key:  change.Key{Rule: resolved.RuleCoupling, From: cmd, To: tc, Symbol: netemDir},
 		From: cmd, To: tc,
-		What: "cmd -> pkg_tc reaches past the public part of pkg_tc", Phrase: "reaches past the public part",
+		What: "cmd -> pkg/tc/netem is past the surface", Phrase: "pkg/tc/netem is past the surface",
 		Why:     "new knowledge across a module boundary needs a balance of at least 7",
 		Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
-		Next:    fixStep(),
+		Surface: &result.Surface{Public: []string{tcDir}, Model: []string{}},
+		Package: netemDir,
+		Next:    surfaceStep("netem"),
 	}
 	if !ok || !reflect.DeepEqual(got, want) {
 		t.Errorf("got %+v, %v\nwant %+v", got, ok, want)
 	}
 	p := policy()
 	p.Builtin.MinBalance = 10
-	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc")), resolved.RuleCoupling)
+	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", tcDir)), resolved.RuleCoupling)
 	if got.What != "cmd -> pkg_tc uses the public part of pkg_tc" || got.Phrase != "uses the public part" {
 		t.Errorf("a public use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
 	}
 	tcMod := p.Modules[tc]
-	tcMod.Model = []string{"pkg/tc/netem"}
+	tcMod.Model = []string{netemDir}
 	p.Modules[tc] = tcMod
-	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", "pkg/tc/netem")), resolved.RuleCoupling)
+	got, _ = byRule(change.Judge(p, fileUse("cmd/main.go", netemDir)), resolved.RuleCoupling)
 	if got.What != "cmd -> pkg_tc uses the model part of pkg_tc" || got.Phrase != "uses the model part" {
 		t.Errorf("a model use below a min of 10: what = %q, phrase = %q", got.What, got.Phrase)
 	}
@@ -388,7 +422,7 @@ func TestJudgeNoteGivesNoError(t *testing.T) {
 func TestJudgeSameModuleAndNoModule(t *testing.T) {
 	p := policy()
 	for _, use := range []change.Use{
-		fileUse("pkg/tc/tc.go", "pkg/tc/netem"),
+		fileUse("pkg/tc/tc.go", netemDir),
 		fileUse("tools/gen.go", "pkg/util"),
 		fileUse("pkg/tc/tc.go", "vendor/x"),
 	} {
@@ -406,7 +440,7 @@ func TestJudgeTextsUseOnlyDesignWords(t *testing.T) {
 		p.Modules[m] = mod
 	}
 	uses := []change.Use{
-		fileUse("pkg/tc/tc.go", "pkg/util"), fileUse("cmd/main.go", "pkg/tc/netem"), fileUse("pkg/util/util.go", "cmd"),
+		fileUse("pkg/tc/tc.go", "pkg/util"), fileUse("cmd/main.go", netemDir), fileUse("pkg/util/util.go", "cmd"),
 		fileUse("pkg/chaos/chaos.go", runtimeDir), fileUse("cmd/main.go", "pkg/runtime/x"),
 		libraryUse("pkg/chaos/chaos.go", dockerSDK, resolved.LanguageGo), libraryUse("pkg/chaos/chaos.go", "os/exec", resolved.LanguageGo),
 	}
@@ -445,12 +479,12 @@ func TestBalanceOf(t *testing.T) {
 		want *result.Balance
 	}{
 		{"a use of the public part of a low module", fileUse("pkg/chaos/chaos.go", "pkg/util"), &result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
-		{"a use past the public part of a high module", fileUse("cmd/main.go", "pkg/tc/netem"),
+		{"a use past the public part of a high module", fileUse("cmd/main.go", netemDir),
 			&result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}},
 		{"a module named on its own means its public part",
 			change.Use{From: change.End{Module: cmd}, To: change.End{Module: tc}},
 			&result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityHigh}},
-		{"one module", fileUse("pkg/tc/tc.go", "pkg/tc/netem"), nil},
+		{"one module", fileUse("pkg/tc/tc.go", netemDir), nil},
 		{"an importer in no module", fileUse("tools/gen.go", "pkg/util"), nil},
 		{"a target in no module", fileUse("pkg/tc/tc.go", "vendor/x"), nil},
 		{"a library", libraryUse("pkg/chaos/chaos.go", dockerSDK, resolved.LanguageGo), nil},
@@ -470,5 +504,25 @@ func TestBalanceOf(t *testing.T) {
 	graph, _ := byRule(change.Judge(policy(), fileUse("pkg/tc/netem.go", "pkg/util")), resolved.RuleGraph)
 	if want := change.BalanceOf(policy(), fileUse("pkg/tc/netem.go", "pkg/util")); !reflect.DeepEqual(graph.Balance, want) {
 		t.Errorf("the graph error carries %+v, BalanceOf gives %+v", graph.Balance, want)
+	}
+}
+
+// surfaceStep is the next step of a use past the surface: use the surface, or
+// ask whether the package belongs to it (the surfaces design 6.9).
+func surfaceStep(name string) result.Next {
+	return result.Next{Kind: result.NextCommand, Text: `use the surface, or: archfit request -m "<why ` + name + ` belongs to the surface>"`}
+}
+
+// TestJudgeSurfaceListsNeverNull: a module that declares only model has an
+// empty public part, written as [] and not null.
+func TestJudgeSurfaceListsNeverNull(t *testing.T) {
+	p := resolved.Policy{Modules: map[string]resolved.Module{
+		"src": {Paths: []string{"src/**"}, DependsOn: []string{dst}},
+		dst:   {Paths: []string{"dst/**"}, Model: []string{dstModel}, Volatility: resolved.VolatilityHigh},
+	}}.WithDefaults()
+	got, ok := byRule(change.Judge(p, fileUse("src/a.go", "dst/store")), resolved.RuleCoupling)
+	if !ok || got.Surface == nil || got.Surface.Public == nil || len(got.Surface.Public) != 0 ||
+		!reflect.DeepEqual(got.Surface.Model, []string{dstModel}) {
+		t.Errorf("surface = %+v, %v; want public [] and model [dst/model]", got.Surface, ok)
 	}
 }

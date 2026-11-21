@@ -47,6 +47,11 @@ type Error struct {
 	// Balance is the balance of the dependency, when the rule is about
 	// coupling.
 	Balance *result.Balance
+	// Surface is the declared surface of the target module, and Package the
+	// path past it, for a coupling error of a use past the surface. Unset
+	// otherwise.
+	Surface *result.Surface
+	Package string
 	// Next is the one step to take.
 	Next result.Next
 }

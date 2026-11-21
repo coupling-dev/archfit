@@ -165,8 +165,12 @@ type Error struct {
 	// coupling.
 	Balance *Balance `json:"balance,omitempty"`
 	// Surface is the declared surface of the target module, for a coupling
-	// error of a use past it. Not set by the engine of this version.
+	// error of a use past it.
 	Surface *Surface `json:"surface,omitempty"`
+	// Package is the path past the surface, for a coupling error of a use
+	// past it: the package or file an owner may declare public or model.
+	// What names it too, in a fixed form: "pkg/tc/netem is past the surface".
+	Package string `json:"package,omitempty"`
 	// Next is the one step to take.
 	Next Next `json:"next"`
 	// From is the module the dependency starts in.
@@ -354,8 +358,11 @@ type CanAnswer struct {
 	// Balance is the balance the dependency would have.
 	Balance *Balance `json:"balance,omitempty"`
 	// Surface is the declared surface of the target module, when the answer
-	// is no for a use past it. Not set by the engine of this version.
+	// is no for a use past it.
 	Surface *Surface `json:"surface,omitempty"`
+	// Package is the path past the surface, when the answer is no for a use
+	// past it: the package or file an owner may declare public or model.
+	Package string `json:"package,omitempty"`
 	// Next is the one step to take, when the answer is not yes.
 	Next *Next `json:"next,omitempty"`
 	// Policy names the policy that gave the answer.

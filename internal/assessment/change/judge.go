@@ -2,6 +2,7 @@ package change
 
 import (
 	"fmt"
+	"path"
 	"slices"
 	"strings"
 
@@ -118,16 +119,18 @@ func builtin(p resolved.Policy, u Use) []Error {
 			fmt.Sprintf("%s -> %s is %s", from, to, phrase), phrase, whyGraph, bal))
 	}
 	if p.Builtin.Coupling != resolved.ModeOff && bal.Value < p.Builtin.MinBalance {
-		phrase := "reaches past the public part"
+		why := fmt.Sprintf(whyCoupling, p.Builtin.MinBalance)
 		switch bal.Strength {
-		case result.StrengthContract:
-			phrase = "uses the public part"
-		case result.StrengthModel:
-			phrase = "uses the model part"
+		case result.StrengthContract, result.StrengthModel:
+			phrase := "uses the public part"
+			if bal.Strength == result.StrengthModel {
+				phrase = "uses the model part"
+			}
+			errs = append(errs, dependency(resolved.RuleCoupling, p.Builtin.Coupling,
+				fmt.Sprintf("%s -> %s %s of %s", from, to, phrase, to), phrase, why, bal))
+		default:
+			errs = append(errs, pastSurface(dependency(resolved.RuleCoupling, p.Builtin.Coupling, "", "", why, bal), toMod, symbol, u.To.Path))
 		}
-		errs = append(errs, dependency(resolved.RuleCoupling, p.Builtin.Coupling,
-			fmt.Sprintf("%s -> %s %s of %s", from, to, phrase, to), phrase,
-			fmt.Sprintf(whyCoupling, p.Builtin.MinBalance), bal))
 	}
 	if p.Builtin.Layers != resolved.ModeOff && inverted(p.Layers, fromMod.Layer, toMod.Layer) {
 		errs = append(errs, dependency(resolved.RuleLayers, p.Builtin.Layers,
@@ -163,6 +166,28 @@ func BalanceOf(p resolved.Policy, u Use) *result.Balance {
 		Value: value, Min: p.Builtin.MinBalance,
 		Strength: result.Strength(strength), Volatility: result.Volatility(target),
 	}
+}
+
+// pastSurface words a coupling error of a use past the surface (the surfaces
+// design 6.9): it names the package in a fixed form, "<pkg> is past the
+// surface", carries the target's declared surface, and its next step is to
+// use the surface or ask whether the package belongs to it. An unbalanced use
+// is never approved as such; only the declaration can change. pkg is the
+// used path, or the module when the use names the module on its own; the
+// Package field is set only for a path.
+func pastSurface(e Error, target resolved.Module, pkg, usedPath string) Error {
+	e.Phrase = pkg + " is past the surface"
+	e.What = e.From + " -> " + e.Phrase
+	e.Surface = &result.Surface{Public: listOf(target.Public), Model: listOf(target.Model)}
+	e.Package = usedPath
+	e.Next = result.Next{Kind: result.NextCommand,
+		Text: `use the surface, or: archfit request -m "<why ` + path.Base(pkg) + ` belongs to the surface>"`}
+	return e
+}
+
+// listOf copies globs into a list that is never nil, so JSON writes [].
+func listOf(globs []string) []string {
+	return append([]string{}, globs...)
 }
 
 // betweenModules reports whether a use, its modules resolved, crosses from

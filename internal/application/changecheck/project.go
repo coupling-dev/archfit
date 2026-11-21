@@ -86,7 +86,8 @@ func projectRepository(s repostate.Repository, policyPath string) *result.Reposi
 // expired exception has no site and names the policy file.
 func projectError(e count.Error, policyPath string) result.Error {
 	out := result.Error{
-		Rule: e.Key.Rule, What: e.What, Why: e.Why, Instead: e.Instead, Balance: e.Balance, Next: e.Next,
+		Rule: e.Key.Rule, What: e.What, Why: e.Why, Instead: e.Instead, Balance: e.Balance,
+		Surface: e.Surface, Package: e.Package, Next: e.Next,
 		From: e.From, To: e.To, Key: keyText(e.Key), FromChange: e.FromChange,
 	}
 	if x := e.Exception; x != nil {
