@@ -46,6 +46,7 @@ package changecheck
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -155,6 +156,13 @@ type Options struct {
 	// Policy is --policy: a candidate policy file to judge with, without the
 	// comparison. Empty: PolicyPath.
 	Policy string
+}
+
+// explained is a policy error that carries its own why and next lines, such as
+// a file in the format of archfit 1.x.
+type explained interface {
+	Why() string
+	Next() string
 }
 
 // Outcome is the result of one check.
@@ -300,6 +308,11 @@ func (s Service) judge(ctx context.Context, o Options, now time.Time, tree strin
 		r.stop(missing)
 		return r, nil
 	case local.Err != nil:
+		var own explained
+		if errors.As(local.Err, &own) {
+			r.stop(reason{path: r.policyPath, cause: result.CausePolicy, what: local.Err.Error(), why: own.Why(), kind: result.NextRestore, next: own.Next()})
+			return r, nil
+		}
 		r.stopLines(local.Err, whyInvalid, result.NextRestore, fmt.Sprintf(nextFix, r.policyPath))
 		return r, nil
 	}

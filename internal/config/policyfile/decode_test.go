@@ -1,6 +1,7 @@
 package policyfile_test
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -380,6 +381,46 @@ rules:
 			}
 			if from := got.Rules[0].Deny.From; !reflect.DeepEqual(from, tt.want) {
 				t.Errorf("deny.from = %v, want %v", from, tt.want)
+			}
+		})
+	}
+}
+
+func TestDecodeLegacyPolicy(t *testing.T) {
+	const legacyText = "this is a policy from archfit 1.x or older, which this engine does not read"
+	tests := []struct {
+		name   string
+		policy string
+		want   string
+	}{
+		{"coupling at the top", "version: 1\nowners: [a]\ncoupling: {min: 1}\nmodules:\n  app: {paths: [cmd/**]}\n", legacyText},
+		{"ai at the top", "version: 1\nowners: [a]\nai: {provider: anthropic}\nmodules:\n  app: {paths: [cmd/**]}\n", legacyText},
+		{"scip analyzer", "version: 1\nowners: [a]\nanalyzers:\n  scip: {enabled: true}\nmodules:\n  app: {paths: [cmd/**]}\n", legacyText},
+		{"clones analyzer", "version: 1\nowners: [a]\nanalyzers:\n  clones: {enabled: true}\nmodules:\n  app: {paths: [cmd/**]}\n", legacyText},
+		{"typed rule", "version: 1\nowners: [a]\nmodules:\n  app: {paths: [cmd/**]}\nrules:\n  - type: no_cycles\n", legacyText},
+		{"owner in a module", "version: 1\nowners: [a]\nmodules:\n  app:\n    owner: team\n    paths: [cmd/**]\n", `unknown field "owner"`},
+		{"typo in a module key", "version: 1\nowners: [a]\nmodules:\n  app:\n    pathz: [cmd/**]\n", `unknown field "pathz"`},
+		{"typo at the top", "version: 1\nowners: [a]\nmodulez: {}\nmodules:\n  app: {paths: [cmd/**]}\n", `unknown field "modulez"`},
+		{"valid", "version: 1\nowners: [a]\nmodules:\n  app: {paths: [cmd/**]}\n", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := policyfile.Decode([]byte(tt.policy))
+			if tt.want == "" {
+				if err != nil {
+					t.Fatalf("Decode rejected a valid policy: %v", err)
+				}
+				return
+			}
+			if err == nil || !strings.Contains(err.Error(), tt.want) {
+				t.Fatalf("error = %v, want it to contain %q", err, tt.want)
+			}
+			var legacy policyfile.LegacyError
+			if got := errors.As(err, &legacy); got != (tt.want == legacyText) {
+				t.Errorf("error is LegacyError = %v, want %v", got, tt.want == legacyText)
+			}
+			if tt.want == legacyText && strings.Contains(err.Error(), "\n") {
+				t.Errorf("legacy error has more than one line: %q", err)
 			}
 		})
 	}

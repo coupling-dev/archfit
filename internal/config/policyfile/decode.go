@@ -29,9 +29,12 @@ var durationRE = regexp.MustCompile(DurationPattern)
 // Decode reads a schema 1 policy. Unknown keys, wrong types, values outside their
 // list or range, bad dates, missing required keys and a rule without exactly one
 // form are errors. A file of another version is an error that names
-// archfit init. When the checks fail, the error lists every problem, one per line.
+// archfit init. A file with a key only archfit 1.x had is a LegacyError. When the checks fail, the error lists every problem, one per line.
 func Decode(data []byte) (File, error) {
 	if err := checkVersion(data); err != nil {
+		return File{}, err
+	}
+	if err := checkLegacy(data); err != nil {
 		return File{}, err
 	}
 	var f File

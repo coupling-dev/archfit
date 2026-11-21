@@ -10,13 +10,13 @@ On macOS or Linux, install the latest release with Homebrew:
 brew install coupling-dev/tap/archfit
 ```
 
-Or install with Go:
+Or install with Go 1.27 or newer:
 
 ```sh
 go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
 ```
 
-You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
+The Homebrew formula and the release binary need no Go toolchain. You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
 
 ## Check the tools
 

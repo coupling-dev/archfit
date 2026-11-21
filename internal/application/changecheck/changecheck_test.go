@@ -565,6 +565,19 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
+			name: "a local policy in the format of archfit 1.x",
+			setup: func(w *world) {
+				w.policies.local[changecheck.PolicyPath] = file("version: 1\nowners: [a]\ncoupling: {x: 1}\nmodules:\n  app:\n    paths: [cmd/**]\n")
+				delete(w.policies.target, mainSHA)
+			},
+			want: want{
+				record: ".archfit.yaml: policy: this is a policy from archfit 1.x or older, which this engine does not read\n" +
+					"  why: archfit 1.x wrote version 1 too, with other keys, and this engine cannot convert it\n  next: move it aside and run archfit init\n" + noVerdict,
+				base: baseSHA, stored: true,
+				notes: []string{noTargetNote},
+			},
+		},
+		{
 			name: "no policy anywhere",
 			setup: func(w *world) {
 				w.policies.local = map[string]changecheck.PolicyFile{}

@@ -20,6 +20,18 @@ A path glob that matches nothing, an unknown module, or a malformed rule stops t
 
 See [Configuration](configuration.md).
 
+## Policy from archfit 1.x or older
+
+Archfit 1.x and older also wrote `version: 1`, with a different schema. When a version 1 file has a key only that format had, `check` stops with one record:
+
+```text
+.archfit.yaml: policy: this is a policy from archfit 1.x or older, which this engine does not read
+  why: archfit 1.x wrote version 1 too, with other keys, and this engine cannot convert it
+  next: move it aside and run archfit init
+```
+
+The keys are a top-level `coupling` or `ai`, a `type` in a rule, and `scip` or `clones` under `analyzers`. Move the file aside, run `archfit init`, and read the new policy. A version 1 file with any other unknown key keeps its own error for that key.
+
 ## Policy differs from the target
 
 A code change cannot judge itself under a policy it changes. Open a separate policy pull request for an owner, or bring the approved target policy into the branch when it is stale.
