@@ -75,6 +75,7 @@ func moduleBlock(w *writer, p resolved.Policy, date time.Time, name string, file
 	m := p.Modules[name]
 	w.line(0, "%s: module %s", strings.Join(files, ", "), name)
 	w.line(1, "public: %s", strings.Join(m.Public, ", "))
+	w.field(1, "model", strings.Join(m.Model, ", "))
 	volatility := string(m.Volatility)
 	if m.Subdomain != "" {
 		volatility += " (subdomain " + string(m.Subdomain) + ")"

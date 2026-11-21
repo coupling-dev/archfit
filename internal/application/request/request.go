@@ -23,7 +23,8 @@
 //	policy_digest  the digest of the policy that judged the output
 //
 // Only the errors an owner may approve join: those whose next step is a
-// command (`archfit request`), which the engine gives to an `ask` rule. An
+// command (`archfit request`), which the engine gives to an `ask` rule and,
+// in every mode, to a coupling error of a use past the surface. An
 // error that says "fix the code" or "wait for an owner: #n" is not asked
 // again.
 //

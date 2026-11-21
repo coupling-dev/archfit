@@ -48,10 +48,20 @@ var modeTexts = map[resolved.Mode]string{
 	resolved.ModeOff:  "not checked",
 }
 
+// modeText says what a built-in rule's mode does with an error. A coupling
+// error of a use past the surface asks for the surface in every mode, so its
+// deny text says so (the surfaces design 6.9).
+func modeText(id string, mode resolved.Mode) string {
+	if id == resolved.RuleCoupling && mode == resolved.ModeDeny {
+		return modeTexts[mode] + "; a use past the surface may ask for the surface"
+	}
+	return modeTexts[mode]
+}
+
 // builtinLine writes a built-in rule with its mode in parentheses.
 func (w *writer) builtinLine(indent int, p resolved.Policy, id string) {
 	mode := builtinMode(p.Builtin, id)
-	w.line(indent, "%s: %s (%s: %s)", id, builtinText(p, id), mode, modeTexts[mode])
+	w.line(indent, "%s: %s (%s: %s)", id, builtinText(p, id), mode, modeText(id, mode))
 }
 
 func builtinText(p resolved.Policy, id string) string {

@@ -47,7 +47,7 @@ A rule has one mode:
 
 | Mode | An error says |
 | --- | --- |
-| `deny` | `next: fix the code`, or the `instead` of the rule. |
+| `deny` | `next: fix the code`, or the `instead` of the rule. A `coupling` error of a use past the surface asks for the surface instead, in every mode: see [Coupling](coupling.md). |
 | `ask` | An owner may approve: `next: archfit request -m "<why ...>"`. |
 | `off` | The rule is not checked. |
 

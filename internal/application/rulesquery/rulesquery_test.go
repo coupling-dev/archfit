@@ -163,7 +163,12 @@ func TestPaths(t *testing.T) {
 		{
 			name: "min_balance shows in coupling",
 			args: []string{utilFile},
-			has:  []string{"coupling: new knowledge across a module boundary needs a balance of at least 8 (deny: fix the code)\n"},
+			has:  []string{"coupling: new knowledge across a module boundary needs a balance of at least 8 (deny: fix the code; a use past the surface may ask for the surface)\n"},
+		},
+		{
+			name: "a module shows its model part",
+			args: []string{utilFile},
+			has:  []string{"  public: pkg/util\n  model: pkg/util/types\n"},
 		},
 		{
 			name: "a volatility from the subdomain names it",
