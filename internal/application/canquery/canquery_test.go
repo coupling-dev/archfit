@@ -43,7 +43,7 @@ const (
 	runtimeDir  = "pkg/runtime"
 	requestText = `archfit request -m "<why you need it>"`
 	fixText     = "fix the code"
-	bal9        = "  balance: 9/10 (min 7)\n"
+	bal9        = "  balance: 9/10 (min 7): contract, pkg_util is low\n"
 	nextFix     = "  next: fix the code\n"
 
 	chaosDir       = "pkg/chaos"
@@ -201,7 +201,7 @@ func cases() []tcase {
 		{"an allowed dependency with its balance", policy, chaosDir, utilDir,
 			"pkg_chaos -> pkg_util: yes\n" + bal9, &evidence.ImportFact{File: chaosFile, Target: utilDir}},
 		{"past the public part of a high module", policy, cmdFile, netemDir,
-			"cmd -> pkg_tc: coupling: reaches past the public part\n  balance: 2/10 (min 7)\n" + nextFix,
+			"cmd -> pkg_tc: coupling: reaches past the public part\n  balance: 2/10 (min 7): intrusive, pkg_tc is high\n" + nextFix,
 			&evidence.ImportFact{File: cmdFile, Target: netemDir}},
 		{"a deny rule with instead", policy, chaosNetemFile, runtimeDir,
 			"pkg_chaos -> pkg_runtime: no-chaos-to-runtime: pkg_chaos must not depend on pkg_runtime\n" +

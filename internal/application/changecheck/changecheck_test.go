@@ -386,7 +386,7 @@ type want struct {
 const (
 	graphRecord = "pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util is not an allowed dependency\n" +
 		"  why: a new dependency between modules needs an owner\n" +
-		"  balance: 9/10 (min 7)\n" +
+		"  balance: 9/10 (min 7): contract, pkg_util is low\n" +
 		"  next: archfit request -m \"<why you need it>\"     (do not copy the code)\n" +
 		"archfit: fail, 1 error\n"
 	noVerdict  = "archfit: unknown, no verdict\n"

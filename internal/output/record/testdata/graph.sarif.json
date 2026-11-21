@@ -19,7 +19,7 @@
           "ruleId": "graph",
           "level": "error",
           "message": {
-            "text": "pkg_tc -> pkg_util is not an allowed dependency\nwhy: a new dependency between modules needs an owner\nbalance: 9/10 (min 7)\nnext: archfit request -m \"<why you need it>\"     (do not copy the code)"
+            "text": "pkg_tc -> pkg_util is not an allowed dependency\nwhy: a new dependency between modules needs an owner\nbalance: 9/10 (min 7): contract, pkg_util is low\nnext: archfit request -m \"<why you need it>\"     (do not copy the code)"
           },
           "locations": [
             {

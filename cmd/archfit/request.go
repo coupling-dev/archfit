@@ -18,6 +18,7 @@ import (
 	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
 	requestsend "github.com/coupling-dev/archfit/internal/history/github"
 	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/output/record"
 	"github.com/coupling-dev/archfit/internal/policy/resolved"
 )
 
@@ -107,7 +108,7 @@ func writeRequest(w io.Writer, r request.Request, protected bool, today time.Tim
 		}
 		b.WriteString(where + "\n")
 		if e.Balance != nil {
-			b.WriteString("  balance: " + strconv.Itoa(e.Balance.Value) + "/10 (min " + strconv.Itoa(e.Balance.Min) + ")\n")
+			b.WriteString("  " + record.BalanceLine(*e.Balance, e.To) + "\n")
 		}
 	}
 	b.WriteString("request: " + r.Reason + "\n")
