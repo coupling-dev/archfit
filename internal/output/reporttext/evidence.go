@@ -29,7 +29,7 @@ func writeEvidence(b *strings.Builder, e report.ReportEvidence) {
 	}
 	for _, gap := range e.Snapshot.Unknowns {
 		if gap.Fact == "report_context" {
-			b.WriteString("\n  relationships: unknown\n  interface inventory: unknown\n  snapshot gaps: " + strconv.Itoa(len(e.Snapshot.Unknowns)) + "\n")
+			b.WriteString("\n  relationships: unknown\n  interface facts: unknown\n  snapshot gaps: " + strconv.Itoa(len(e.Snapshot.Unknowns)) + "\n")
 			return
 		}
 	}
@@ -38,8 +38,8 @@ func writeEvidence(b *strings.Builder, e report.ReportEvidence) {
 	for _, c := range e.Components {
 		counts[c.Volatility.Origin]++
 	}
-	b.WriteString("  volatility origins: asserted " + strconv.Itoa(counts["asserted"]) + ", assessed " + strconv.Itoa(counts["assessed"]) + ", assumed " + strconv.Itoa(counts["assumed"]) + ", unknown " + strconv.Itoa(counts["unknown"]) + "\n")
-	b.WriteString("  interface inventory: unknown\n")
+	b.WriteString("  volatility origins: declared " + strconv.Itoa(counts["asserted"]) + ", seen " + strconv.Itoa(counts["assessed"]+counts["observed"]) + ", assumed " + strconv.Itoa(counts["assumed"]) + ", unknown " + strconv.Itoa(counts["unknown"]) + "\n")
+	b.WriteString("  interface facts: unknown\n")
 	if n := len(e.Snapshot.Unknowns); n > 0 {
 		b.WriteString("  snapshot gaps: " + strconv.Itoa(n) + "\n")
 	}
