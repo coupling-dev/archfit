@@ -29,6 +29,9 @@ A patch release never breaks them. See [Version rule](docs/development.md#versio
   The schema `$id` values point at `https://raw.githubusercontent.com/coupling-dev/archfit/main/`.
   Releases up to v5.0.0 stay in the old home. Nothing there is retagged or deleted.
 
+- **Change control needs the new Action.** `policy.protected` is true only when a workflow uses `coupling-dev/archfit-action`.
+  A repository whose workflow still pins the Action from the old home shows `policy: not protected` after the status line.
+  The result is then a local guide, not change control. Move the `uses:` line to `coupling-dev/archfit-action` to restore it.
 - **Policy `version: 1`.** Every command refuses another version with one error.
   To upgrade, keep a copy of the old `.archfit.yaml`, remove it and run `archfit init` to write a fresh policy.
   Then carry your rules and decisions over from the copy.
