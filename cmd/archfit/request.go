@@ -110,6 +110,11 @@ func writeRequest(w io.Writer, r request.Request, protected bool, today time.Tim
 		if e.Balance != nil {
 			b.WriteString("  " + record.BalanceLine(*e.Balance, e.To) + "\n")
 		}
+		// A use past the surface asks only whether its package belongs to
+		// the surface (the surfaces design 6.9).
+		if e.Package != "" {
+			b.WriteString("  question: should " + e.Package + " be part of the surface of " + e.To + "?\n")
+		}
 	}
 	b.WriteString("request: " + r.Reason + "\n")
 	if r.Expires != "" {

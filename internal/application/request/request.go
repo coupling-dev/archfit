@@ -23,7 +23,8 @@
 //	policy_digest  the digest of the policy that judged the output
 //
 // Only the errors an owner may approve join: those whose next step is a
-// command (`archfit request`), which the engine gives to an `ask` rule. An
+// command (`archfit request`), which the engine gives to an `ask` rule and,
+// in every mode, to a coupling error of a use past the surface. An
 // error that says "fix the code" or "wait for an owner: #n" is not asked
 // again.
 //
@@ -112,6 +113,11 @@ type Error struct {
 	From    string          `json:"from"`
 	To      string          `json:"to"`
 	Balance *result.Balance `json:"balance,omitempty"`
+	// Package is the path past the surface, for a coupling error of a use
+	// past it. It is not part of the request document: the CLI asks with it
+	// whether the package belongs to the surface, and the App reads it from
+	// its own verified result.
+	Package string `json:"-"`
 }
 
 // Input is what the worker gives on the command line.
@@ -256,7 +262,7 @@ func fromLast(last Last) (Request, string, error) {
 		var errs []Error
 		for _, e := range c.Errors {
 			if e.Next.Kind == result.NextCommand {
-				errs = append(errs, Error{Path: e.Path, Line: e.Line, Rule: e.Rule, From: e.From, To: e.To, Balance: e.Balance})
+				errs = append(errs, Error{Path: e.Path, Line: e.Line, Rule: e.Rule, From: e.From, To: e.To, Balance: e.Balance, Package: e.Package})
 			}
 		}
 		if len(errs) == 0 {
@@ -273,7 +279,7 @@ func fromLast(last Last) (Request, string, error) {
 	case a.Next == nil || a.Next.Kind != result.NextCommand:
 		return Request{}, "", fmt.Errorf("%w: the rule says to fix the code", ErrNothingToAsk)
 	}
-	errs := []Error{{Rule: a.Rule, From: a.From, To: a.To, Balance: a.Balance}}
+	errs := []Error{{Rule: a.Rule, From: a.From, To: a.To, Balance: a.Balance, Package: a.Package}}
 	return Request{Can: a, Errors: errs, Head: a.Head, PolicyDigest: a.Policy.Digest}, a.Date, nil
 }
 

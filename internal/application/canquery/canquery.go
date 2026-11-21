@@ -452,6 +452,8 @@ func no(a result.CanAnswer, e change.Error) result.CanAnswer {
 	a.What = e.Phrase
 	a.Instead = e.Instead
 	a.Balance = e.Balance
+	a.Surface = e.Surface
+	a.Package = e.Package
 	next := e.Next
 	if slices.Contains(resolved.BuiltinRules, e.Key.Rule) {
 		next.Note = ""

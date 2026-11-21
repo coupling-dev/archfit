@@ -21,7 +21,7 @@ func rule(p resolved.Policy, date time.Time, id string) string {
 	} else {
 		w.line(0, "%s: %s", id, builtinText(p, id))
 		mode := builtinMode(p.Builtin, id)
-		w.line(1, "mode: %s (%s)", mode, modeTexts[mode])
+		w.line(1, "mode: %s (%s)", mode, modeText(id, mode))
 		if id == resolved.RuleCoupling {
 			w.line(1, "in words: %s", couplingInWords)
 		}

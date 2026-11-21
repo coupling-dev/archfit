@@ -139,6 +139,28 @@ In words: a module may use the public part and the model part of a module it
 is allowed to depend on. It may reach past the surface only into a `low`
 module.
 
+A use past the surface names the package and the surface the target declares,
+and its next step is to use the surface or to ask whether the package belongs to
+it. This is a probe on archfit's own repository, one import added and never
+committed:
+
+```text
+$ archfit check
+internal/config/views.go:4: coupling: policy-config-adapter -> internal/assessment/score is past the surface
+  why: new knowledge across a module boundary needs a balance of at least 7
+  balance: 2/10 (min 7): intrusive, assessment-repair is high
+  surface: internal/assessment/finding (public)
+  next: use the surface, or: archfit request -m "<why score belongs to the surface>"
+archfit: fail, 1 error
+policy: not protected
+```
+
+The request asks one question: should `internal/assessment/score` be part of
+the surface? An owner answers by declaring it `public` or `model`, or by
+rejecting the request. The use itself is never approved as it is; only the
+declaration changes. Every other coupling error keeps the step of the rule's
+mode: `fix the code` for `deny`, a request for `ask`.
+
 ## Distributed-monolith seam measurements
 
 The report groups dependencies into ordered module pairs, called seams. One

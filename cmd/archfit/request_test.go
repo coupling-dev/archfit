@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/coupling-dev/archfit/internal/application/request"
+	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
 // requestGoldens holds the text of `archfit request` without the App (D5).
@@ -24,6 +25,7 @@ const (
 	ruleDuplication = "duplication"
 	flagExpires     = "--expires"
 	checkFirst      = "run archfit check first"
+	moduleTC        = "pkg_tc"
 )
 
 // TestRequestFromTheCLI: check or can, then request, on the examples of
@@ -208,4 +210,28 @@ func (r failingReader) Read([]byte) (int, error) { return 0, r.err }
 func lastLine(text string) string {
 	lines := strings.Split(strings.TrimSuffix(text, "\n"), "\n")
 	return lines[len(lines)-1]
+}
+
+// TestWriteRequestAsksForTheSurface: an error past the surface asks one
+// question, whether its package belongs to the surface; other errors ask none.
+// The question is in the printed preview only, never in the request document.
+func TestWriteRequestAsksForTheSurface(t *testing.T) {
+	past := request.Error{
+		Path: "cmd/main.go", Line: 14, Rule: "coupling", From: "cmd", To: moduleTC, Package: "pkg/tc/netem",
+		Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
+	}
+	graph := request.Error{Path: "cmd/main.go", Line: 14, Rule: ruleGraph, From: "cmd", To: moduleTC}
+	var b strings.Builder
+	r := request.Request{Reason: "netem belongs to the surface", Errors: []request.Error{past, graph}}
+	if err := writeRequest(&b, r, true, time.Date(2026, 11, 21, 0, 0, 0, 0, time.UTC)); err != nil {
+		t.Fatal(err)
+	}
+	want := "cmd/main.go:14: coupling: cmd -> pkg_tc\n" +
+		"  balance: 2/10 (min 7): intrusive, pkg_tc is high\n" +
+		"  question: should pkg/tc/netem be part of the surface of pkg_tc?\n" +
+		"cmd/main.go:14: graph: cmd -> pkg_tc\n" +
+		"request: netem belongs to the surface\n" + askOwner + "\n"
+	if got := b.String(); got != want {
+		t.Errorf("request:\n--- got\n%s--- want\n%s", got, want)
+	}
 }

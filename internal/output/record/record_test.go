@@ -28,6 +28,7 @@ const (
 	engine    = "4.0.0"
 	passLine  = "archfit: pass"
 	pkgTC     = "pkg_tc"
+	repair    = "assessment-repair"
 )
 
 // TestGoldensMatchDesignExamples renders every example of design 8.1 and
@@ -128,6 +129,31 @@ func TestResultLines(t *testing.T) {
 			want: "x.go:5: coupling: w\n  balance: 10/10 (min 1): contract, pkg_tc is low\n  next: n\narchfit: fail, 1 error\n",
 		},
 		{
+			name: "a use past the surface names the surface after the balance",
+			r: result.Result{
+				Summary: failOne,
+				Errors: []result.Error{{
+					Path: file, Line: 5, Rule: ruleCoupling, What: "cmd -> pkg/tc/netem is past the surface", To: pkgTC,
+					Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
+					Surface: &result.Surface{Public: []string{"pkg/tc", "pkg/tc/api.go"}, Model: []string{"pkg/tc/model"}},
+					Package: "pkg/tc/netem", Next: result.Next{Text: "n"},
+				}},
+			},
+			want: "x.go:5: coupling: cmd -> pkg/tc/netem is past the surface\n  balance: 2/10 (min 7): intrusive, pkg_tc is high\n" +
+				"  surface: pkg/tc (public), pkg/tc/api.go (public), pkg/tc/model (model)\n  next: n\narchfit: fail, 1 error\n",
+		},
+		{
+			name: "a surface with no declared part",
+			r: result.Result{
+				Summary: failOne,
+				Errors: []result.Error{{
+					Path: file, Line: 5, Rule: ruleCoupling, What: "w", To: pkgTC,
+					Surface: &result.Surface{Public: []string{}, Model: []string{}}, Next: result.Next{Text: "n"},
+				}},
+			},
+			want: "x.go:5: coupling: w\n  surface: none declared\n  next: n\narchfit: fail, 1 error\n",
+		},
+		{
 			name: "a note in parentheses after the next step",
 			r: result.Result{
 				Summary: failOne,
@@ -194,6 +220,21 @@ func TestAnswerLines(t *testing.T) {
 			name: "yes with the balance it would have",
 			a:    result.CanAnswer{From: "a", To: "b", Answer: result.ReplyYes, Balance: &result.Balance{Value: 8, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityLow}},
 			want: "a -> b: yes\n  balance: 8/10 (min 7): model, b is low\n",
+		},
+		{
+			name: "no past the surface, as design 6.9 shows it",
+			a: result.CanAnswer{
+				From: "analysis-application", To: repair, Answer: result.ReplyNo, Rule: ruleCoupling,
+				What:    "internal/assessment/score is past the surface",
+				Balance: &result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
+				Surface: &result.Surface{Public: []string{"internal/assessment/finding"}, Model: []string{}},
+				Package: "internal/assessment/score",
+				Next:    &result.Next{Kind: result.NextCommand, Text: `use the surface, or: archfit request -m "<why score belongs to the surface>"`},
+			},
+			want: "analysis-application -> assessment-repair: coupling: internal/assessment/score is past the surface\n" +
+				"  balance: 2/10 (min 7): intrusive, assessment-repair is high\n" +
+				"  surface: internal/assessment/finding (public)\n" +
+				"  next: use the surface, or: archfit request -m \"<why score belongs to the surface>\"\n",
 		},
 		{
 			name: "no with every field",
@@ -299,7 +340,7 @@ func TestBalanceLine(t *testing.T) {
 	}{
 		{result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityHigh}, "architecture-policy",
 			"balance: 9/10 (min 7): contract, architecture-policy is high"},
-		{result.Balance{Value: 7, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityMedium}, "assessment-repair",
+		{result.Balance{Value: 7, Min: 7, Strength: result.StrengthModel, Volatility: result.VolatilityMedium}, repair,
 			"balance: 7/10 (min 7): model, assessment-repair is medium"},
 		{result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}, "assessment-repair",
 			"balance: 2/10 (min 7): intrusive, assessment-repair is high"},

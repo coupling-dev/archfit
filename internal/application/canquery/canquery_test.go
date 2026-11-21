@@ -45,6 +45,7 @@ const (
 	fixText     = "fix the code"
 	bal9        = "  balance: 9/10 (min 7): contract, pkg_util is low\n"
 	nextFix     = "  next: fix the code\n"
+	surfaceNext = `use the surface, or: archfit request -m "<why netem belongs to the surface>"`
 
 	chaosDir       = "pkg/chaos"
 	chaosNetemFile = "pkg/chaos/netem/netem.go"
@@ -201,7 +202,8 @@ func cases() []tcase {
 		{"an allowed dependency with its balance", policy, chaosDir, utilDir,
 			"pkg_chaos -> pkg_util: yes\n" + bal9, &evidence.ImportFact{File: chaosFile, Target: utilDir}},
 		{"past the public part of a high module", policy, cmdFile, netemDir,
-			"cmd -> pkg_tc: coupling: reaches past the public part\n  balance: 2/10 (min 7): intrusive, pkg_tc is high\n" + nextFix,
+			"cmd -> pkg_tc: coupling: pkg/tc/netem is past the surface\n  balance: 2/10 (min 7): intrusive, pkg_tc is high\n" +
+				"  surface: pkg/tc (public)\n  next: " + surfaceNext + "\n",
 			&evidence.ImportFact{File: cmdFile, Target: netemDir}},
 		{"a deny rule with instead", policy, chaosNetemFile, runtimeDir,
 			"pkg_chaos -> pkg_runtime: no-chaos-to-runtime: pkg_chaos must not depend on pkg_runtime\n" +
@@ -386,8 +388,10 @@ func TestArguments(t *testing.T) {
 			result.CanAnswer{From: chaos, To: "go.uber.org/zap", Answer: result.ReplyYes}},
 		{"a file not written yet under a dot directory", tcDir, ".storybook/new.ts",
 			result.CanAnswer{From: tc, To: ".storybook/new.ts", Answer: result.ReplyUnknown}},
-		{"a rule to fix the code wins over one to ask", chaosDir, netemDir,
-			result.CanAnswer{From: chaos, To: tc, Answer: result.ReplyNo, Rule: resolved.RuleCoupling}},
+		{"a rule to fix the code wins over one to ask", utilFile, cmdFile,
+			result.CanAnswer{From: util, To: cmd, Answer: result.ReplyNo, Rule: resolved.RuleLayers}},
+		{"a graph error comes before the surface question", chaosDir, netemDir,
+			result.CanAnswer{From: chaos, To: tc, Answer: result.ReplyNo, Rule: resolved.RuleGraph}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -429,9 +433,13 @@ func TestNoKeepsTheStepOfItsRule(t *testing.T) {
 	if graph.Next == nil || *graph.Next != (result.Next{Kind: result.NextCommand, Text: requestText}) {
 		t.Errorf("graph next = %+v, want the request without a note", graph.Next)
 	}
-	coupling := ask(t, policy(), cmdFile, netemDir)
-	if coupling.Next == nil || coupling.Next.Kind != result.NextFix || coupling.Next.Text != fixText || coupling.Why != "" {
-		t.Errorf("coupling: next %+v, why %q; want fix the code and no why", coupling.Next, coupling.Why)
+	layers := ask(t, policy(), utilFile, cmdFile)
+	if layers.Next == nil || layers.Next.Kind != result.NextFix || layers.Next.Text != fixText || layers.Why != "" {
+		t.Errorf("layers: next %+v, why %q; want fix the code and no why", layers.Next, layers.Why)
+	}
+	past := ask(t, policy(), cmdFile, netemDir)
+	if past.Next == nil || *past.Next != (result.Next{Kind: result.NextCommand, Text: surfaceNext}) || past.Why != "" {
+		t.Errorf("past the surface: next %+v, why %q; want the surface step and no why", past.Next, past.Why)
 	}
 	yes := ask(t, policy(), chaosDir, utilDir)
 	if yes.Next != nil || yes.What != "" || yes.Rule != "" {
@@ -440,17 +448,21 @@ func TestNoKeepsTheStepOfItsRule(t *testing.T) {
 }
 
 // A no names the inputs of its balance: the strength and the volatility the
-// formula used. The surface is not filled by the engine of this version.
+// formula used. Only a use past the surface names the surface and the
+// package.
 func TestNoNamesTheInputsOfItsBalance(t *testing.T) {
 	tests := []struct {
-		name     string
-		from, to string
-		want     result.Balance
+		name        string
+		from, to    string
+		want        result.Balance
+		wantSurface *result.Surface
+		wantPackage string
 	}{
 		{"past the public part of a high module", cmdFile, netemDir,
-			result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh}},
+			result.Balance{Value: 2, Min: 7, Strength: result.StrengthIntrusive, Volatility: result.VolatilityHigh},
+			&result.Surface{Public: []string{tcDir}, Model: []string{}}, netemDir},
 		{"a graph error on the public part of a low module", tc, util,
-			result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}},
+			result.Balance{Value: 9, Min: 7, Strength: result.StrengthContract, Volatility: result.VolatilityLow}, nil, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -458,8 +470,8 @@ func TestNoNamesTheInputsOfItsBalance(t *testing.T) {
 			if a.Answer != result.ReplyNo || a.Balance == nil || *a.Balance != tt.want {
 				t.Errorf("answer %s, balance %+v; want no with %+v", a.Answer, a.Balance, tt.want)
 			}
-			if a.Surface != nil {
-				t.Errorf("surface = %+v, want none until the engine fills it", a.Surface)
+			if !reflect.DeepEqual(a.Surface, tt.wantSurface) || a.Package != tt.wantPackage {
+				t.Errorf("surface %+v, package %q; want %+v, %q", a.Surface, a.Package, tt.wantSurface, tt.wantPackage)
 			}
 		})
 	}

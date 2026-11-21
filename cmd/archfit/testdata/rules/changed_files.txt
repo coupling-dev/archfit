@@ -5,7 +5,7 @@ pkg/tc/netem.go: module pkg_tc
   allowed dependencies: none
   rules that apply:
     graph: a dependency between two modules must be an allowed dependency (ask: an owner may approve)
-    coupling: new knowledge across a module boundary needs a balance of at least 7 (deny: fix the code)
+    coupling: new knowledge across a module boundary needs a balance of at least 7 (deny: fix the code; a use past the surface may ask for the surface)
     duplication: knowledge that another module already owns is not copied (ask: an owner may approve)
     cycle: no new cycle between modules (deny: fix the code)
     layers: dependencies follow the layer order (deny: fix the code)

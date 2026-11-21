@@ -89,7 +89,7 @@ func ResultSARIF(w io.Writer, r result.Result) error {
 		res := sarifResult{
 			RuleID:    e.Rule,
 			Level:     "error",
-			Message:   sarifMessage{Text: messageText(e.What, e.Why, e.Instead, e.Balance, e.To, &e.Next)},
+			Message:   sarifMessage{Text: messageText(e.What, e.Why, e.Instead, e.Balance, e.To, e.Surface, &e.Next)},
 			Locations: []sarifLocation{sarifLocationOf(e.Path, e.Line)},
 		}
 		if e.Key != "" {
@@ -101,7 +101,7 @@ func ResultSARIF(w io.Writer, r result.Result) error {
 	for _, u := range r.Unknown {
 		n := sarifNotification{
 			Level:   "warning",
-			Message: sarifMessage{Text: messageText(string(u.Cause)+": "+u.What, u.Why, "", nil, "", &u.Next)},
+			Message: sarifMessage{Text: messageText(string(u.Cause)+": "+u.What, u.Why, "", nil, "", nil, &u.Next)},
 		}
 		if u.Path != "" {
 			n.Locations = []sarifLocation{sarifLocationOf(u.Path, u.Line)}
@@ -129,9 +129,9 @@ var literalBraces = strings.NewReplacer("{", "{{", "}", "}}")
 
 // messageText is the first line, then the detail lines of the text record
 // without their indent, with literal braces doubled.
-func messageText(first, why, instead string, balance *result.Balance, to string, next *result.Next) string {
+func messageText(first, why, instead string, balance *result.Balance, to string, surface *result.Surface, next *result.Next) string {
 	var b strings.Builder
-	writeDetails(&b, why, instead, balance, to, next)
+	writeDetails(&b, why, instead, balance, to, surface, next)
 	lines := []string{first}
 	for line := range strings.Lines(b.String()) {
 		lines = append(lines, strings.TrimPrefix(strings.TrimSuffix(line, "\n"), "  "))

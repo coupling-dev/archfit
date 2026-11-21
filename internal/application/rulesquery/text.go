@@ -19,9 +19,27 @@ var builtinTexts = map[string]string{
 	resolved.RuleUnowned:     "new production code belongs to a module",
 }
 
-// couplingInWords is the coupling rule in words, from design 6.2.
-const couplingInWords = "a module may use the public part of a module it is allowed to depend on; " +
-	"it may reach past the public part only into a module declared low"
+// couplingInWords is the coupling rule in words, from the surfaces design
+// 6.1 and 6.9.
+const couplingInWords = "a module may use the surface of a module it is allowed to depend on: " +
+	"its public part, and its model part when the balance allows; " +
+	"it may reach past the surface only into a module declared low"
+
+// surfaceText is the declared surface of a module, each public glob, then
+// each model glob, with its role, as the record's surface line writes it.
+func surfaceText(m resolved.Module) string {
+	parts := make([]string, 0, len(m.Public)+len(m.Model))
+	for _, g := range m.Public {
+		parts = append(parts, g+" (public)")
+	}
+	for _, g := range m.Model {
+		parts = append(parts, g+" (model)")
+	}
+	if len(parts) == 0 {
+		return "none declared"
+	}
+	return strings.Join(parts, ", ")
+}
 
 // modeTexts say what each mode does with an error.
 var modeTexts = map[resolved.Mode]string{
@@ -30,10 +48,20 @@ var modeTexts = map[resolved.Mode]string{
 	resolved.ModeOff:  "not checked",
 }
 
+// modeText says what a built-in rule's mode does with an error. A coupling
+// error of a use past the surface asks for the surface in every mode, so its
+// deny text says so (the surfaces design 6.9).
+func modeText(id string, mode resolved.Mode) string {
+	if id == resolved.RuleCoupling && mode == resolved.ModeDeny {
+		return modeTexts[mode] + "; a use past the surface may ask for the surface"
+	}
+	return modeTexts[mode]
+}
+
 // builtinLine writes a built-in rule with its mode in parentheses.
 func (w *writer) builtinLine(indent int, p resolved.Policy, id string) {
 	mode := builtinMode(p.Builtin, id)
-	w.line(indent, "%s: %s (%s: %s)", id, builtinText(p, id), mode, modeTexts[mode])
+	w.line(indent, "%s: %s (%s: %s)", id, builtinText(p, id), mode, modeText(id, mode))
 }
 
 func builtinText(p resolved.Policy, id string) string {
