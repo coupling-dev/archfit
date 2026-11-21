@@ -156,7 +156,7 @@ Done when the old repositories are quiet and a baseline exists.
 - [ ] **0.4 Count the steps today.** One cold run of the current path on a scratch repository:
       install v5.0.0, `init`, the workflow, the App, the first verdict. Record each step, each
       place (terminal, GitHub, App), each wait and each stumble, with the time. This is the
-      number epic 8 must beat. The passkey and the App sign-in are HUMAN.
+      number epic 8 must beat. The passkey and the App sign-in are HUMAN. App part done in epic 6, not timed; the owner found the approval links hard to find, fixed by App #238 and #239.
 
 ### Epic 1. New home for the engine
 
@@ -316,26 +316,26 @@ turn it into a surface declaration, or fix the code.
 
 - [x] **6.1 `archfit-4-mechanics`**, the rehearsal. One request approved with the passkey
       proves the whole loop. HUMAN for the passkey. Path: one pull request that changes only `.archfit.yaml` (to `version: 1`) and the `uses:` line; its check is `unknown` until an owner approves it in the App (passkey); after the merge the owner confirms the new policy (passkey). The engine alone stays `unknown` for this pull request (task 3.7). Done 2026-11-21: archfit-4-mechanics #9 (554fe5a7), owner approval and confirm with passkeys; master gate `pass` on 0.9.0; report `clean` as in the baseline.
-- [ ] **6.2 `coupling-dev/archfit`.** Install the App on the organization and admit it. Turn
-      the workflow on. First approval. Add `archfit/gate` to the required checks. HUMAN. The policy is already `version: 1` and `archfit/gate` is not required: the workflow pull request needs no approval to merge. Then the first approval, then add the required check.
-- [ ] **6.3 `ccgram`.** Advisory gate. Path: App approval, as in 6.1; the ruleset requires `archfit/gate`.
-- [ ] **6.4 `pumba`.** The gate is required and the policy is read from the target branch, so
+- [x] **6.2 `coupling-dev/archfit`.** Install the App on the organization and admit it. Turn
+      the workflow on. First approval. Add `archfit/gate` to the required checks. HUMAN. The policy is already `version: 1` and `archfit/gate` is not required: the workflow pull request needs no approval to merge. Then the first approval, then add the required check. Done 2026-11-21: the App Archfit Review was already installed on the coupling-dev org for all repositories (no install needed); workflow re-enabled; Action line moved in #27 (e07b3282); owner first approval with passkey; #28 (c81042d4) was the first gated run; `archfit/gate` added to the required checks on main; default-branch gate `pass`.
+- [x] **6.3 `ccgram`.** Advisory gate. Path: App approval, as in 6.1; the ruleset requires `archfit/gate`. Done 2026-11-21: ccgram #413 (ebd8ceff), owner workflow approval and confirm with passkeys (confirm issue #414 closed); default-branch gate `pass`.
+- [x] **6.4 `pumba`.** The gate is required and the policy is read from the target branch, so
       the migration pull request may not be able to pass its own check. The owner relaxes the
-      ruleset for that one merge and restores it. HUMAN. Found by task 5.3: the owner's App approval satisfies the `archfit-gate` ruleset, so the ruleset is relaxed only if that approval is refused.
-- [ ] **6.5 Manifest.** Remove every entry older than 0.9.0. Remove with them the App's
+      ruleset for that one merge and restores it. HUMAN. Found by task 5.3: the owner's App approval satisfies the `archfit-gate` ruleset, so the ruleset is relaxed only if that approval is refused. Done 2026-11-21: pumba #419 (ad1b8777), same path, no ruleset relaxation needed (confirm issue #420 closed); default-branch gate `pass`.
+- [x] **6.5 Manifest.** Remove every entry older than 0.9.0. Remove with them the App's
       side-by-side path of task 5.2: the v4.0.0 result shape and corpus, the version 3 policy
       reading, and the old Action repository (`internal/wire/result/module.md` names the code).
-      Deploy. CONFIRM.
+      Deploy. CONFIRM. Done 2026-11-21: App #237 (merged 591a67cd) removed the v4.0.0 entry and result shape, policy version 3 and the old Action repository, shipped with App #238 and #239; deployed by the owner's `workflow_dispatch`, run 44923382504. See section 8.
 
 ### Epic 7. Close the old home
 
 Done when one number appears everywhere and a cold install works.
 
-- [ ] **7.1 Pointers.** A pointer at the top of both old READMEs. Archive `alexei-led/archfit`
+- [x] **7.1 Pointers.** A pointer at the top of both old READMEs. Archive `alexei-led/archfit`
       and `alexei-led/archfit-action`. Remove `archfit.rb` from `alexei-led/homebrew-tap`.
-      CONFIRM.
-- [ ] **7.2 Outside consumers.** The `tools-archfit` skill of the architect plugin; the chezmoi
-      pins; the `archfit-4-team` scripts; local remotes, worktrees and the GitNexus index.
+      CONFIRM. Done 2026-11-21: banners in archfit-action (#19) and archfit (#218, 6e728daa), both archived, descriptions and homepages point to coupling-dev; `archfit.rb` removed from homebrew-tap (ab55f462).
+- [x] **7.2 Outside consumers.** The `tools-archfit` skill of the architect plugin; the chezmoi
+      pins; the `archfit-4-team` scripts; local remotes, worktrees and the GitNexus index. Done 2026-11-21: architect#1 (768acc4) rewrote the skill for 0.9.0; chezmoi Brewfile `coupling-dev/tap/archfit` (a13d41a); archfit-4-team README note; GitNexus index refreshed. Left for the owner: see section 8.
 - [ ] **7.3 Cold install.** From a throwaway account and a clean machine or container: install,
       `init`, a pull request, a verdict. Write down every stumble as an issue. HUMAN.
 
@@ -449,4 +449,9 @@ Filled in as tasks finish. A later task reads its inputs here.
 | App revision of 0.9.0 | `archfit-public-r44906507642-1` and `archfit-worker-r44906507642-1`, image `sha256:55424d766574200e580294c65d168320a26c9ff08468719e355e38f016c0d47f`, commit `69ecdc20`, tag `v0.9.0`. | 5.4 |
 | Deferred past 0.9.0 | The report text prints a bare balance (a report-model change). `archfit can` allows `reporttext` -> `output/record` while the Go architecture test forbids it. The engine's `scripts/check-names.sh` uses `\b`, which `git grep -E` on macOS does not support. The App's owner review page diffs the policy from `base.sha` on a stale branch (display only). | 3.6, 4.2, 5.3 |
 | Answers to the open points of section 7 | `release.yaml` skips Homebrew for a prerelease, so rc.1 does not test the tap; the first test is `v0.9.0`. `coupling-dev` allows public packages (owner, 2026-11-20). The App releases on every push to `main` while the repository variable `RELEASE_ON_PUSH` is `true` (it is): every App merge in epic 5 is a deploy (task 5.1 finding). The owner set it to `false` on 2026-11-20 (16:42 UTC) until after epic 6; task 5.4 releases by `workflow_dispatch`. `init` fails without ast-grep, as the review says: a Go repository with one JavaScript file exits 2 and writes no policy (reproduced on `5bd583e7` in a container; task 3.6 fixes it). | as found |
-
+| App part of the cold run | Done in epic 6, not timed: four approvals and three confirms. The owner found the approval links hard to find; fixed by App #238 (one next action with a direct link) and #239 (pending owner actions on Home, repository and pull pages). | 0.4 |
+| Epic 6 moves | archfit: #27 (e07b3282), #28 (c81042d4), `archfit/gate` required on main. ccgram #413 (ebd8ceff), confirm #414. pumba #419 (ad1b8777), confirm #420, no ruleset relaxation. All default-branch gates `pass`; owner approvals and confirms with passkeys. | 6.2 to 6.4 |
+| App manifest cleanup | App #237 (591a67cd) removed the v4.0.0 entry, v4.0.0 result shape, policy version 3 and the old Action repository; shipped with #238 and #239. Deployed by `workflow_dispatch` run 44923382504; revisions `archfit-public-r44923382504-1` and `archfit-worker-r44923382504-1` at 100%; rollback revisions `archfit-public-r44906507642-1` and `archfit-worker-r44906507642-1`. `RELEASE_ON_PUSH` back to `true` on 2026-11-21 16:51 UTC. The App is not re-tagged: its next tag follows the next shared release number. | 6.5 |
+| Old home closed | alexei-led/archfit-action banner (#19) and archive; alexei-led/archfit banner (#218, 6e728daa; the owner first removed the never-passing `archfit/gate` from its required checks) and archive; descriptions and homepages point to coupling-dev; `archfit.rb` removed from alexei-led/homebrew-tap (ab55f462). | 7.1 |
+| Outside consumers | architect plugin `tools-archfit` skill rewritten for 0.9.0 (alexei-led/architect#1, 768acc4; dist regenerated with agbun 0.7.3 against the pinned 0.3.1, the owner may rebuild); chezmoi Brewfile `coupling-dev/tap/archfit` (a13d41a); archfit-4-team README note; GitNexus index refreshed. Left for the owner: agentbundler CI pins the old module path (still works, old engine); alexei-led/homebrew-tap README still lists the old install line; a blog post links the old repo. | 7.2 |
+| Guard fix and deferred issues | Guard fix #24 (7f0582d3): `make names` now matches `/vN` on macOS. Deferred issues: engine #25 and #26, App #236. | 4.2, as found |
