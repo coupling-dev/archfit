@@ -31,18 +31,26 @@ func TestVendoredLines(t *testing.T) {
 }
 
 func TestVendoredIssueForm(t *testing.T) {
-	var input struct {
-		Reason, Record string
-		Answer         struct{ From, To string }
+	paths, err := filepath.Glob("testdata/form/*.json")
+	if err != nil || len(paths) != 2 {
+		t.Fatalf("goldens: %v, %d found", err, len(paths))
 	}
-	readJSON(t, "testdata/form/can.json", &input)
-	r := Input{Reason: input.Reason, Can: &CanRecord{From: input.Answer.From, To: input.Answer.To, Record: input.Record}}
-	want, err := os.ReadFile("testdata/form/can.md")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got := issueBody(r); got != string(want) {
-		t.Errorf("form:\n%s\nwant:\n%s", got, want)
+	for _, path := range paths {
+		t.Run(filepath.Base(path), func(t *testing.T) {
+			var input struct {
+				Reason, Record string
+				Answer         struct{ From, To string }
+			}
+			readJSON(t, path, &input)
+			r := Input{Reason: input.Reason, Can: &CanRecord{From: input.Answer.From, To: input.Answer.To, Record: input.Record}}
+			want, err := os.ReadFile(strings.TrimSuffix(path, ".json") + ".md")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := issueBody(r); got != string(want) {
+				t.Errorf("form:\n%s\nwant:\n%s", got, want)
+			}
+		})
 	}
 }
 
@@ -59,7 +67,7 @@ func TestSchemaSource(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(source), "e1933460e828a6fbf8445782346581a52dca5fff") {
+	if !strings.Contains(string(source), "13d4d1cfa1f8b0b1660a0802e198cf310986d752") {
 		t.Fatal("source commit missing")
 	}
 	for _, line := range strings.Split(string(source), "\n")[3:] {
