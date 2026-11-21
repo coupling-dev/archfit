@@ -13,7 +13,8 @@
 # task 6.2); remove that exclusion then.
 set -eu
 
-pattern='alexei-led/(archfit|homebrew-tap|tap/archfit)|ghcr\.io/alexei-led|archfit/v[0-9]+\b'
+# No \b: git grep -E on macOS ignores it, so a /vN path went unmatched there.
+pattern='alexei-led/(archfit|homebrew-tap|tap/archfit)|ghcr\.io/alexei-led|archfit/v[0-9]+([^0-9A-Za-z_]|$)'
 
 if git grep -n -I -E "$pattern" -- \
 	':!docs/archived/**' \
