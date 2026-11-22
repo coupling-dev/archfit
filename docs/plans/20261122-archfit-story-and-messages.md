@@ -1,6 +1,6 @@
 # The story of a change and the four-part message (task 8.18)
 
-Status: proposed, 2026-11-22. For the owner's review through the private mockup page built from this file. Plan task 8.18
+Status: accepted by the owner, 2026-11-22 ("I like the prototype — make it real"), with the public-part answers of section 5. Plan task 8.18
 of `docs/plans/20261122-archfit-0-10-onboarding.md`. It extends the accepted `docs/plans/20261122-archfit-onboarding-texts.md`
 (8.14) and does not change it. Where this file and 8.14 name the same thing, 8.14 wins.
 
@@ -290,10 +290,10 @@ May billing depend on reports?
 Confirm with your passkey.
 ```
 
-For a request that asks "should this package be public?", the answers are the four the App offers today
-(`web/e2e/request.spec.ts`): **Declare as public**, **Declare as model**, **Allow until a date** and **Reject…**. None
-approves the use as it is (`docs/commands.md`, `can`): the first two change the declaration, the third is an exception
-with an end date.
+For a request that asks "should this package be public?" (owner decision, 2026-11-22), three primary answers:
+**Make it public**, **Allow until a date** and **Reject…** (with `instead`). Below them, a smaller fourth option:
+**Declare it as shared model**, with one line: other modules may use it as a shared model, a lower balance than a public part (7 or 8 of 10; `docs/configuration.md`). None approves the use as it is (`docs/commands.md`, `can`):
+two change the declaration, one is an exception with an end date.
 
 When something changed while the owner looked: a banner above the page, "Request #40 was answered by @maria 1 minute ago",
 or "The policy on main changed: the diff below is the new one". The page never says "reload".
