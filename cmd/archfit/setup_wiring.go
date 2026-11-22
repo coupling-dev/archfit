@@ -11,6 +11,13 @@ import (
 	"github.com/coupling-dev/archfit/internal/history/setupgit"
 )
 
+// actionRef and actionRefNote pin the Action to an exact commit in a candidate
+// build. Both are empty in every released build, so setup pins the release tag.
+var (
+	actionRef     string
+	actionRefNote string
+)
+
 func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependencies, error) {
 	ctx := deps.runContext()
 	local := *deps
@@ -34,6 +41,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 	gh := setupGH{setupgit.GitHub{Root: co.root, Runner: local.Runner, BodyPath: setup.BodyPath}}
 	return setup.Dependencies{
 		Files: files, Git: git, GitHub: gh, Version: version,
+		ActionRef: actionRef, ActionRefNote: actionRefNote,
 		Replay: func(ctx context.Context, branch string) (setup.ReplaySummary, error) {
 			svc := co.replay(&local)
 			svc.History = replayHistory{co: co, ref: setupgit.OriginRef(branch), noLabels: true}

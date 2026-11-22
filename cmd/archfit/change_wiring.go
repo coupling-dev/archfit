@@ -43,8 +43,9 @@ import (
 // `archfit request`, under the repository root.
 var lastFile = filepath.Join(cacheDirName, "last.json")
 
-// actionRepo is the Action a protecting workflow uses (D6).
-const actionRepo = "coupling-dev/archfit-action"
+// actionRepo is the Action a protecting workflow uses (D6). A candidate build
+// overrides it with -X; the default is the released repository.
+var actionRepo = "coupling-dev/archfit-action"
 
 // usesAction matches a step that uses the Action: a "uses:" key, quoted or
 // not, whose value is the Action at a ref. A comment, another key, or another

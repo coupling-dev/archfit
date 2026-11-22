@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/coupling-dev/archfit/internal/application/setup"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -29,6 +30,19 @@ func TestSetupWorkflow(t *testing.T) {
 	}
 	if odd := setupWorkflow("release/can't", "v0.10.0", sha); !strings.Contains(odd, "branches: ['release/can''t']") {
 		t.Errorf("branch was not quoted:\n%s", odd)
+	}
+}
+
+func TestSetupWorkflowUsesInjectedAppURL(t *testing.T) {
+	old := setup.AppURL
+	setup.AppURL = "https://candidate-823.coupling.dev"
+	t.Cleanup(func() { setup.AppURL = old })
+	got := setupWorkflow("main", "candidate 8.23", strings.Repeat("b", 40))
+	if !strings.Contains(got, "endpoint: https://candidate-823.coupling.dev") {
+		t.Errorf("endpoint was not injected:\n%s", got)
+	}
+	if strings.Contains(got, "app.coupling.dev") {
+		t.Errorf("production endpoint survived the override:\n%s", got)
 	}
 }
 
