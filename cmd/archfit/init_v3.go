@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -108,7 +109,7 @@ func runInit(ctx context.Context, deps *appDeps, co checkout, noHooks, forSetup 
 	if !found {
 		writeUnread(&b, draft.Unknown)
 		if !forSetup {
-			writeExceptionDecisions(&b, draft.File.Exceptions)
+			writeOwnerDecisions(&b, draft.File)
 		}
 		if draft.File.Owners[0] == identity.PlaceholderOwner {
 			b.WriteString("no person is named as an owner yet\n")
@@ -188,21 +189,38 @@ func writePolicySummary(b *strings.Builder, verb string, f policyfile.File) {
 		count(len(f.Rules), "rule"), count(len(f.Exceptions), "exception"))
 }
 
-func writeExceptionDecisions(b *strings.Builder, exceptions []policyfile.Exception) {
-	if len(exceptions) == 0 {
-		return
-	}
-	b.WriteString("exceptions for the owner to review:\n")
-	for _, x := range exceptions {
+func writeOwnerDecisions(b *strings.Builder, f policyfile.File) {
+	var lines strings.Builder
+	for _, x := range f.Exceptions {
 		place := x.From
 		if x.To != "" {
 			place += " -> " + x.To
 		}
-		b.WriteString("  exception: " + x.Rule + " " + place)
+		lines.WriteString("  exception: " + x.Rule + " " + place)
 		if x.Expires != "" {
-			b.WriteString(" until " + x.Expires)
+			lines.WriteString(" until " + x.Expires)
 		}
-		b.WriteString("\n")
+		lines.WriteString("\n")
+	}
+	names := make([]string, 0, len(f.Modules))
+	for name := range f.Modules {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		if len(f.Modules[name].Public) == 0 && len(f.Modules[name].Model) == 0 {
+			fmt.Fprintf(&lines, "  module %s: no public part declared; other modules may use all of it\n", name)
+		}
+	}
+	for _, name := range names {
+		m := f.Modules[name]
+		if m.Volatility == "" && m.Subdomain == "" {
+			fmt.Fprintf(&lines, "  module %s: volatility not set; taken as high\n", name)
+		}
+	}
+	if lines.Len() > 0 {
+		b.WriteString("for the owner to decide:\n")
+		b.WriteString(lines.String())
 	}
 }
 
