@@ -67,7 +67,9 @@ type cli struct {
 	Check   CheckCmd    `cmd:"" help:"The status of the change: pass (0), fail (1), or unknown (2)."`
 	Can     CanCmd      `cmd:"" help:"Before writing code: may this file, directory or module depend on that one, or use a library."`
 	Rules   RulesCmd    `cmd:"" help:"The rules that apply to paths or to the change, one rule in full, or the module graph."`
+	Status  StatusCmd   `cmd:"" help:"Show the change and request status."`
 	Request RequestCmd  `cmd:"" help:"Ask an owner to change the policy for the errors of the last check."`
+	Setup   SetupCmd    `cmd:"" help:"Set up advisory checks on GitHub."`
 	Init    RepoInitCmd `cmd:"" help:"Set up a repository."`
 	Report  ReportCmd   `cmd:"" help:"The repository-wide picture for owners. Exits 0 whatever it shows."`
 	Replay  ReplayCmd   `cmd:"" help:"Run the policy over the last changes of the default branch."`
@@ -80,9 +82,8 @@ func (cli) Help() string {
 	return `Check a change against the repository's architecture policy.
 
 First run:
-  archfit doctor
-  archfit init
-  # Read .archfit.yaml, then open a pull request with it.
+  archfit setup
+  # Follow the next: line.
 
 Worker loop:
   archfit rules

@@ -14,7 +14,8 @@ Archfit has eight public commands. Run `archfit <command> --help` for their flag
 | Ask whether a dependency or library may be used | `archfit can <from> <to>` |
 | Show the rules that apply | `archfit rules [PATH... \| RULE] [--graph]` |
 | Ask an owner to change the policy | `archfit request -m "<why>" [--expires DATE]` |
-| Set up a repository | `archfit init` |
+| Set up advisory checks on GitHub | `archfit setup` |
+| Write the first policy and agent instructions locally | `archfit init` |
 | See the state of the repository and its measurements | `archfit report` |
 | See how the last changes of the default branch fare under the policy | `archfit replay [--last N]` |
 | Check tools and hooks, or install what is missing | `archfit doctor` or `archfit doctor --fix` |
@@ -172,7 +173,7 @@ next: ask an owner     (open a pull request first if there is none)
 
 ### `init`
 
-`archfit init [flags]` sets up a repository. It writes what is missing and never changes a version 1 policy. It writes no workflow file: the workflow comes with Action 4.
+`archfit init [flags]` sets up a repository. It writes what is missing and never changes a version 1 policy. It writes no workflow file. Use [`setup`](#setup) to add the workflow and open the setup pull request.
 
 | The repository has | `archfit init` |
 | --- | --- |
@@ -207,6 +208,37 @@ Read the policy and its exceptions before you open the pull request. A place in 
 | Flag | Meaning |
 | --- | --- |
 | `-C, --directory <dir>` | Run in `<dir>` instead of the current directory. |
+
+### `setup`
+
+Run `archfit setup` from the default branch of a checkout with a GitHub `origin`.
+Run `archfit setup` again when the output asks you to continue.
+After setup creates `archfit/setup`, continue on that branch.
+Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a checkout.
+
+| State | What setup does | What to do next |
+| --- | --- | --- |
+| No policy | Writes a policy and the agent instructions. | Read `.archfit.yaml`, then run `archfit setup` again. |
+| No workflow | Keeps the policy and writes a [pinned workflow](ci.md#the-workflow-archfit-setup-writes). | Follow the next step after the push. |
+| Stopped before the push | The HTTPS push uses a `gh` login with known classic scopes, without `workflow`. | Run `gh auth refresh -s workflow`, then run setup again. |
+| Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. | Open the pull request on GitHub with the saved body. |
+| Pull request open, no App check | Prints the App install link. Setup does not re-run the workflow. | Install the App. Use the printed re-run link if the check does not start. |
+| App check present | Prints the status of `archfit/gate`. | Review and merge the setup pull request. |
+| Done | The default branch has the policy and an Archfit workflow. | Checks are advisory. Setup prints no `next:` line. |
+
+Before a commit, setup runs the check against the remote default branch. A `fail` does not stop setup.
+An `unknown` stops setup before the commit and shows the check's next step.
+Setup commits only changed setup paths, but includes any existing edits in those paths.
+Review the pull request before merging.
+
+SSH pushes use the SSH key and do not require the `gh` `workflow` scope.
+When `gh` does not report classic scopes, setup attempts the push and reports a permission error if Git rejects it.
+Without a signed-in `gh`, setup still pushes via Git. It cannot see the pull request or App check.
+A later run does not push an unchanged branch. If Git refuses to update the workflow, fix your Git credentials.
+When setup can detect a merged policy and workflow, it works without `gh`.
+
+Setup exits `0` when it completes a step or waits for you. It exits `2` when it stops.
+Follow the single `next:` line to continue.
 
 ### `report`
 
@@ -344,3 +376,16 @@ It keeps every other setting and hook in a settings file and replaces its own ea
 Every command accepts `-h, --help`. The top-level command accepts `-v, --version`.
 
 See [configuration](configuration.md) for config fields, [results](results.md) for output contracts, and [CI](ci.md) for gate setup.
+
+## `archfit status`
+
+Show the local check and, when available, the pull request's current story. Status is informational and exits 0.
+
+```text
+$ archfit status
+✓ change   ✗ check   ● ask #40   ○ answer   ○ policy   ○ re-check
+request #40 waits for @alexei-led since 09:12 (about 1 minute of their time).
+next: wait, or work on something else. The check runs again by itself when #40 is answered.
+```
+
+Without a pull request or GitHub access, status shows the local check. Run `archfit check` again after changing the tree.
