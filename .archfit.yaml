@@ -24,7 +24,6 @@ modules:
       - internal/application/request
       - internal/application
       - internal/application/setup  # request #40
-      - internal/application/replay
     volatility: medium
     subdomain: supporting
     layer: application
@@ -232,6 +231,7 @@ modules:
       - evidence-contracts
       - relationship-analysis
       - report-contract
+      - evidence-acquisition  # request #43
   policy-config-adapter:
     paths:
       - internal/config/**
