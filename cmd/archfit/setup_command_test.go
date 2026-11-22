@@ -248,6 +248,8 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 					writes = append(writes, "commit")
 				case cmd.Name == "gh" && strings.HasPrefix(args, "auth status"):
 					return toolrun.Output{Stderr: []byte("- Token scopes: 'repo', 'workflow'\n")}, nil
+				case cmd.Name == "gh" && strings.HasPrefix(args, "pr list --state merged"):
+					t.Fatal("setup replay must not fetch PR labels")
 				case cmd.Name == "gh" && strings.HasPrefix(args, "pr list"):
 					if prOpen {
 						return toolrun.Output{Stdout: []byte(`[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`)}, nil
@@ -280,12 +282,16 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 				return stdout.String()
 			}
 			if tc.noPolicy {
-				if out := run(); !strings.Contains(out, "state: no workflow yet") {
+				if out := run(); !strings.Contains(out, "state: no workflow yet") || !strings.Contains(out, "replay: 2 merged pull requests read:") || strings.Index(out, "replay:") > strings.Index(out, "next:") {
 					t.Fatal(out)
 				}
 			}
 			if out := run(); !strings.Contains(out, "opened setup pull request #7") {
 				t.Fatal(out)
+			}
+			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md"))
+			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests") {
+				t.Fatalf("missing replay in PR body: %s, %v", body, err)
 			}
 			if !slices.Contains(writes, "push") {
 				t.Fatalf("push was not called: %v", writes)
