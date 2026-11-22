@@ -131,7 +131,7 @@ The git pre-commit hook works with every harness. Install it with
 ```yaml
 repos:
   - repo: https://github.com/coupling-dev/archfit
-    rev: v0.9.0
+    rev: v0.9.1
     hooks:
       - id: archfit
 ```

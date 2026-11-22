@@ -13,7 +13,7 @@ brew install coupling-dev/tap/archfit
 Or install with Go 1.27 or newer:
 
 ```sh
-go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
+go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.1
 ```
 
 The Homebrew formula and the release binary need no Go toolchain. You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
@@ -123,7 +123,7 @@ Fail the job on any exit code except `0`. See [CI](ci.md) for the workflow.
 The release image runs archfit with a bundled toolchain:
 
 ```sh
-docker run --rm -v "$(pwd):/src" ghcr.io/coupling-dev/archfit:v0.9.0 \
+docker run --rm -v "$(pwd):/src" ghcr.io/coupling-dev/archfit:v0.9.1 \
   check
 ```
 

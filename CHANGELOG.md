@@ -2,6 +2,25 @@
 
 History before 0.9.0 is in [docs/archived/CHANGELOG-v0-v5.md](docs/archived/CHANGELOG-v0-v5.md).
 
+## v0.9.1
+
+### Summary
+
+This patch fixes owner identification and clarifies policy and installation errors.
+It does not change the policy, record or result JSON.
+
+### Fixes
+
+- `init` names a person as the first owner: the `gh` user, otherwise a GitHub noreply login marked unverified, otherwise a placeholder with a `next:` line. It no longer needs an `origin` remote.
+- `doctor` fails when owners name no person, including an organization-only owner or the placeholder, and warns when it cannot verify an owner. A policy without a person as owner can never be approved, so reporting this is a fix under the [version rule](docs/development.md#version-rule).
+- A policy written by Archfit 1.x now gives a plain error.
+- The install guide notes that `go install` needs Go 1.27 or newer.
+
+### Upgrade
+
+- Move the workflow pin to the Action `v0.9.1` commit when it is available.
+- The App accepts 0.9.0 and 0.9.1 side by side.
+
 ## v0.9.0
 
 ### Summary
