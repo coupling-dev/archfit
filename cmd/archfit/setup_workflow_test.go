@@ -101,7 +101,7 @@ func TestSetupIgnoresUncommittedAlternateWorkflow(t *testing.T) {
 		t.Fatalf("untracked alternate workflow: found %v, error %v", found, err)
 	}
 	gitFixture(t, dir, "add", ".github/workflows/custom.yml")
-	gitFixture(t, dir, "commit", "-m", "workflow", "--no-gpg-sign")
+	gitRun(t, dir, "commit", "-m", "workflow", "--no-gpg-sign")
 	found, err = f.Workflow()
 	if err != nil || !found {
 		t.Fatalf("committed alternate workflow: found %v, error %v", found, err)

@@ -129,7 +129,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 			gitFixture(t, dir, "switch", "-c", "archfit/setup", "main")
 			writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
 			gitFixture(t, dir, "add", ".github/workflows/archfit.yaml")
-			gitFixture(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
+			gitRun(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
 			process := toolrun.New()
 			oid, err := process.Run(t.Context(), toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", headRef}})
 			if err != nil || oid.ExitCode != 0 {
@@ -344,7 +344,7 @@ func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
 	gitFixture(t, dir, "switch", "-c", "archfit/setup", "main")
 	writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
 	gitFixture(t, dir, "add", ".github/workflows/archfit.yaml")
-	gitFixture(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
+	gitRun(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
 	runner := toolrun.New()
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 		if cmd.Name == "gh" {
