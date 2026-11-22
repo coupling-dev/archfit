@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 func TestNext(t *testing.T) {
@@ -79,6 +81,9 @@ func TestReplayTimeout(t *testing.T) {
 		}
 		return ReplaySummary{Read: 14}, context.DeadlineExceeded
 	})
+	if words := testutil.StoryNotUsedIn(strings.Join(out.Lines, "\n")); len(words) > 0 {
+		t.Errorf("replay timeout vocabulary %v in %q", words, out.Lines)
+	}
 	if got != nil || strings.Join(out.Lines, "\n") != "replay: stopped after 60 s, 14 of 30 read; run archfit replay later" {
 		t.Errorf("summary %v, lines %q", got, out.Lines)
 	}
