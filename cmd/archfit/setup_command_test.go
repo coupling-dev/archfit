@@ -129,7 +129,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --heads"):
 					return toolrun.Output{Stdout: []byte(strings.TrimSpace(string(oid.Stdout)) + "\trefs/heads/archfit/setup\n")}, nil
-				case cmd.Name == gitBinary && (strings.HasPrefix(args, "push ") || strings.HasPrefix(args, "commit ")):
+				case cmd.Name == gitBinary && (strings.HasPrefix(args, "-c push.followTags=false push ") || strings.HasPrefix(args, "commit ")):
 					t.Fatalf("unexpected write: %s", args)
 				case cmd.Name == "gh" && strings.HasPrefix(args, "auth status"):
 					if tc.auth == "" {
@@ -209,7 +209,7 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 						return toolrun.Output{Stdout: []byte(strings.TrimSpace(string(head.Stdout)) + "\trefs/heads/archfit/setup\n")}, nil
 					}
 					return toolrun.Output{}, nil
-				case cmd.Name == gitBinary && strings.HasPrefix(args, "push "):
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "-c push.followTags=false push "):
 					writes = append(writes, "push")
 					return toolrun.Output{}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "commit "):

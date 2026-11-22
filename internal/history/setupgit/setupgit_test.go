@@ -443,3 +443,18 @@ func TestPushSafetyChecksAllPushURLs(t *testing.T) {
 		})
 	}
 }
+
+func TestPushPinsDestinationAndDisablesTags(t *testing.T) {
+	var called bool
+	g := Git{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		called = true
+		want := []string{"-c", "push.followTags=false", "push", "--no-follow-tags", "origin", "refs/heads/archfit/setup:refs/heads/archfit/setup"}
+		if !slices.Equal(cmd.Args, want) || !slices.Contains(cmd.Env, "GIT_TERMINAL_PROMPT=0") {
+			t.Errorf("command: %+v", cmd)
+		}
+		return toolrun.Output{}, nil
+	}}}
+	if err := g.Push(t.Context(), "archfit/setup"); err != nil || !called {
+		t.Fatalf("called %v, error %v", called, err)
+	}
+}

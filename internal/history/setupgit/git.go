@@ -315,8 +315,18 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 
 // Push publishes the setup branch without rewriting remote history.
 func (g Git) Push(ctx context.Context, branch string) error {
-	_, err := g.run(ctx, "push", "-u", "origin", branch)
-	return err
+	ref := headsRef + branch
+	out, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
+		Name: gitBinary, WorkDir: g.Root, Timeout: gitTimeout,
+		Args: []string{"-c", "push.followTags=false", "push", "--no-follow-tags", "origin", ref + ":" + ref},
+	})
+	if err != nil {
+		return err
+	}
+	if out.ExitCode != 0 {
+		return gitError("push", out)
+	}
+	return nil
 }
 
 func (g Git) run(ctx context.Context, args ...string) (string, error) {
