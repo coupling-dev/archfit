@@ -231,6 +231,7 @@ modules:
       - evidence-contracts
       - relationship-analysis
       - report-contract
+      - evidence-acquisition  # request #43
   policy-config-adapter:
     paths:
       - internal/config/**

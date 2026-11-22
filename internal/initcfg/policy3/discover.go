@@ -36,7 +36,6 @@ var testGlobs = []string{
 	"**/conftest.py",
 	"**/tests/**",
 	"**/test/**",
-	"**/testdata/**",
 	"**/*.Tests/**",
 }
 
