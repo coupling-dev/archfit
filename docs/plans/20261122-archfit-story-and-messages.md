@@ -271,7 +271,7 @@ the engine's `surface:` line.
 The private page (`story-and-messages mockups`) shows each state in the App's style. This list names what it shows, with
 the text that matters. Task numbers are the tasks that build each part.
 
-1. **Answer page (8.19).** Question as title, evidence, three answers as large buttons, each with its effect, one passkey.
+1. **Answer page (8.19).** Question as title, evidence, three answers as large buttons (four for a public-part request), each with its effect, one passkey.
 2. **Batch answers (8.19).** "3 requests wait for you": choose per request, one passkey, one policy pull request.
 3. **Undo (8.19).** "Revert this answer" on an answered request, with its effect.
 4. **Main moved (8.20): nothing to do.** The history line and the sentence that says the App handled it.
@@ -290,8 +290,10 @@ May billing depend on reports?
 Confirm with your passkey.
 ```
 
-For a request that asks "should this package be public?", the answers are **Make it public** and **Reject…**. Archfit never
-approves a use past the public part as it is (`docs/commands.md`, `can`).
+For a request that asks "should this package be public?", the answers are the four the App offers today
+(`web/e2e/request.spec.ts`): **Declare as public**, **Declare as model**, **Allow until a date** and **Reject…**. None
+approves the use as it is (`docs/commands.md`, `can`): the first two change the declaration, the third is an exception
+with an end date.
 
 When something changed while the owner looked: a banner above the page, "Request #40 was answered by @maria 1 minute ago",
 or "The policy on main changed: the diff below is the new one". The page never says "reload".
