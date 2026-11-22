@@ -343,7 +343,11 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	if !s.pushed {
 		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
 		if err != nil {
-			out.stop(err, "rename or delete the branch archfit/setup, then archfit setup")
+			next := "rename or delete the branch archfit/setup, then archfit setup"
+			if strings.HasPrefix(err.Error(), "origin has more than one push URL") || strings.HasPrefix(err.Error(), "origin pushes to another repository") {
+				next = "fix the origin push URL, then archfit setup"
+			}
+			out.stop(err, next)
 			return
 		}
 		if s.ready && https && !s.scope {

@@ -157,7 +157,7 @@ func assertActions(t *testing.T, got []string, want ...string) {
 type setupFixture struct {
 	branch, body                                                             string
 	policy, workflow, pending, merged, ahead, noAuthor, ready, scope, pushed bool
-	createErr, policyErr, workflowErr                                        error
+	createErr, policyErr, workflowErr, pushSafetyErr                         error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
 	actions                                                                  []string
@@ -235,8 +235,10 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 	g.pending, g.pushed = false, false
 	return nil
 }
-func (g fixtureGit) Pushed(context.Context, string) (bool, error)               { return g.pushed, nil }
-func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) { return true, nil }
+func (g fixtureGit) Pushed(context.Context, string) (bool, error) { return g.pushed, nil }
+func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) {
+	return true, g.pushSafetyErr
+}
 func (g fixtureGit) Push(context.Context, string) error {
 	g.actions = append(g.actions, pushAction)
 	g.pushed = true
@@ -261,3 +263,14 @@ func (h fixtureGH) Check(context.Context, string, string) (AppCheck, error) { re
 func (h fixtureGH) RerunLink(context.Context, string, string) string        { return runURL }
 func (h fixtureGH) IsFork(context.Context, string) bool                     { return false }
 func (h fixtureGH) InstallTarget(context.Context, string) (uint64, uint64)  { return 123, 456 }
+
+func TestPushDestinationErrorsStopBeforePush(t *testing.T) {
+	for _, message := range []string{"origin has more than one push URL", "origin pushes to another repository"} {
+		t.Run(message, func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, scope: true, pushSafetyErr: errors.New(message)}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, Blocked, 2, "fix the origin push URL, then archfit setup", message)
+			assertActions(t, f.actions)
+		})
+	}
+}
