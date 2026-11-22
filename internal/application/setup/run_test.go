@@ -62,7 +62,7 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 			case ManualPR:
 				assertOutcome(t, third, ManualPR, 0, Next(third.Progress))
 				assertActions(t, f.actions)
-				if !strings.Contains(f.body, installURL) || strings.Contains(f.body, "suggested_target_id") {
+				if !strings.Contains(f.body, InstallURL) || strings.Contains(f.body, "suggested_target_id") {
 					t.Errorf("body should contain the plain install link: %s", f.body)
 				}
 			default:
@@ -71,7 +71,7 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 				if !slices.Contains(third.After, "if the check does not start within a minute, re-run it: "+runURL) {
 					t.Errorf("no manual re-run link: %v", third.After)
 				}
-				want := installURL + "/permissions?suggested_target_id=123&repository_ids[]=456"
+				want := InstallURL + "/permissions?suggested_target_id=123&repository_ids[]=456"
 				if third.Next != "install the App: "+want || !strings.Contains(f.body, want) {
 					t.Errorf("missing prefilled install link: %s / %s", third.Next, f.body)
 				}
@@ -162,6 +162,7 @@ type setupFixture struct {
 	check                                                                    AppCheck
 	ssh                                                                      bool
 	actions                                                                  []string
+	workflowTag, workflowSHA                                                 string
 }
 
 func (f *setupFixture) deps(t *testing.T) Dependencies {
@@ -186,9 +187,10 @@ func (f *setupFixture) deps(t *testing.T) Dependencies {
 func (f *setupFixture) SafePaths() (string, error) { return "", nil }
 func (f *setupFixture) Policy() (bool, error)      { return f.policy, f.policyErr }
 func (f *setupFixture) Workflow() (bool, error)    { return f.workflow, f.workflowErr }
-func (f *setupFixture) WriteWorkflow(_, _, _ string) error {
+func (f *setupFixture) WriteWorkflow(_, tag, sha string) error {
 	f.actions = append(f.actions, workflowAction)
 	f.workflow, f.pending = true, true
+	f.workflowTag, f.workflowSHA = tag, sha
 	return nil
 }
 func (f *setupFixture) PinNote() string { return "" }
@@ -346,4 +348,42 @@ func TestNoHooksHistoryGivesSpecificNext(t *testing.T) {
 	f := setupFixture{branch: Branch, policy: true, workflow: true, pushSafetyErr: fixtureHookError("hook history")}
 	out := Run(t.Context(), f.deps(t))
 	assertOutcome(t, out, Blocked, 2, "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks")
+}
+
+func TestCandidateActionPin(t *testing.T) {
+	const sha = "0123456789abcdef0123456789abcdef01234567"
+	const note = "candidate 8.23"
+	for _, tc := range []struct {
+		name, note, ref string
+		wantOK          bool
+		wantLine        string
+	}{
+		{"exact commit", note, sha, true, ""},
+		{"missing note", "", sha, false, "sets one of the ref and its note"},
+		{"missing ref", note, "", false, "sets one of the ref and its note"},
+		{"short ref", note, "abc123", false, "not a full lower-case commit SHA"},
+		{"upper ref", note, strings.ToUpper(sha), false, "not a full lower-case commit SHA"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setupFixture{branch: fixtureBranch, ready: true, scope: true}
+			deps := f.deps(t)
+			deps.ActionRef, deps.ActionRefNote = tc.ref, tc.note
+			Run(t.Context(), deps)
+			f.actions = nil
+			out := Run(t.Context(), deps)
+			if !tc.wantOK {
+				assertOutcome(t, out, Blocked, 2, "fix the Action pin or workflow error, then archfit setup", tc.wantLine)
+				if f.workflow {
+					t.Fatal("workflow written despite an invalid override")
+				}
+				return
+			}
+			if out.State != Unpublished || out.Exit != 0 {
+				t.Fatalf("state %s, exit %d; want %s, 0\n%s", out.State, out.Exit, Unpublished, strings.Join(out.Lines, "\n"))
+			}
+			if f.workflowSHA != tc.ref || f.workflowTag != tc.note {
+				t.Fatalf("workflow pinned %q@%q, want %q@%q", f.workflowTag, f.workflowSHA, tc.note, tc.ref)
+			}
+		})
+	}
 }

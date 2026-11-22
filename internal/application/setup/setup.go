@@ -3,6 +3,7 @@ package setup
 
 import (
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -18,9 +19,15 @@ const (
 	Branch       = "archfit/setup"
 	WorkflowPath = ".github/workflows/archfit.yaml"
 	BodyPath     = ".archfit-cache/setup-pull-request.md"
-	AppURL       = "https://app.coupling.dev"
-	installURL   = "https://github.com/apps/archfit-review/installations/new"
 	refreshNext  = "gh auth refresh -s workflow"
+)
+
+// AppURL is the hosted App that a setup workflow uploads to. InstallURL is the
+// App installation page. A candidate build overrides both with -X; the defaults
+// are the production values, so an unmodified build behaves exactly as before.
+var (
+	AppURL     = "https://app.coupling.dev"
+	InstallURL = "https://github.com/apps/archfit-review/installations/new"
 )
 
 // Files reads and writes onboarding files in the current checkout.
@@ -93,6 +100,10 @@ type Dependencies struct {
 	Replay    func(context.Context, string) (ReplaySummary, error)
 	Decisions func() ([]string, error)
 	Version   string
+	// ActionRef and ActionRefNote pin the Action to an exact commit instead of
+	// a released tag. Only a candidate build sets both; the defaults are empty,
+	// and setup refuses a partial override instead of guessing.
+	ActionRef, ActionRefNote string
 }
 
 // ReplaySummary counts where the current policy would have asked for help.
@@ -147,7 +158,7 @@ type Outcome struct {
 func Next(p Progress) string {
 	link := p.InstallURL
 	if link == "" {
-		link = installURL
+		link = InstallURL
 	}
 	switch p.State {
 	case NoPolicy:
@@ -179,11 +190,38 @@ func Tag(version string) (string, error) {
 	return tag, nil
 }
 
+// actionRefLength is the length of a full git commit id.
+const actionRefLength = 40
+
+// fullCommit accepts only a full lower-case commit id. It decodes the value
+// instead of matching an expression, so the pattern is not a second copy of
+// the one setupgit uses for a resolved tag.
+func fullCommit(ref string) bool {
+	if len(ref) != actionRefLength || ref != strings.ToLower(ref) {
+		return false
+	}
+	_, err := hex.DecodeString(ref)
+	return err == nil
+}
+
+// validActionOverride accepts only a complete pair: a full lower-case commit
+// and the note that names it in the workflow comment. A partial or malformed
+// override refuses; it never falls back to a release tag.
+func validActionOverride(note, ref string) error {
+	if note == "" || ref == "" {
+		return errors.New("the Action override sets one of the ref and its note: set both, or neither")
+	}
+	if !fullCommit(ref) {
+		return errors.New("the Action override is not a full lower-case commit SHA")
+	}
+	return nil
+}
+
 func installLink(owner, repo uint64) string {
 	if owner == 0 || repo == 0 {
-		return installURL
+		return InstallURL
 	}
-	return fmt.Sprintf("%s/permissions?suggested_target_id=%d&repository_ids[]=%d", installURL, owner, repo)
+	return fmt.Sprintf("%s/permissions?suggested_target_id=%d&repository_ids[]=%d", InstallURL, owner, repo)
 }
 
 // Body constructs the setup pull request text without local checkout paths.
@@ -335,12 +373,19 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	// A draft is checked and committed only when there are setup paths to publish.
 	out.add("kept .archfit.yaml")
 	if s.State == NoWorkflow {
-		tag, err := Tag(d.Version)
-		if err != nil {
-			out.stop(err, "install a released archfit (brew install coupling-dev/tap/archfit), then archfit setup")
-			return
+		tag, sha := d.ActionRefNote, d.ActionRef
+		overridden := tag != "" || sha != ""
+		var err error
+		if !overridden {
+			tag, err = Tag(d.Version)
+			if err != nil {
+				out.stop(err, "install a released archfit (brew install coupling-dev/tap/archfit), then archfit setup")
+				return
+			}
+			sha, err = d.Git.Pin(ctx, tag)
+		} else {
+			err = validActionOverride(tag, sha)
 		}
-		sha, err := d.Git.Pin(ctx, tag)
 		if err == nil {
 			err = d.Files.WriteWorkflow(s.Default, tag, sha)
 		}
@@ -466,7 +511,7 @@ func decisionLines(d Dependencies) ([]string, error) {
 }
 
 func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
-	out.InstallURL = installURL
+	out.InstallURL = InstallURL
 	if s.ready {
 		pr, err := d.GitHub.PullRequest(ctx, s.Repo, s.Default, Branch)
 		if err != nil {
