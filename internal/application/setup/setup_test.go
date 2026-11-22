@@ -36,7 +36,7 @@ func TestTag(t *testing.T) {
 	const release = "v0.10.0"
 	for version, want := range map[string]string{
 		"0.10.0": release, release: release, "v0.10.0-rc.1": "v0.10.0-rc.1",
-		"dev": "", "v0.10.0-0.20261122101010-abcdefabcdef": "", "v0.10.0+dirty": "",
+		devBuild: "", "v0.10.0-0.20261122101010-abcdefabcdef": "", "v0.10.0+dirty": "",
 	} {
 		t.Run(version, func(t *testing.T) {
 			got, err := Tag(version)
