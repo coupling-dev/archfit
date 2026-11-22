@@ -261,7 +261,9 @@ func (w Worktree) Checkout(ctx context.Context, baseRef, anchorDir, headRoot str
 	}
 	wtDir := filepath.Join(tmpBase, "wt")
 	cleanup := func() {
-		RemoveWorktree(ctx, w.Runner, gitRoot, wtDir)
+		// An ended context (a deadline, an interrupt) must not leave the
+		// worktree registered: the removal runs without it.
+		RemoveWorktree(context.WithoutCancel(ctx), w.Runner, gitRoot, wtDir)
 		_ = os.RemoveAll(tmpBase)
 		release()
 	}

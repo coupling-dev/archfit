@@ -62,7 +62,7 @@ const (
 	languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 )
 
-// cli exposes the eight public commands and the hidden hook entry point.
+// cli exposes the nine public commands and the hidden hook entry point.
 type cli struct {
 	Check   CheckCmd    `cmd:"" help:"The status of the change: pass (0), fail (1), or unknown (2)."`
 	Can     CanCmd      `cmd:"" help:"Before writing code: may this file, directory or module depend on that one, or use a library."`
@@ -72,6 +72,7 @@ type cli struct {
 	Setup   SetupCmd    `cmd:"" help:"Set up advisory checks on GitHub."`
 	Init    RepoInitCmd `cmd:"" help:"Set up a repository."`
 	Report  ReportCmd   `cmd:"" help:"The repository-wide picture for owners. Exits 0 whatever it shows."`
+	Replay  ReplayCmd   `cmd:"" help:"Run the policy over the last changes of the default branch."`
 	Doctor  DoctorCmd   `cmd:"" help:"This checkout: the tools and hooks. --fix installs what is missing."`
 	Hook    HookCmd     `cmd:"" hidden:"" help:"The hook entry points installed by doctor --fix."`
 	Version versionFlag `short:"v" help:"Print version and exit."`
@@ -92,6 +93,7 @@ Worker loop:
 
 For owners:
   archfit report
+  archfit replay --last 30
   archfit rules --graph
   archfit doctor --fix
 
