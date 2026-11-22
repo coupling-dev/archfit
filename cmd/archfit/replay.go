@@ -34,8 +34,7 @@ Example:
 // errNoReplayChanges is the usage error of --last.
 var errNoReplayChanges = errors.New("--last must be at least 1")
 
-// Run has no deadline of its own. `archfit setup` runs the same service
-// (checkout.replay) under a context of 60 seconds (plan C5).
+// Run has no deadline of its own.
 func (c *ReplayCmd) Run(deps *appDeps) error {
 	if c.Last < 1 {
 		return noVerdict(errNoReplayChanges)
