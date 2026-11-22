@@ -14,6 +14,7 @@ import (
 
 // Paths and the branch name shared by the setup workflow and its adapters.
 const (
+	Command      = "archfit setup"
 	Branch       = "archfit/setup"
 	WorkflowPath = ".github/workflows/archfit.yaml"
 	BodyPath     = ".archfit-cache/setup-pull-request.md"
@@ -24,6 +25,7 @@ const (
 
 // Files reads and writes onboarding files in the current checkout.
 type Files interface {
+	SafePaths() (string, error)
 	Policy() (exists bool, err error)
 	Workflow() (exists bool, err error)
 	WriteWorkflow(branch, tag, sha string) error
@@ -31,13 +33,19 @@ type Files interface {
 	Exceptions() ([]string, error)
 	WriteBody(body string) error
 	Paths() []string
+	ValidationPaths() []string
 }
+
+type unsafeDestination interface{ UnsafeDestination() }
+type unsafeBranch interface{ UnsafeBranch() }
+type hookHistory interface{ HookHistory() }
 
 // Git reads the checkout and publishes only the setup paths.
 type Git interface {
 	Repository(context.Context) (repo string, err error)
-	Default(context.Context) (string, error)
+	Default(context.Context) (string, string, error)
 	Branch(context.Context) (string, error)
+	SetupBranchExists(context.Context, string) (bool, error)
 	Fetch(context.Context, string) error
 	Aligned(context.Context, string) (bool, error)
 	Merged(context.Context, string) (bool, error)
@@ -46,7 +54,9 @@ type Git interface {
 	Identity(context.Context) (string, error)
 	Switch(context.Context, string, string) error
 	Commit(context.Context, []string) error
-	Pushed(context.Context, string) bool
+	Pushed(context.Context, string) (bool, error)
+	PushSafety(context.Context, string, []string) (https bool, err error)
+	ValidateRemote(context.Context, string, string, []string) error
 	Push(context.Context, string) error
 }
 
@@ -141,7 +151,7 @@ func Next(p Progress) string {
 	}
 	switch p.State {
 	case NoPolicy:
-		return "archfit setup"
+		return Command
 	case NeedsScope:
 		return refreshNext
 	case NoWorkflow, Unpublished, NoCheck:
@@ -152,7 +162,7 @@ func Next(p Progress) string {
 	case CheckPresent:
 		return fmt.Sprintf("merge #%d: %s", p.PR.Number, p.PR.URL)
 	case Closed:
-		return fmt.Sprintf("reopen #%d: %s", p.PR.Number, p.PR.URL)
+		return fmt.Sprintf("pull request #%d was closed; reopen it, or delete the branch archfit/setup, then archfit setup", p.PR.Number)
 	default:
 		return ""
 	}
@@ -209,14 +219,31 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		out.stop(err, "set origin to a github.com repository, then archfit setup")
 		return s, false
 	}
-	s.Default, err = d.Git.Default(ctx)
+	var defaultNote string
+	s.Default, defaultNote, err = d.Git.Default(ctx)
+	out.append(defaultNote)
 	if err != nil {
 		out.stop(err, "git remote set-head origin --auto, then archfit setup")
 		return s, false
 	}
 	s.branch, err = d.Git.Branch(ctx)
 	if err != nil || (s.branch != s.Default && s.branch != Branch) {
-		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+s.Default+", then archfit setup")
+		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+ShellQuote(s.Default)+", then archfit setup")
+		return s, false
+	}
+	if s.branch == s.Default {
+		exists, err := d.Git.SetupBranchExists(ctx, Branch)
+		if err != nil {
+			out.stop(err, "check the setup branch on origin, then archfit setup")
+			return s, false
+		}
+		if exists {
+			out.stop(errors.New("the setup branch already exists"), "git switch archfit/setup, then archfit setup")
+			return s, false
+		}
+	}
+	if next, err := d.Files.SafePaths(); err != nil {
+		out.stop(err, next)
 		return s, false
 	}
 	policy, err := d.Files.Policy()
@@ -234,11 +261,11 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 	}
 	aligned, err := d.Git.Aligned(ctx, s.Default)
 	if err != nil || !aligned {
-		out.stop(errors.New("local "+s.Default+" does not match origin/"+s.Default), "sync "+s.Default+" with origin/"+s.Default+", then archfit setup")
+		out.stop(errors.New("local "+s.Default+" does not match origin/"+s.Default), "sync "+ShellQuote(s.Default)+" with "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
 	}
 	if merged, err := d.Git.Merged(ctx, s.Default); err != nil {
-		out.stop(err, "check origin/"+s.Default+", then archfit setup")
+		out.stop(err, "check "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
 	} else if merged {
 		s.State = Merged
@@ -251,7 +278,13 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		s.State = NoWorkflow
 	default:
 		s.State = Unpublished
-		s.pushed = s.branch == Branch && d.Git.Pushed(ctx, Branch)
+		if s.branch == Branch {
+			s.pushed, err = d.Git.Pushed(ctx, Branch)
+			if err != nil {
+				out.stop(err, "check the remote setup branch, then archfit setup")
+				return s, false
+			}
+		}
 	}
 	return s, true
 }
@@ -320,6 +353,10 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.append(d.Files.PinNote())
 	}
 	out.append(d.Hooks(ctx))
+	if next, err := d.Files.SafePaths(); err != nil {
+		out.stop(err, next)
+		return
+	}
 	paths, err := d.Git.Pending(ctx, d.Files.Paths())
 	if err != nil {
 		out.stop(err, "fix the git error, then archfit setup")
@@ -334,7 +371,25 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	}
 	s.ready, s.scope = d.GitHub.Auth(ctx)
 	if !s.pushed {
-		if s.ready && !s.scope {
+		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
+		if err != nil {
+			next := "check the git error, then archfit setup"
+			var branch unsafeBranch
+			if errors.As(err, &branch) {
+				next = "delete the branch archfit/setup only if you do not need its commits, then archfit setup"
+			}
+			var hooks hookHistory
+			if errors.As(err, &hooks) {
+				next = "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks"
+			}
+			var destination unsafeDestination
+			if errors.As(err, &destination) {
+				next = "fix the origin push URL, then archfit setup"
+			}
+			out.stop(err, next)
+			return
+		}
+		if s.ready && https && !s.scope {
 			out.State = NeedsScope
 			out.add("the gh login has no workflow scope, so GitHub would refuse the workflow file")
 			return
@@ -342,12 +397,25 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		if err := d.Git.Push(ctx, Branch); err != nil {
 			next := "git push -u origin " + Branch + ", then archfit setup"
 			if strings.Contains(strings.ToLower(err.Error()), "workflow") {
-				next = refreshNext
+				next = "give your token permission to change workflows (gh auth refresh -s workflow for gh), then archfit setup"
 			}
 			out.stop(err, next)
 			return
 		}
 		out.add("pushed %s", Branch)
+	}
+	if err := d.Git.ValidateRemote(ctx, Branch, s.Default, d.Files.Paths()); err != nil {
+		next := "could not reach origin; check the connection, then archfit setup"
+		var branch unsafeBranch
+		if errors.As(err, &branch) {
+			next = "delete the branch archfit/setup only if you do not need its commits, then archfit setup"
+		}
+		var hooks hookHistory
+		if errors.As(err, &hooks) {
+			next = "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks"
+		}
+		out.stop(err, next)
+		return
 	}
 	out.State = Unpublished
 	publishPR(ctx, d, s, out)
@@ -402,7 +470,7 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	if s.ready {
 		pr, err := d.GitHub.PullRequest(ctx, s.Repo, s.Default, Branch)
 		if err != nil {
-			out.stop(err, "fix the pull request lookup")
+			out.stop(err, "fix the pull request lookup, then archfit setup")
 			return
 		}
 		if pr.Number != 0 {
@@ -447,7 +515,6 @@ func showPR(ctx context.Context, gh GitHub, pr PullRequest, repo string, out *Ou
 	out.PR = pr
 	if pr.State != "OPEN" {
 		out.stop(fmt.Errorf("setup pull request #%d was closed without a merge: %s", pr.Number, pr.URL), Next(Progress{State: Closed, PR: pr}))
-		out.After = append(out.After, "or delete the branch "+Branch+" and run archfit setup again")
 		return
 	}
 	check, err := gh.Check(ctx, repo, pr.HeadRefOid)
@@ -511,4 +578,9 @@ func (o *Outcome) append(lines string) {
 	if lines = strings.TrimSpace(lines); lines != "" {
 		o.Lines = slices.Concat(o.Lines, strings.Split(lines, "\n"))
 	}
+}
+
+// ShellQuote produces one shell argument without allowing command substitution.
+func ShellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }

@@ -104,8 +104,8 @@ func TestSetupStopsWithoutPublishing(t *testing.T) {
 		next, line string
 		actions    []string
 	}{
-		{"other branch", func(f *setupFixture, _ *Dependencies) { f.branch = "feature" }, "git switch main, then archfit setup", "default branch", nil},
-		{"unpublished default commits", func(f *setupFixture, _ *Dependencies) { f.ahead = true }, "sync main with origin/main, then archfit setup", "does not match", nil},
+		{"other branch", func(f *setupFixture, _ *Dependencies) { f.branch = "feature" }, "git switch 'main', then archfit setup", "default branch", nil},
+		{"unpublished default commits", func(f *setupFixture, _ *Dependencies) { f.ahead = true }, "sync 'main' with 'origin/main', then archfit setup", "does not match", nil},
 		{"non-v1 policy", func(f *setupFixture, _ *Dependencies) { f.policyErr = errors.New("version 2") }, "fix .archfit.yaml, then archfit setup", "version 2", nil},
 		{"foreign workflow", func(f *setupFixture, _ *Dependencies) { f.workflowErr = errors.New("foreign workflow") }, "fix or rename " + WorkflowPath + ", then archfit setup", "foreign workflow", nil},
 		{devBuild, func(_ *setupFixture, d *Dependencies) { d.Version = devBuild }, "install a released archfit (brew install coupling-dev/tap/archfit), then archfit setup", "development build", nil},
@@ -118,7 +118,7 @@ func TestSetupStopsWithoutPublishing(t *testing.T) {
 		{"closed", func(f *setupFixture, _ *Dependencies) {
 			f.branch, f.workflow, f.pushed, f.pending, f.ready = Branch, true, true, false, true
 			f.pr = PullRequest{Number: 7, State: "CLOSED", URL: setupPRURL}
-		}, "reopen #7: " + setupPRURL, "closed without a merge", nil},
+		}, "pull request #7 was closed; reopen it, or delete the branch archfit/setup, then archfit setup", "closed without a merge", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := setupFixture{branch: fixtureBranch, policy: true, pending: true}
@@ -157,9 +157,10 @@ func assertActions(t *testing.T, got []string, want ...string) {
 type setupFixture struct {
 	branch, body                                                             string
 	policy, workflow, pending, merged, ahead, noAuthor, ready, scope, pushed bool
-	createErr, policyErr, workflowErr                                        error
+	createErr, policyErr, workflowErr, pushSafetyErr, pushErr, remoteErr     error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
+	ssh                                                                      bool
 	actions                                                                  []string
 }
 
@@ -182,8 +183,9 @@ func (f *setupFixture) deps(t *testing.T) Dependencies {
 	}
 }
 
-func (f *setupFixture) Policy() (bool, error)   { return f.policy, f.policyErr }
-func (f *setupFixture) Workflow() (bool, error) { return f.workflow, f.workflowErr }
+func (f *setupFixture) SafePaths() (string, error) { return "", nil }
+func (f *setupFixture) Policy() (bool, error)      { return f.policy, f.policyErr }
+func (f *setupFixture) Workflow() (bool, error)    { return f.workflow, f.workflowErr }
 func (f *setupFixture) WriteWorkflow(_, _, _ string) error {
 	f.actions = append(f.actions, workflowAction)
 	f.workflow, f.pending = true, true
@@ -200,16 +202,18 @@ func (f *setupFixture) WriteBody(body string) error {
 	}
 	return nil
 }
-func (f *setupFixture) Paths() []string { return []string{".archfit.yaml", WorkflowPath} }
+func (f *setupFixture) ValidationPaths() []string { return f.Paths() }
+func (f *setupFixture) Paths() []string           { return []string{".archfit.yaml", WorkflowPath} }
 
 type fixtureGit struct{ *setupFixture }
 
-func (g fixtureGit) Repository(context.Context) (string, error)    { return "o/r", nil }
-func (g fixtureGit) Default(context.Context) (string, error)       { return fixtureBranch, nil }
-func (g fixtureGit) Branch(context.Context) (string, error)        { return g.branch, nil }
-func (g fixtureGit) Fetch(context.Context, string) error           { return nil }
-func (g fixtureGit) Aligned(context.Context, string) (bool, error) { return !g.ahead, nil }
-func (g fixtureGit) Merged(context.Context, string) (bool, error)  { return g.merged, nil }
+func (g fixtureGit) Repository(context.Context) (string, error)              { return "o/r", nil }
+func (g fixtureGit) Default(context.Context) (string, string, error)         { return fixtureBranch, "", nil }
+func (g fixtureGit) SetupBranchExists(context.Context, string) (bool, error) { return false, nil }
+func (g fixtureGit) Branch(context.Context) (string, error)                  { return g.branch, nil }
+func (g fixtureGit) Fetch(context.Context, string) error                     { return nil }
+func (g fixtureGit) Aligned(context.Context, string) (bool, error)           { return !g.ahead, nil }
+func (g fixtureGit) Merged(context.Context, string) (bool, error)            { return g.merged, nil }
 func (g fixtureGit) Pending(_ context.Context, paths []string) ([]string, error) {
 	if g.pending {
 		return paths, nil
@@ -235,9 +239,18 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 	g.pending, g.pushed = false, false
 	return nil
 }
-func (g fixtureGit) Pushed(context.Context, string) bool { return g.pushed }
+func (g fixtureGit) Pushed(context.Context, string) (bool, error) { return g.pushed, nil }
+func (g fixtureGit) ValidateRemote(context.Context, string, string, []string) error {
+	return g.remoteErr
+}
+func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) {
+	return !g.ssh, g.pushSafetyErr
+}
 func (g fixtureGit) Push(context.Context, string) error {
 	g.actions = append(g.actions, pushAction)
+	if g.pushErr != nil {
+		return g.pushErr
+	}
 	g.pushed = true
 	return nil
 }
@@ -260,3 +273,77 @@ func (h fixtureGH) Check(context.Context, string, string) (AppCheck, error) { re
 func (h fixtureGH) RerunLink(context.Context, string, string) string        { return runURL }
 func (h fixtureGH) IsFork(context.Context, string) bool                     { return false }
 func (h fixtureGH) InstallTarget(context.Context, string) (uint64, uint64)  { return 123, 456 }
+
+func TestPushDestinationErrorsStopBeforePush(t *testing.T) {
+	for _, destinationErr := range []error{fixtureDestinationError("multiple"), fixtureDestinationError("different")} {
+		t.Run(destinationErr.Error(), func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, scope: true, pushSafetyErr: destinationErr}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, Blocked, 2, "fix the origin push URL, then archfit setup", destinationErr.Error())
+			assertActions(t, f.actions)
+		})
+	}
+}
+
+func TestWorkflowScopeOnlyForHTTPS(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		ssh     bool
+		want    State
+		actions []string
+	}{
+		{"ssh skips scope", true, Unpublished, []string{pushAction, writeBodyAction, createAction}},
+		{"https needs scope", false, NeedsScope, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, ssh: tc.ssh}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, tc.want, 0, Next(out.Progress))
+			assertActions(t, f.actions, tc.actions...)
+		})
+	}
+}
+
+func TestWorkflowPushRejectionExplainsPermission(t *testing.T) {
+	f := setupFixture{branch: Branch, policy: true, workflow: true, pushErr: errors.New("refusing to update workflow")}
+	out := Run(t.Context(), f.deps(t))
+	assertOutcome(t, out, Blocked, 2, "give your token permission to change workflows (gh auth refresh -s workflow for gh), then archfit setup", "refusing to update workflow")
+	assertActions(t, f.actions, pushAction)
+}
+
+func TestRemoteValidationFailureHasSafeNext(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		next string
+	}{
+		{errors.New("network timeout"), "could not reach origin; check the connection, then archfit setup"},
+		{fixtureBranchError("foreign"), "delete the branch archfit/setup only if you do not need its commits, then archfit setup"},
+	} {
+		t.Run(tc.next, func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, pushed: true, remoteErr: tc.err}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, Blocked, 2, tc.next)
+		})
+	}
+}
+
+type fixtureDestinationError string
+
+func (e fixtureDestinationError) Error() string    { return string(e) }
+func (fixtureDestinationError) UnsafeDestination() {}
+
+type fixtureBranchError string
+
+func (e fixtureBranchError) Error() string { return string(e) }
+func (fixtureBranchError) UnsafeBranch()   {}
+
+type fixtureHookError string
+
+func (e fixtureHookError) Error() string { return string(e) }
+func (fixtureHookError) HookHistory()    {}
+
+func TestNoHooksHistoryGivesSpecificNext(t *testing.T) {
+	f := setupFixture{branch: Branch, policy: true, workflow: true, pushSafetyErr: fixtureHookError("hook history")}
+	out := Run(t.Context(), f.deps(t))
+	assertOutcome(t, out, Blocked, 2, "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks")
+}
