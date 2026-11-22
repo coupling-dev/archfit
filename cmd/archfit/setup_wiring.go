@@ -7,13 +7,20 @@ import (
 
 	"github.com/coupling-dev/archfit/internal/application/changecheck"
 	"github.com/coupling-dev/archfit/internal/application/setup"
+	historygit "github.com/coupling-dev/archfit/internal/history/git"
 	"github.com/coupling-dev/archfit/internal/history/setupgit"
 )
 
 func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependencies, error) {
 	ctx := deps.runContext()
 	local := *deps
-	local.Runner = setupgit.NonInteractive{Runner: deps.Runner}
+	// Setup commits a real branch. Its Git writes must not go into the
+	// command-scoped temporary object store used for read-only checks.
+	runner := deps.Runner
+	if objects, ok := runner.(*historygit.ObjectStore); ok {
+		runner = objects.Runner
+	}
+	local.Runner = setupgit.NonInteractive{Runner: runner}
 	co, err := openCheckout(ctx, &local, dirOr(dir))
 	if err != nil {
 		return setup.Dependencies{}, err
@@ -57,7 +64,9 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 			return b.String()
 		},
 		Check: func(ctx context.Context, base string) (setup.CheckResult, error) {
-			out, err := co.changeCheck().Check(ctx, changecheck.Options{Base: base})
+			checkCo := co
+			checkCo.runner = setupgit.NonInteractive{Runner: deps.Runner}
+			out, err := checkCo.changeCheck().Check(ctx, changecheck.Options{Base: base})
 			if err != nil {
 				return setup.CheckResult{}, err
 			}

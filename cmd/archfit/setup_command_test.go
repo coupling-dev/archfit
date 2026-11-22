@@ -9,7 +9,10 @@ import (
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
-const setupNoHooks = "--no-hooks"
+const (
+	setupNoHooks = "--no-hooks"
+	setupCommand = "setup"
+)
 
 func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 	dir := fixtureRepo(t, fixtureFiles(), nil)
@@ -25,7 +28,7 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 	}}
 	for range 2 {
 		var stdout, stderr bytes.Buffer
-		code := runDeps([]string{"setup", setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 		if code != exitUnknown || !strings.Contains(stdout.String(), "state: stopped") || !strings.Contains(stdout.String(), "next: git switch main") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
@@ -57,9 +60,40 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 	}}
 	for range 2 {
 		var stdout, stderr bytes.Buffer
-		code := runDeps([]string{"setup", setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 		if code != 0 || !strings.Contains(stdout.String(), "state: done") || !strings.Contains(stdout.String(), "advisory:") || strings.Contains(stdout.String(), "next:") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
 	}
+}
+
+func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
+	files := fixtureFiles()
+	delete(files, ".github/workflows/archfit.yml")
+	dir := fixtureRepo(t, files, nil)
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "switch", "main")
+	gitFixture(t, dir, "config", "user.name", "Setup Author")
+	gitFixture(t, dir, "config", "user.email", "author@example.invalid")
+	gitFixture(t, dir, "config", "commit.gpgsign", "false")
+	gitFixture(t, dir, "config", "core.hooksPath", ".git/hooks")
+	gitFixture(t, dir, "commit", "--allow-empty", "-m", "prior", "--no-gpg-sign")
+	gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", "HEAD")
+	writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  a:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
+	runner := toolrun.New()
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == "gh" {
+			return toolrun.Output{Stderr: []byte("- Token scopes: 'repo'\n")}, nil
+		}
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		return runner.Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr, now: day(fixtureDate)})
+	if code != 0 || !strings.Contains(stdout.String(), "state: stopped before the push") {
+		t.Fatalf("setup: exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+	}
+	gitFixture(t, dir, "cat-file", "-e", "HEAD^{commit}")
 }
