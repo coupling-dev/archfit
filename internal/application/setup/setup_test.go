@@ -15,11 +15,11 @@ func TestNext(t *testing.T) {
 		want  string
 	}{
 		{NoPolicy, "archfit setup"},
-		{NoWorkflow, "install the App: " + installURL},
-		{Unpublished, "install the App: " + installURL},
+		{NoWorkflow, "install the App: " + InstallURL},
+		{Unpublished, "install the App: " + InstallURL},
 		{NeedsScope, "gh auth refresh -s workflow"},
 		{ManualPR, "open the pull request: https://github.com/o/r/compare/release%2Fmain...archfit/setup?expand=1"},
-		{NoCheck, "install the App: " + installURL},
+		{NoCheck, "install the App: " + InstallURL},
 		{CheckPresent, "merge #7: https://github.com/o/r/pull/7"},
 		{Closed, "pull request #7 was closed; reopen it, or delete the branch archfit/setup, then archfit setup"},
 		{Merged, ""},
@@ -50,11 +50,11 @@ func TestTag(t *testing.T) {
 }
 
 func TestBody(t *testing.T) {
-	bare := Body("v0.10.0", installURL, nil, nil)
+	bare := Body("v0.10.0", InstallURL, nil, nil)
 	for _, line := range []string{
 		"This pull request sets up archfit 0.10.0:",
 		"Checks are advisory: nothing blocks a merge until an owner makes the check required.",
-		"1. Install the Archfit App: " + installURL,
+		"1. Install the Archfit App: " + InstallURL,
 		"2. Merge this pull request.",
 	} {
 		if !strings.Contains(bare, line) {
@@ -64,7 +64,7 @@ func TestBody(t *testing.T) {
 	if strings.Contains(bare, "## Last 30") || strings.Contains(bare, "## For the owner") {
 		t.Errorf("empty sections rendered: %q", bare)
 	}
-	full := Body("0.10.0", installURL, &ReplaySummary{Passed: 22, NeededOwner: 5, ToShowOwner: 3}, []string{"exception legacy: expires 2027-02-20"})
+	full := Body("0.10.0", InstallURL, &ReplaySummary{Passed: 22, NeededOwner: 5, ToShowOwner: 3}, []string{"exception legacy: expires 2027-02-20"})
 	for _, section := range []string{"## Last 30 merged pull requests\n\n22 passed, 5 needed an owner", "## For the owner to decide\n\n- exception legacy: expires 2027-02-20"} {
 		if !strings.Contains(full, section) {
 			t.Errorf("missing %q in %q", section, full)

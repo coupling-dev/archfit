@@ -11,6 +11,7 @@ import (
 
 	"github.com/goccy/go-yaml"
 
+	"github.com/coupling-dev/archfit/internal/application/setup"
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
@@ -150,8 +151,8 @@ jobs:
     steps:
       - uses: %s@%s # %s
         with:
-          endpoint: https://app.coupling.dev
-`, strings.ReplaceAll(branch, "'", "''"), actionRepo, sha, tag)
+          endpoint: %s
+`, strings.ReplaceAll(branch, "'", "''"), actionRepo, sha, tag, setup.AppURL)
 }
 
 func (f setupFiles) ValidPolicy(data []byte) bool {
