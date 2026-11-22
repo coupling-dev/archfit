@@ -2,6 +2,8 @@
 
 This guide installs archfit, sets up a repository with `archfit init`, and shows the daily loop: `rules`, `can`, `check`, and `request`. For full tool requirements, see [Language support](languages.md).
 
+For advisory checks on GitHub, follow [Try it on your pull request](try-it-on-your-pull-request.md). This guide also covers the local-only workflow.
+
 ## Install archfit
 
 On macOS or Linux, install the latest release with Homebrew:
