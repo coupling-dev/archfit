@@ -467,8 +467,23 @@ Warning line (above the steps, always shown): `Without the ruleset, a fail does 
 
 Button: **Approve with your passkey** (D6: the App passkey).
 
-If no passkey is registered: `You need a passkey to approve.` Two steps, in this order: **Confirm it is you** (a
-placeholder step; 8.9 picks the method and so closes G1 of the threat model), then **Register a passkey**.
+If no passkey is registered: `You need a passkey to approve.` Two steps, in this order: **Confirm it is you**,
+then **Register a passkey**.
+
+**Confirm it is you**
+
+Before you register your first passkey, ask an Archfit operator to confirm that you are **`<login>`**. Use the private
+channel you used to join the beta. The operator sends a one-time token in that channel. It is valid for 10 minutes.
+
+- Before a request: **Request confirmation**. After the request: **Waiting for an operator**.
+- After the token arrives: field **Token from the operator**; primary button **Confirm and register a passkey**.
+- Help: Do not paste the token into a GitHub issue, a pull request, a shared document, or a screenshot. If you lose it
+  or someone else sees it, ask the operator to revoke it and issue a new one.
+- Wrong or unusable token: `That token cannot be used. Check the latest token from the operator and try again.`
+- Expired: `The token expired. Ask the operator for a new one.`
+- Locked: `Too many wrong tokens. Try again after <time>.`
+- Success: `Confirmed. Now register your passkey.` Open the browser prompt immediately after verification, then return
+  to **Make it required**.
 
 Disclosure **Why a passkey?**: `A passkey proves that a person made this approval now. A token or a saved session does not.`
 
@@ -635,7 +650,7 @@ and App test). The check ran on the text of these sections, not on the table in 
 | Id                  | Question                                                                      | Default in this file                                              |
 | ------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | D6 (decided)        | Which approval does "Make it required" use in 0.10.0?                         | The App passkey (owner, 2026-11-22). Shown in 4.4.                |
-| G1 (decided)        | The threat model's G1 (first registration): does the page need a step for it? | Yes: the placeholder step "Confirm it is you" in 4.4; 8.9 picks the method. |
+| G1 (decided)        | The threat model's G1 (first registration): does the page need a step for it? | Yes: operator confirmation before first registration, as shown in 4.4. |
 | P1 (decided)        | Does the App get a new permission to start the check again?                   | No. Variant A or B of 3.2; the engine rerun stays dropped.        |
 | install link        | Does GitHub's install page pre-select the repository?                         | `<install link>`, verified by 8.8.                                |
 | operator contact (decided) | Who admits accounts (5.1)?                                              | The issue form "Request beta access" (owner Q1).                  |
