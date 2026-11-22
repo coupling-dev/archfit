@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/coupling-dev/archfit/internal/application/setup"
 	"github.com/coupling-dev/archfit/internal/history/git"
 	requestsend "github.com/coupling-dev/archfit/internal/history/github"
 	"github.com/coupling-dev/archfit/internal/toolrun"
@@ -291,10 +290,10 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 	}
 	urls := strings.Split(push, "\n")
 	if len(urls) != 1 {
-		return false, setup.ErrMultiplePushURLs
+		return false, destinationError("origin has more than one push URL")
 	}
 	if repo := requestsend.Repository(fetch); repo == "" || !strings.EqualFold(repo, requestsend.Repository(push)) {
-		return false, setup.ErrPushRepository
+		return false, destinationError("origin pushes to another repository")
 	}
 	if err := g.validateRange(ctx, base, "HEAD", paths); err != nil {
 		return false, err
@@ -317,7 +316,7 @@ func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []st
 		return err
 	}
 	if remote != local {
-		return fmt.Errorf("%w: remote setup branch does not match the local branch", setup.ErrUnsafeBranch)
+		return branchError("remote setup branch does not match the local branch")
 	}
 	return g.validateRange(ctx, base, ref, paths)
 }
@@ -333,11 +332,11 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		}
 		parents, err := g.run(ctx, "rev-list", "--parents", "-n", "1", commit)
 		if err != nil || len(strings.Fields(parents)) != 2 {
-			return fmt.Errorf("%w: merge commit", setup.ErrUnsafeBranch)
+			return branchError("setup branch contains a merge commit")
 		}
 		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
 		if err != nil || subject != "chore: set up archfit" {
-			return fmt.Errorf("%w: commit not made by setup", setup.ErrUnsafeBranch)
+			return branchError("setup branch contains a commit not made by setup")
 		}
 		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-z", "-r", commit)
 		if err != nil {
@@ -345,7 +344,7 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		}
 		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
-				return fmt.Errorf("%w: commit changing %s", setup.ErrUnsafeBranch, file)
+				return branchError("setup branch contains a commit changing " + file)
 			}
 		}
 	}
@@ -407,3 +406,13 @@ func gitError(command string, o toolrun.Output) error {
 	}
 	return fmt.Errorf("git %s exited %d: %s", command, o.ExitCode, detail)
 }
+
+type destinationError string
+
+func (e destinationError) Error() string    { return string(e) }
+func (destinationError) UnsafeDestination() {}
+
+type branchError string
+
+func (e branchError) Error() string { return string(e) }
+func (branchError) UnsafeBranch()   {}

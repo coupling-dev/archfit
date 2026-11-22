@@ -35,12 +35,8 @@ type Files interface {
 	ValidationPaths() []string
 }
 
-// ErrMultiplePushURLs and ErrPushRepository identify unsafe Git destinations.
-var (
-	ErrMultiplePushURLs = errors.New("origin has more than one push URL")
-	ErrPushRepository   = errors.New("origin pushes to another repository")
-	ErrUnsafeBranch     = errors.New("setup branch contains unexpected history")
-)
+type unsafeDestination interface{ UnsafeDestination() }
+type unsafeBranch interface{ UnsafeBranch() }
 
 // Git reads the checkout and publishes only the setup paths.
 type Git interface {
@@ -343,6 +339,10 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.append(d.Files.PinNote())
 	}
 	out.append(d.Hooks(ctx))
+	if next, err := d.Files.SafePaths(); err != nil {
+		out.stop(err, next)
+		return
+	}
 	paths, err := d.Git.Pending(ctx, d.Files.Paths())
 	if err != nil {
 		out.stop(err, "fix the git error, then archfit setup")
@@ -360,7 +360,8 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.ValidationPaths())
 		if err != nil {
 			next := "rename or delete the branch archfit/setup, then archfit setup"
-			if errors.Is(err, ErrMultiplePushURLs) || errors.Is(err, ErrPushRepository) {
+			var destination unsafeDestination
+			if errors.As(err, &destination) {
 				next = "fix the origin push URL, then archfit setup"
 			}
 			out.stop(err, next)
@@ -383,7 +384,8 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	}
 	if err := d.Git.ValidateRemote(ctx, Branch, s.Default, d.Files.ValidationPaths()); err != nil {
 		next := "could not reach origin; check the connection, then archfit setup"
-		if errors.Is(err, ErrUnsafeBranch) {
+		var branch unsafeBranch
+		if errors.As(err, &branch) {
 			next = "rename or delete the branch archfit/setup, then archfit setup"
 		}
 		out.stop(err, next)

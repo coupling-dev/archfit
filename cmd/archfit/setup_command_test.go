@@ -14,6 +14,7 @@ import (
 
 const (
 	lsRemote     = "ls-remote"
+	setupFetch   = "fetch"
 	setupNoHooks = "--no-hooks"
 	setupCommand = "setup"
 )
@@ -63,7 +64,7 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
-		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == setupFetch {
 			return toolrun.Output{ExitCode: 1, Stderr: []byte("offline")}, nil
 		}
 		return runner.Run(ctx, cmd)
@@ -98,7 +99,7 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
-		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == setupFetch {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		return runner.Run(ctx, cmd)
@@ -329,6 +330,42 @@ func TestSetupRefusesExistingIgnoredHarnessSettings(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 	if code != 2 || !strings.Contains(stdout.String(), "next: .claude/settings.json is ignored by git; setup will not publish it.") {
+		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+	}
+}
+
+func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
+	files := fixtureFiles()
+	delete(files, ".github/workflows/archfit.yml")
+	dir := fixtureRepo(t, files, nil)
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "remote", "set-url", "--add", "--push", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "remote", "set-url", "--add", "--push", "origin", "https://github.com/other/r.git")
+	gitFixture(t, dir, "switch", "-c", "archfit/setup", "main")
+	writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
+	gitFixture(t, dir, "add", ".github/workflows/archfit.yaml")
+	gitFixture(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
+	runner := toolrun.New()
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == "gh" {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 {
+			switch cmd.Args[0] {
+			case lsRemote:
+				if len(cmd.Args) > 1 && cmd.Args[1] == "--heads" {
+					return toolrun.Output{}, nil
+				}
+				return toolrun.Output{ExitCode: 1}, nil
+			case setupFetch:
+				return toolrun.Output{ExitCode: 1}, nil
+			}
+		}
+		return runner.Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+	if code != 2 || !strings.Contains(stdout.String(), "origin has more than one push URL") || !strings.Contains(stdout.String(), "next: fix the origin push URL, then archfit setup") {
 		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 	}
 }

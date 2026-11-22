@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/coupling-dev/archfit/internal/application/setup"
-
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -417,8 +415,8 @@ func TestPushSafetyChecksAllPushURLs(t *testing.T) {
 	}{
 		{"one https", []string{"https://github.com/o/r.git"}, nil, true},
 		{"one ssh", []string{"git@github.com:o/r.git"}, nil, false},
-		{"two", []string{"https://github.com/o/r.git", "https://github.com/other/r.git"}, setup.ErrMultiplePushURLs, false},
-		{"another repository", []string{"https://github.com/other/r.git"}, setup.ErrPushRepository, false},
+		{"two", []string{"https://github.com/o/r.git", "https://github.com/other/r.git"}, destinationError("origin has more than one push URL"), false},
+		{"another repository", []string{"https://github.com/other/r.git"}, destinationError("origin pushes to another repository"), false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			root := t.TempDir()

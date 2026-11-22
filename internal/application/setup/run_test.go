@@ -274,7 +274,7 @@ func (h fixtureGH) IsFork(context.Context, string) bool                     { re
 func (h fixtureGH) InstallTarget(context.Context, string) (uint64, uint64)  { return 123, 456 }
 
 func TestPushDestinationErrorsStopBeforePush(t *testing.T) {
-	for _, destinationErr := range []error{ErrMultiplePushURLs, ErrPushRepository} {
+	for _, destinationErr := range []error{fixtureDestinationError("multiple"), fixtureDestinationError("different")} {
 		t.Run(destinationErr.Error(), func(t *testing.T) {
 			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, scope: true, pushSafetyErr: destinationErr}
 			out := Run(t.Context(), f.deps(t))
@@ -316,7 +316,7 @@ func TestRemoteValidationFailureHasSafeNext(t *testing.T) {
 		next string
 	}{
 		{errors.New("network timeout"), "could not reach origin; check the connection, then archfit setup"},
-		{ErrUnsafeBranch, "rename or delete the branch archfit/setup, then archfit setup"},
+		{fixtureBranchError("foreign"), "rename or delete the branch archfit/setup, then archfit setup"},
 	} {
 		t.Run(tc.next, func(t *testing.T) {
 			f := setupFixture{branch: Branch, policy: true, workflow: true, pushed: true, remoteErr: tc.err}
@@ -325,3 +325,13 @@ func TestRemoteValidationFailureHasSafeNext(t *testing.T) {
 		})
 	}
 }
+
+type fixtureDestinationError string
+
+func (e fixtureDestinationError) Error() string    { return string(e) }
+func (fixtureDestinationError) UnsafeDestination() {}
+
+type fixtureBranchError string
+
+func (e fixtureBranchError) Error() string { return string(e) }
+func (fixtureBranchError) UnsafeBranch()   {}
