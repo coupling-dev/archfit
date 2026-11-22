@@ -328,7 +328,7 @@ func TestSetupRefusesExistingIgnoredHarnessSettings(t *testing.T) {
 		return runner.Run(ctx, cmd)
 	}}
 	var stdout, stderr bytes.Buffer
-	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+	code := runDeps([]string{setupCommand, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 	if code != 2 || !strings.Contains(stdout.String(), "next: .claude/settings.json is ignored by git; setup will not publish it.") {
 		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 	}
@@ -369,6 +369,26 @@ func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 	if code != 2 || !strings.Contains(stdout.String(), "origin has more than one push URL") || !strings.Contains(stdout.String(), "next: fix the origin push URL, then archfit setup") {
+		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+	}
+}
+
+func TestSetupNoHooksIgnoresPrivateHarnessAfterMerge(t *testing.T) {
+	dir := fixtureRepo(t, fixtureFiles(), nil)
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "switch", "main")
+	writeFixtureFile(t, dir, ".gitignore", ".claude/settings.json\n")
+	writeFixtureFile(t, dir, ".claude/settings.json", `{"env":{"PRIVATE":"local"}}`)
+	runner := toolrun.New()
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && (cmd.Args[0] == lsRemote || cmd.Args[0] == setupFetch) {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		return runner.Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+	if code != 0 || !strings.Contains(stdout.String(), "state: done") {
 		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 	}
 }

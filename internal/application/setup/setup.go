@@ -37,6 +37,7 @@ type Files interface {
 
 type unsafeDestination interface{ UnsafeDestination() }
 type unsafeBranch interface{ UnsafeBranch() }
+type hookHistory interface{ HookHistory() }
 
 // Git reads the checkout and publishes only the setup paths.
 type Git interface {
@@ -357,12 +358,16 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	}
 	s.ready, s.scope = d.GitHub.Auth(ctx)
 	if !s.pushed {
-		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.ValidationPaths())
+		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
 		if err != nil {
 			next := "check the git error, then archfit setup"
 			var branch unsafeBranch
 			if errors.As(err, &branch) {
 				next = "rename or delete the branch archfit/setup, then archfit setup"
+			}
+			var hooks hookHistory
+			if errors.As(err, &hooks) {
+				next = "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks"
 			}
 			var destination unsafeDestination
 			if errors.As(err, &destination) {
@@ -386,11 +391,15 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		}
 		out.add("pushed %s", Branch)
 	}
-	if err := d.Git.ValidateRemote(ctx, Branch, s.Default, d.Files.ValidationPaths()); err != nil {
+	if err := d.Git.ValidateRemote(ctx, Branch, s.Default, d.Files.Paths()); err != nil {
 		next := "could not reach origin; check the connection, then archfit setup"
 		var branch unsafeBranch
 		if errors.As(err, &branch) {
 			next = "rename or delete the branch archfit/setup, then archfit setup"
+		}
+		var hooks hookHistory
+		if errors.As(err, &hooks) {
+			next = "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks"
 		}
 		out.stop(err, next)
 		return

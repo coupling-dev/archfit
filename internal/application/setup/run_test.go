@@ -335,3 +335,14 @@ type fixtureBranchError string
 
 func (e fixtureBranchError) Error() string { return string(e) }
 func (fixtureBranchError) UnsafeBranch()   {}
+
+type fixtureHookError string
+
+func (e fixtureHookError) Error() string { return string(e) }
+func (fixtureHookError) HookHistory()    {}
+
+func TestNoHooksHistoryGivesSpecificNext(t *testing.T) {
+	f := setupFixture{branch: Branch, policy: true, workflow: true, pushSafetyErr: fixtureHookError("hook history")}
+	out := Run(t.Context(), f.deps(t))
+	assertOutcome(t, out, Blocked, 2, "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks")
+}

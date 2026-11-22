@@ -570,3 +570,35 @@ func TestValidateRangePropagatesGitErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestPushSafetyRejectsHookHistoryWhenDisabled(t *testing.T) {
+	root := t.TempDir()
+	g := Git{Root: root, Runner: toolrun.New()}
+	run := func(args ...string) {
+		t.Helper()
+		if _, err := g.run(t.Context(), args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	run("remote", "add", "origin", "https://github.com/o/r.git")
+	run("commit", "--allow-empty", "-m", "base")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	run("switch", "-c", "archfit/setup")
+	if err := os.MkdirAll(filepath.Join(root, ".claude"), 0o750); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".claude/settings.json"), []byte("{}"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run("add", ".claude/settings.json")
+	run("commit", "-m", "chore: set up archfit")
+	_, err := g.PushSafety(t.Context(), "main", nil)
+	var hooks hookHistoryError
+	if !errors.As(err, &hooks) {
+		t.Fatalf("expected hook history rejection: %v", err)
+	}
+}

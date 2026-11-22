@@ -28,7 +28,7 @@ type setupFiles struct {
 }
 
 func (f setupFiles) SafePaths() (string, error) {
-	for _, rel := range f.ValidationPaths() {
+	for _, rel := range f.Paths() {
 		path := filepath.Join(f.co.root, rel)
 		if !within(f.co.root, path) {
 			return rel + " is a symbolic link; replace it with a file, then archfit setup", fmt.Errorf("%s is a symbolic link or resolves outside the checkout", rel)

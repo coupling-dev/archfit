@@ -350,6 +350,9 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		}
 		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
+				if file == ".claude/settings.json" || file == ".codex/hooks.json" {
+					return hookHistoryError("setup branch contains hook settings")
+				}
 				return branchError("setup branch contains a commit changing " + file)
 			}
 		}
@@ -422,3 +425,8 @@ type branchError string
 
 func (e branchError) Error() string { return string(e) }
 func (branchError) UnsafeBranch()   {}
+
+type hookHistoryError string
+
+func (e hookHistoryError) Error() string { return string(e) }
+func (hookHistoryError) HookHistory()    {}
