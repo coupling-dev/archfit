@@ -1,0 +1,30 @@
+name: Request beta access
+description: Ask to be admitted to the Archfit beta.
+title: "Beta access: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Archfit admits accounts by hand during the beta. This issue is public: do not write an email address, a token or a password.
+  - type: input
+    id: account
+    attributes:
+      label: GitHub account or organization
+      placeholder: your-account
+    validations:
+      required: true
+  - type: input
+    id: repository
+    attributes:
+      label: Repository
+      description: The repository you want to try Archfit on, as owner/name.
+      placeholder: your-account/your-repo
+    validations:
+      required: true
+  - type: input
+    id: goal
+    attributes:
+      label: What do you want to try?
+      description: One line.
+    validations:
+      required: true

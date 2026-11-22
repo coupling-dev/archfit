@@ -23,6 +23,7 @@ modules:
       - internal/application/repostate
       - internal/application/request
       - internal/application
+      - internal/application/setup  # request #40
     volatility: medium
     subdomain: supporting
     layer: application
