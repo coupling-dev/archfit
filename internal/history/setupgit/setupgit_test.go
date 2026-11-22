@@ -301,3 +301,52 @@ func TestMergedReadsDefaultBranchContent(t *testing.T) {
 	run("update-ref", "refs/remotes/origin/main", "HEAD")
 	assertMerged(false)
 }
+
+func TestPendingDetectsNetChangesAndIgnoresOtherFiles(t *testing.T) {
+	const tracked = "tracked"
+	const deleted = "deleted"
+	const ignored = "ignored"
+	const newFile = "new"
+	root := t.TempDir()
+	g := Git{Root: root, Runner: toolrun.New()}
+	run := func(args ...string) {
+		t.Helper()
+		if _, err := g.run(t.Context(), args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(name, contents string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, name), []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	write(tracked, "before")
+	write(deleted, "before")
+	write(".gitignore", "ignored\n")
+	run("add", "-A")
+	run("commit", "-m", "base")
+	write(tracked, "staged")
+	run("add", tracked)
+	write(tracked, "unstaged")
+	if err := os.Remove(filepath.Join(root, deleted)); err != nil {
+		t.Fatal(err)
+	}
+	write(newFile, "untracked")
+	write(ignored, ignored)
+	write("unrelated", "not a setup path")
+	got, err := g.Pending(t.Context(), []string{tracked, deleted, newFile, ignored, "absent"})
+	want := []string{tracked, deleted, newFile}
+	if err != nil || !slices.Equal(got, want) {
+		t.Fatalf("got %v, %v; want %v", got, err, want)
+	}
+	write(tracked, "before")
+	got, err = g.Pending(t.Context(), []string{tracked})
+	if err != nil || len(got) != 0 {
+		t.Fatalf("net-unchanged path %v, %v", got, err)
+	}
+}

@@ -158,11 +158,15 @@ func (g Git) Merged(ctx context.Context, branch string) (bool, error) {
 func (g Git) Pending(ctx context.Context, paths []string) ([]string, error) {
 	var pending []string
 	for _, file := range paths {
-		status, err := g.run(ctx, "status", "--porcelain", "--no-renames", "--untracked-files=all", "--", file)
+		tracked, err := g.run(ctx, "diff", "--name-only", "HEAD", "--", file)
 		if err != nil {
 			return nil, err
 		}
-		if status != "" {
+		untracked, err := g.run(ctx, "ls-files", "--others", "--exclude-standard", "--", file)
+		if err != nil {
+			return nil, err
+		}
+		if tracked != "" || untracked != "" {
 			pending = append(pending, file)
 		}
 	}
