@@ -24,6 +24,7 @@ modules:
       - internal/application/request
       - internal/application
       - internal/application/setup  # request #40
+      - internal/application/replay  # request #54
     volatility: medium
     subdomain: supporting
     layer: application
