@@ -2,6 +2,8 @@ package setupgit
 
 import (
 	"context"
+	"errors"
+
 	"os"
 	"path/filepath"
 	"reflect"
@@ -9,6 +11,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coupling-dev/archfit/internal/application/setup"
 
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
@@ -396,6 +400,45 @@ func TestPushSafetyRejectsMergeAndHandlesUnusualPaths(t *testing.T) {
 			https, err := g.PushSafety(t.Context(), "main", paths)
 			if (err == nil) != (tc.allow && !tc.merge) || (err == nil && !https) {
 				t.Fatalf("https=%t error=%v", https, err)
+			}
+		})
+	}
+}
+
+func TestPushSafetyChecksAllPushURLs(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		urls  []string
+		want  error
+		https bool
+	}{
+		{"one https", []string{"https://github.com/o/r.git"}, nil, true},
+		{"one ssh", []string{"git@github.com:o/r.git"}, nil, false},
+		{"two", []string{"https://github.com/o/r.git", "https://github.com/other/r.git"}, setup.ErrMultiplePushURLs, false},
+		{"another repository", []string{"https://github.com/other/r.git"}, setup.ErrPushRepository, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			g := Git{Root: root, Runner: toolrun.New()}
+			run := func(args ...string) {
+				t.Helper()
+				if _, err := g.run(t.Context(), args...); err != nil {
+					t.Fatal(err)
+				}
+			}
+			run("init", "--initial-branch=main")
+			run("config", "user.name", "Setup Author")
+			run("config", "user.email", "author@example.invalid")
+			run("config", "commit.gpgsign", "false")
+			run("remote", "add", "origin", "https://github.com/o/r.git")
+			run("commit", "--allow-empty", "-m", "base")
+			run("update-ref", "refs/remotes/origin/main", "HEAD")
+			for _, u := range tc.urls {
+				run("remote", "set-url", "--add", "--push", "origin", u)
+			}
+			https, err := g.PushSafety(t.Context(), "main", nil)
+			if !errors.Is(err, tc.want) || https != tc.https {
+				t.Fatalf("https %t error %v, want %t %v", https, err, tc.https, tc.want)
 			}
 		})
 	}

@@ -160,6 +160,7 @@ type setupFixture struct {
 	createErr, policyErr, workflowErr, pushSafetyErr                         error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
+	ssh                                                                      bool
 	actions                                                                  []string
 }
 
@@ -237,7 +238,7 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 }
 func (g fixtureGit) Pushed(context.Context, string) (bool, error) { return g.pushed, nil }
 func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) {
-	return true, g.pushSafetyErr
+	return !g.ssh, g.pushSafetyErr
 }
 func (g fixtureGit) Push(context.Context, string) error {
 	g.actions = append(g.actions, pushAction)
@@ -271,6 +272,25 @@ func TestPushDestinationErrorsStopBeforePush(t *testing.T) {
 			out := Run(t.Context(), f.deps(t))
 			assertOutcome(t, out, Blocked, 2, "fix the origin push URL, then archfit setup", destinationErr.Error())
 			assertActions(t, f.actions)
+		})
+	}
+}
+
+func TestWorkflowScopeOnlyForHTTPS(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		ssh     bool
+		want    State
+		actions []string
+	}{
+		{"ssh skips scope", true, Unpublished, []string{pushAction, writeBodyAction, createAction}},
+		{"https needs scope", false, NeedsScope, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, ssh: tc.ssh}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, tc.want, 0, Next(out.Progress))
+			assertActions(t, f.actions, tc.actions...)
 		})
 	}
 }
