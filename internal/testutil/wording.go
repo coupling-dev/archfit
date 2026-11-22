@@ -3,6 +3,7 @@ package testutil
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 )
 
@@ -19,11 +20,18 @@ var notUsedWords = []string{
 	"blocker", "problem", "task", "gate", "scan", "blocked", "denied",
 	"needs attention", "healthy", "decision request", "CR", "accept", "decline",
 	"architect", "approver", "rating", "score", "analysis", "insight",
+	"proposal", "void", "voided", "outside the flow", "YAML edit", "edit the YAML",
+	"envelope", "digest", "hash", "sha", "reload", "refresh the page",
+	"behind", "update branch", "admin merge", "squash", "rebase", "stale",
+	"rung", "surface", "PR",
 }
 
 // gateNames are the two uses of "gate" that are names, not words: the check
 // name and the policy key.
 var gateNames = regexp.MustCompile(`(?i)archfit/gate|\bgate:`)
+
+// The story additions start here; legacy callers keep the original vocabulary.
+var legacyWordCount = slices.Index(notUsedWords, "proposal")
 
 var notUsedPatterns = compileNotUsed(notUsedWords)
 
@@ -40,9 +48,18 @@ func compileNotUsed(words []string) []*regexp.Regexp {
 // whole words and in any case, in list order. A phrase matches across any
 // whitespace.
 func NotUsedIn(text string) []string {
+	return notUsedIn(text, legacyWordCount)
+}
+
+// StoryNotUsedIn applies the extended story vocabulary.
+func StoryNotUsedIn(text string) []string {
+	return notUsedIn(text, len(notUsedWords))
+}
+
+func notUsedIn(text string, count int) []string {
 	text = gateNames.ReplaceAllString(text, " ")
 	var found []string
-	for i, pattern := range notUsedPatterns {
+	for i, pattern := range notUsedPatterns[:count] {
 		if pattern.MatchString(text) {
 			found = append(found, notUsedWords[i])
 		}
