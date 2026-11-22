@@ -129,7 +129,7 @@ names: ## fail on references to the old home of archfit
 ## workflows: lint GitHub Actions workflow files and test the release tag rule
 .PHONY: workflows
 workflows: ## lint .github/workflows with actionlint and zizmor; test the release tag rule
-	go run github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION) .github/workflows/*.yaml
+	go run github.com/rhysd/actionlint/cmd/actionlint@$(ACTIONLINT_VERSION) .github/workflows/*.yaml cmd/archfit/testdata/setup/archfit.yaml
 	uvx zizmor==$(ZIZMOR_VERSION) --format plain .github/workflows
 	bash scripts/tests/release_channel_test.sh
 

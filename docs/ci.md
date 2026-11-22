@@ -7,6 +7,35 @@ a tool error.
 
 The Go coverage example describes version 2 (Archfit 3). Use the current text-record gate below for a version 1 policy.
 
+## The workflow `archfit setup` writes
+
+Run [`archfit setup`](commands.md#setup) to write this workflow. Setup substitutes your default branch for
+`main` and the commit SHA of the Action tag that matches the installed Archfit release.
+For an annotated tag, it uses the commit the tag points to. Development builds cannot pin an Action release.
+Setup does not replace an existing workflow. The Action checks out the repository itself.
+
+```yaml
+name: archfit
+on:
+  pull_request:
+  push:
+    branches: ['main']
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  archfit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: coupling-dev/archfit-action@<commit-sha> # v0.10.0
+        with:
+          endpoint: https://app.coupling.dev
+```
+
 ## Run the check without the Action
 
 A pull request is checked against its target branch. `actions/checkout` fetches
