@@ -1,6 +1,6 @@
 # Onboarding texts: one vocabulary (task 8.14)
 
-Status: proposal, 2026-11-22. Plan task 8.14 (C7) of `docs/plans/20261122-archfit-0-10-onboarding.md`. The owner
+Status: accepted by the owner, 2026-11-22, with changes Q1 to Q3 (not admitted: issue form; unknown is neutral in advisory; count words). Plan task 8.14 (C7) of `docs/plans/20261122-archfit-0-10-onboarding.md`. The owner
 reviews the private page built from this file before 8.9 and 8.10 start. Texts for 8.2, 8.7, 8.9, 8.10 and 8.15
 are built from this file once it merges.
 
@@ -19,7 +19,7 @@ How to read this file:
 - Every text in sections 2 to 5 is the wording the product should show. A line marked **(changed)** differs from the
   proposal or from 8.7's wording; section 6 gives the old text, the new one and the reason.
 - `<angle brackets>` are filled in at run time or by a later task. Placeholders still open: `<install link>` (8.8
-  verifies it), `<setup page link>` (8.9 names the path; Q2), `<gh api line>` (8.6), `<operator contact>` (owner).
+  verifies it), `<setup page link>` (8.9 names the path; Q2), `<gh api line>` (8.6), the issue form of 5.1 is added by this pull request.
 - No text here uses a word from the "Not used" column of design section 5. Section 7 lists the checks.
 
 ## 1. Vocabulary
@@ -49,8 +49,7 @@ users see; the last rows are words not to use.
 | **worker**                          | A person or agent who changes code.                                                                                         | —                                           | pull request                        |
 | **balance**                         | The coupling number, shown as `9/10 (min 7)`.                                                                               | rating, score                               | App, CLI                            |
 | **report**                          | The repository-wide measurements for the owner.                                                                             | analysis, insight                           | CLI, App                            |
-| **quiet**                           | A pull request with no error. Count word only.                                                                              | —                                           | setup page, replay                  |
-| **asked**                           | A pull request that opened a request for an owner. Count word only.                                                         | —                                           | setup page, replay                  |
+| **checked / passed / needed an owner** | Count words on the setup page. Checked: pull requests the check ran on. Passed: status pass. Needed an owner: opened a request for an owner. | quiet, asked | setup page, replay |
 | **for the owner to decide**         | The open points of a policy, listed by `init` and `setup`.                                                                  | open decisions                              | CLI, setup pull request             |
 | **setup page**                      | The App's page for one repository: its state and its next step.                                                             | dashboard                                   | App                                 |
 | **the App**                         | The Archfit GitHub App. In full: "the Archfit App".                                                                         | the bot                                     | everywhere                          |
@@ -78,7 +77,7 @@ $ archfit setup
 wrote .archfit.yaml: 14 modules, 23 allowed dependencies, 3 rules, 3 exceptions
 wrote AGENTS.md: the agent block
 installed hooks: Claude Code, Codex
-replay: 30 merged pull requests read: 22 quiet, 5 asked, 3 to show an owner
+replay: 30 merged pull requests read: 22 passed, 5 would have needed an owner, 3 to look at first
 for the owner to decide:
   exception billing-legacy: expires 2027-02-20 (90 days)
   module reports has no public part
@@ -249,7 +248,8 @@ Check names: `archfit/gate` for the App's check; `archfit` for the Action's job.
 
 ### 3.1 The Action job before the App is installed (C1, 8.15)
 
-Job conclusion: neutral. Job summary:
+Job conclusion: success, with a notice (GitHub Actions has no neutral job conclusion); the App's `archfit/gate` check is
+what shows neutral. Job summary:
 
 ```text
 archfit: not checked yet
@@ -326,25 +326,28 @@ The how-to line (the last line) replaces the proposal's advisory line (section 6
 
 ### 3.5 Unknown on an ordinary pull request
 
-Check conclusion: as the App decides today for unknown (6.4 asks whether it stays action_required in advisory).
-Title:
+Check conclusion (owner Q2): **neutral in advisory**, `action_required` in required mode. The text says why there is
+no verdict and gives one next step in both. Title:
 
 ```text
 unknown, no verdict
 ```
 
-Summary, one example per reason (two shown; each reason has its own `next:` line):
+Summary, one example per reason (two shown; each reason has its own `next:` line). In advisory mode, a last line
+`Advisory: this check does not block the merge.` follows the `next:` line; in required mode it is left out.
 
 ```text
 archfit: unknown, no verdict
 Archfit cannot read a valid policy on the default branch.
 next: merge a valid .archfit.yaml to the default branch
+Advisory: this check does not block the merge.
 ```
 
 ```text
 archfit: unknown, no verdict
 The policy changed outside the flow. An owner must confirm or revert it.
 next: ask an owner to confirm the policy change: <setup page link>
+Advisory: this check does not block the merge.
 ```
 
 ### 3.6 Welcome comment on the setup pull request (8.10)
@@ -370,7 +373,7 @@ Checks are advisory: nothing blocks a merge until an owner makes the check requi
 
 ## Last 30 merged pull requests
 
-22 quiet, 5 asked, 3 to show an owner. Read them with `archfit replay --last 30`.
+22 passed, 5 would have needed an owner, 3 to look at first. Read them with `archfit replay --last 30`.
 
 ## For the owner to decide
 
@@ -423,7 +426,7 @@ Button: **Open pull request #12**.
 Heading: `Checks are advisory on <owner>/<repo>`
 
 ```text
-This week: 12 checked, 9 quiet, 3 asked.
+This week: 12 checked · 9 passed · 3 needed an owner.
 Checks report on each pull request and do not block a merge.
 ```
 
@@ -481,7 +484,7 @@ Ruleset: archfit/gate is required on the default branch.
 
 Button: **Review the policy** (the current policy on the default branch).
 
-Muted line: `This week: 12 checked, 9 quiet, 3 asked.`
+Muted line: `This week: 12 checked · 9 passed · 3 needed an owner.`
 
 ## 5. Install edge cases (C3)
 
@@ -493,12 +496,14 @@ page's error text when GitHub shows one.
 Heading: `This account is not admitted to Archfit yet.`
 
 ```text
-Archfit admits accounts by hand. An operator must admit yours before the App can be installed.
-Send this to <operator contact>:
-  Please admit the GitHub account <login> to Archfit, for the repository <owner>/<repo>.
+Archfit admits accounts by hand during the beta.
+Request beta access, then come back to this page.
 ```
 
-Button: **Copy the message** (selectable text, too).
+Button: **Request beta access**, a link to the issue form
+`https://github.com/coupling-dev/archfit/issues/new?template=beta-access.yml` (owner Q1). The form is
+`.github/ISSUE_TEMPLATE/beta-access.yml`, added by this pull request. Its fields: GitHub account or organization,
+repository, one line on what you want to try. No email address anywhere.
 
 ### 5.2 The installer is not an administrator of the organization
 
@@ -521,7 +526,7 @@ Button: **Copy the message** with the link and the page address.
 | ----------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | merged            | `rung 2: advisory`                                                                   | `advisory: checks report on each pull request and do not block a merge`                | "rung" is the design's name; users see the state, not the rung                |
 | no policy, replay | `open decisions:` and its list                                                       | `for the owner to decide:`                                                             | "decision" is on the Not used list (design 5); the test would fail the golden |
-| no policy, replay | (no replay line shape given)                                                         | `replay: 30 merged pull requests read: 22 quiet, 5 asked, 3 to show an owner`          | "quiet" and "asked" as in design 4.1                                          |
+| no policy, replay | (no replay line shape given)                                                         | `replay: 30 merged pull requests read: 22 passed, 5 would have needed an owner, 3 to look at first`          | owner Q3: count words "passed" and "needed an owner"                                          |
 | install step      | `install the App: <link>, then archfit setup`                                        | `next: install the App: <link>`; the rerun is the user's                               | one action per `next:` line (the brief); the proposal's rerun is dropped (C1) |
 | no `gh`           | `open the pull request: <compare link>, install the App: <link>, then archfit setup` | `next: open the pull request: <compare link>`; the install link on an information line | one action per `next:` line                                                   |
 | PR open, no check | `App check: none on <head>`                                                          | `App check: none yet`                                                                  | short and plain                                                               |
@@ -552,7 +557,7 @@ No proposal text existed for the App page (8.9 writes it). The rules in section 
 
 ### 6.4 Open for the owner or 8.7
 
-- **Unknown in advisory.** `checkState` maps unknown to `action_required`, which blocks a merge (`internal/gate/feedback/publish_result.go`). Advisory is non-blocking by design (D2). The text in 3.5 assumes unknown does not block in advisory. Decide: neutral in advisory too (recommended), or keep action_required.
+- **Unknown in advisory (decided, owner Q2).** Neutral in advisory, `action_required` in required mode. Today's `checkState` maps unknown to `action_required` for both (`internal/gate/feedback/publish_result.go`), so 8.7 changes it.
 - **"Make it required" in advisory.** The proposal lists "policy changes since setup" only before the first approval. Section 4.4 follows that.
 
 ## 7. Checks and open points
@@ -570,9 +575,9 @@ and App test). The check ran on the text of these sections, not on the table in 
 | G1 (decided)        | The threat model's G1 (first registration): does the page need a step for it? | Yes: the placeholder step "Confirm it is you" in 4.4; 8.9 picks the method. |
 | P1 (decided)        | Does the App get a new permission to start the check again?                   | No. Variant A or B of 3.2; the engine rerun stays dropped.        |
 | install link        | Does GitHub's install page pre-select the repository?                         | `<install link>`, verified by 8.8.                                |
-| operator contact    | Who admits accounts (5.1)?                                                    | `<operator contact>`: the owner names the person or address.      |
-| counts              | Is "asked" the right word for the count (C9 uses it)?                         | Yes; section 1 defines it. Alternative: "needed an owner".        |
-| unknown in advisory | See 6.4.                                                                      | Neutral in advisory (recommended).                                |
+| operator contact (decided) | Who admits accounts (5.1)?                                              | The issue form "Request beta access" (owner Q1).                  |
+| counts (decided)    | The count words.                                                              | "checked", "passed", "needed an owner" (owner Q3).                |
+| unknown in advisory (decided) | See 6.4.                                                            | Neutral in advisory; action_required in required mode (owner Q2). |
 | rung names          | Do users ever see "rung" or the numbers 1 to 3?                               | No. Section 1 keeps them out.                                     |
 
 ### 7.3 Done when
