@@ -36,7 +36,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 		Files: files, Git: git, GitHub: gh, Version: version,
 		Replay: func(ctx context.Context, branch string) (setup.ReplaySummary, error) {
 			svc := co.replay(&local)
-			svc.History = replayHistory{co: co, ref: "refs/remotes/origin/" + branch, noLabels: true}
+			svc.History = replayHistory{co: co, ref: setupgit.OriginRef(branch), noLabels: true}
 			r, err := svc.Run(ctx, 30)
 			return setup.ReplaySummary{Read: r.Read, Passed: r.Passed, NeededOwner: r.Asked, ToShowOwner: r.Look}, err
 		},

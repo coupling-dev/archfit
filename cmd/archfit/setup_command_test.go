@@ -195,11 +195,13 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 	version = "v0.10.0"
 	t.Cleanup(func() { version = old })
 	for _, tc := range []struct {
-		name     string
-		noPolicy bool
+		name         string
+		noPolicy     bool
+		noOriginHead bool
 	}{
-		{"no policy", true},
-		{"policy without workflow", false},
+		{"no policy", true, false},
+		{"policy without workflow", false, false},
+		{"missing origin HEAD", false, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := fixtureFiles()
@@ -216,6 +218,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			gitFixture(t, dir, "config", "core.hooksPath", ".git/hooks")
 			gitFixture(t, dir, "commit", "--allow-empty", "-m", "prior", "--no-gpg-sign")
 			gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", headRef)
+			if tc.noOriginHead {
+				gitFixture(t, dir, "symbolic-ref", "-d", "refs/remotes/origin/HEAD")
+			}
 			runner := toolrun.New()
 			var writes []string
 			prOpen := false
@@ -224,6 +229,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 				args := strings.Join(cmd.Args, " ")
 				switch {
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --symref"):
+					if tc.noOriginHead {
+						return toolrun.Output{Stdout: []byte("ref: refs/heads/main\tHEAD\n")}, nil
+					}
 					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch ") && strings.Contains(args, "refs/heads/archfit/setup:"):
 					return runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
@@ -289,7 +297,7 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			if out := run(); !strings.Contains(out, "opened setup pull request #7") {
 				t.Fatal(out)
 			}
-			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md"))
+			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md")) //nolint:gosec // dir is a test fixture
 			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests") {
 				t.Fatalf("missing replay in PR body: %s, %v", body, err)
 			}

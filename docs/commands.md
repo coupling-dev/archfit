@@ -230,6 +230,8 @@ Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a ch
 | App check present | Prints the status of `archfit/gate`. | Review and merge the setup pull request. |
 | Done | The default branch has the policy and an Archfit workflow. | Checks are advisory. Setup prints no `next:` line. |
 
+After writing a new policy, setup shows how it would judge up to 30 recent first-parent changes. It also includes the counts in the first setup pull request body. Replay uses the local remote-tracking default branch, does not fetch PR labels or start CI, and stops after 60 seconds. If the local ref is unavailable, run `archfit replay` later.
+
 Before a commit, setup runs the check against the remote default branch. A `fail` does not stop setup.
 An `unknown` stops setup before the commit and shows the check's next step.
 Setup commits only changed setup paths, but includes any existing edits in those paths.
