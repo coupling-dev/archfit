@@ -46,7 +46,8 @@ type Git interface {
 	Identity(context.Context) (string, error)
 	Switch(context.Context, string, string) error
 	Commit(context.Context, []string) error
-	Pushed(context.Context, string) bool
+	Pushed(context.Context, string) (bool, error)
+	PushSafety(context.Context, string, []string) (https bool, err error)
 	Push(context.Context, string) error
 }
 
@@ -251,7 +252,13 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		s.State = NoWorkflow
 	default:
 		s.State = Unpublished
-		s.pushed = s.branch == Branch && d.Git.Pushed(ctx, Branch)
+		if s.branch == Branch {
+			s.pushed, err = d.Git.Pushed(ctx, Branch)
+			if err != nil {
+				out.stop(err, "check the remote setup branch, then archfit setup")
+				return s, false
+			}
+		}
 	}
 	return s, true
 }
@@ -334,7 +341,12 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	}
 	s.ready, s.scope = d.GitHub.Auth(ctx)
 	if !s.pushed {
-		if s.ready && !s.scope {
+		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
+		if err != nil {
+			out.stop(err, "rename or delete the branch archfit/setup, then archfit setup")
+			return
+		}
+		if s.ready && https && !s.scope {
 			out.State = NeedsScope
 			out.add("the gh login has no workflow scope, so GitHub would refuse the workflow file")
 			return

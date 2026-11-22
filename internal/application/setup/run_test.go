@@ -235,7 +235,8 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 	g.pending, g.pushed = false, false
 	return nil
 }
-func (g fixtureGit) Pushed(context.Context, string) bool { return g.pushed }
+func (g fixtureGit) Pushed(context.Context, string) (bool, error)               { return g.pushed, nil }
+func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) { return true, nil }
 func (g fixtureGit) Push(context.Context, string) error {
 	g.actions = append(g.actions, pushAction)
 	g.pushed = true

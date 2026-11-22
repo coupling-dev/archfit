@@ -66,9 +66,8 @@ func (g Git) Repository(ctx context.Context) (string, error) {
 	repo := requestsend.Repository(remote)
 	// A separate push URL pointing at another repository would make the
 	// compare link and GitHub lookups refer to the wrong branch.
-	pushRemote, err := g.run(ctx, "remote", "get-url", "--push", "origin")
-	if err != nil || repo == "" || !strings.EqualFold(repo, requestsend.Repository(pushRemote)) {
-		return "", errors.New("origin must fetch from and push to the same github.com repository")
+	if repo == "" {
+		return "", errors.New("origin is not a github.com repository")
 	}
 	return repo, nil
 }
@@ -248,11 +247,65 @@ func (g Git) Commit(ctx context.Context, paths []string) error {
 	return err
 }
 
-// Pushed reports whether a push is unnecessary according to the local remote-tracking ref.
-func (g Git) Pushed(ctx context.Context, branch string) bool {
+// Pushed checks the live remote, not a possibly stale tracking ref.
+func (g Git) Pushed(ctx context.Context, branch string) (bool, error) {
 	local, err := g.run(ctx, "rev-parse", "--verify", headsRef+branch)
-	remote, remoteErr := g.run(ctx, "rev-parse", "--verify", originRef+branch)
-	return err == nil && remoteErr == nil && local != "" && local == remote
+	if err != nil {
+		return false, err
+	}
+	remote, err := g.run(ctx, "ls-remote", "--heads", "origin", headsRef+branch)
+	if err != nil {
+		return false, err
+	}
+	for line := range strings.SplitSeq(remote, "\n") {
+		sha, ref, _ := strings.Cut(line, "\t")
+		if ref == headsRef+branch {
+			return sha == local, nil
+		}
+	}
+	return false, nil
+}
+
+// PushSafety rejects multiple destinations and unrelated commits.
+func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool, error) {
+	fetch, err := g.run(ctx, "remote", "get-url", "origin")
+	if err != nil {
+		return false, err
+	}
+	push, err := g.run(ctx, "remote", "get-url", "--push", "--all", "origin")
+	if err != nil {
+		return false, err
+	}
+	urls := strings.Split(push, "\n")
+	if len(urls) != 1 {
+		return false, errors.New("origin has more than one push URL")
+	}
+	if repo := requestsend.Repository(fetch); repo == "" || !strings.EqualFold(repo, requestsend.Repository(push)) {
+		return false, errors.New("origin pushes to another repository")
+	}
+	commits, err := g.run(ctx, "rev-list", "--reverse", originRef+base+"..HEAD")
+	if err != nil {
+		return false, err
+	}
+	for commit := range strings.SplitSeq(commits, "\n") {
+		if commit == "" {
+			continue
+		}
+		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
+		if err != nil || subject != "chore: set up archfit" {
+			return false, errors.New("setup branch contains a commit not made by setup")
+		}
+		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit)
+		if err != nil {
+			return false, err
+		}
+		for file := range strings.SplitSeq(files, "\n") {
+			if file != "" && !slices.Contains(paths, file) {
+				return false, fmt.Errorf("setup branch contains a commit changing %s", file)
+			}
+		}
+	}
+	return strings.HasPrefix(push, "https://"), nil
 }
 
 // Push publishes the setup branch without rewriting remote history.
