@@ -345,7 +345,7 @@ func TestPendingDetectsNetChangesAndIgnoresOtherFiles(t *testing.T) {
 	write(ignored, ignored)
 	write("unrelated", "not a setup path")
 	got, err := g.Pending(t.Context(), []string{tracked, deleted, newFile, ignored, "absent"})
-	want := []string{tracked, deleted, newFile}
+	want := []string{tracked, deleted, newFile, ignored}
 	if err != nil || !slices.Equal(got, want) {
 		t.Fatalf("got %v, %v; want %v", got, err, want)
 	}
@@ -489,5 +489,44 @@ func TestValidateRemoteRejectsForeignCommits(t *testing.T) {
 	g.Runner = mock
 	if err := g.ValidateRemote(t.Context(), "archfit/setup", "main", nil); err == nil || !strings.Contains(err.Error(), "not made by setup") {
 		t.Fatalf("foreign commit accepted: %v", err)
+	}
+}
+
+func TestCommitAddsIgnoredSetupPathOnly(t *testing.T) {
+	const setupPolicy = ".archfit.yaml"
+	root := t.TempDir()
+	g := Git{Root: root, Runner: toolrun.New()}
+	run := func(args ...string) string {
+		t.Helper()
+		out, err := g.run(t.Context(), args...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	write := func(path, body string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, path), []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	write(".gitignore", ".archfit.yaml\nunrelated\n")
+	run("add", ".gitignore")
+	run("commit", "-m", "base")
+	write(setupPolicy, "version: 1\n")
+	write("unrelated", "private\n")
+	paths, err := g.Pending(t.Context(), []string{setupPolicy})
+	if err != nil || !slices.Equal(paths, []string{setupPolicy}) {
+		t.Fatalf("pending: %v %v", paths, err)
+	}
+	if err := g.Commit(t.Context(), paths); err != nil {
+		t.Fatal(err)
+	}
+	if got := run("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"); got != setupPolicy {
+		t.Fatalf("committed %s", got)
 	}
 }

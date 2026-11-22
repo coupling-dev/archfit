@@ -166,7 +166,11 @@ func (g Git) Pending(ctx context.Context, paths []string) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		if tracked != "" || untracked != "" {
+		ignored, err := g.run(ctx, "ls-files", "--others", "--ignored", "--exclude-standard", "--", file)
+		if err != nil {
+			return nil, err
+		}
+		if tracked != "" || untracked != "" || ignored != "" {
 			pending = append(pending, file)
 		}
 	}
@@ -241,7 +245,7 @@ func (g Git) Switch(ctx context.Context, branch, base string) error {
 
 // Commit includes only setup paths, even when other changes are staged.
 func (g Git) Commit(ctx context.Context, paths []string) error {
-	if _, err := g.run(ctx, append([]string{"add", "--"}, paths...)...); err != nil {
+	if _, err := g.run(ctx, append([]string{"add", "--force", "--"}, paths...)...); err != nil {
 		return err
 	}
 	_, err := g.run(ctx, append([]string{gitCommit, "-m", "chore: set up archfit", "--"}, paths...)...)
