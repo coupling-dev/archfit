@@ -43,7 +43,7 @@ Owner changes of 2026-11-22 (relayed by archfit-76), part of this plan:
 
 | # | Change | Task |
 | --- | --- | --- |
-| C1 | Before the App is installed, the Action treats "upload refused: no installation" as a **neutral** result, not a failed job. Its summary says "Install the App: <pre-filled install link>". When the App is installed, the App re-runs the check on the open setup pull request; nobody re-runs it by hand. | 8.15 (Action), 8.8 (App) |
+| C1 | Before the App is installed, the Action treats "upload refused: no installation" as a **neutral** result, not a failed job. Its summary says "Install the App: <pre-filled install link>". When the App is installed, it brings the check on the open setup pull request up to date, with no new permission (P1): a check-suite re-request if GitHub allows it for an Actions suite, else a comment with the direct re-run link. | 8.15 (Action), 8.8 (App) |
 | C2 | The setup pull request always gets a neutral advisory check with a short "merge to start" message: never `action_required`, never a passkey wait. | 8.7 |
 | C3 | App install edge cases, each with one clear message: the account is not admitted; the installer is not an organization administrator (who to ask, what to send them). The install link pre-selects the repository if GitHub supports it (verify). | 8.8 |
 | C4 | `archfit setup` checks that the `gh` login has the `workflow` scope before it pushes `.github/workflows/`. If not, its `next:` is `gh auth refresh -s workflow`. | 8.2 |
@@ -53,12 +53,20 @@ Owner changes of 2026-11-22 (relayed by archfit-76), part of this plan:
 | C8 | No separate 0.9.1 release. H1, H2, H3, #33 and the Go 1.27 note ship in 0.10.0. | section 3 |
 | C9 | `archfit why` (8.12) and `setup --agent` (8.3) move to the end of the engine lane and may slip past 0.10.0. The 7-day digest comment is dropped: the setup page shows "this week: N checked, N quiet, N asked" next to "Make it required". No new infrastructure. | 8.3, 8.9, 8.10, 8.12 |
 
-Open, for the owner (archfit-76 asks):
+Owner decisions of 2026-11-22 on the open points:
+
+| Id | Decision | Task |
+| --- | --- | --- |
+| D6 | The App passkey for "Make it required" in 0.10.0. | 8.9 |
+| D6-G1 | The first-passkey enrolment gap is closed in 8.9; its proposal picks how and says why it stops an agent that drives a signed-in browser. | 8.9 |
+| D6-G2 | The amended O1 listing is enough for the beta. | 8.9 |
+| D6-2b | Hardware-key signed policy commits: roadmap after 0.10.0, as an alternative to the passkey, no date. | after 0.10.0 |
+| P1 | No new App permission in 0.10.0 (least privilege: no `actions: write`). 8.8 first tests on a scratch repository whether the App can re-request the setup pull request's Actions check suite with its existing permissions (`POST /repos/{o}/{r}/check-suites/{id}/rerequest` with `checks: write`, or the check-run re-request). If GitHub refuses that for an Actions suite, the App posts a comment on the setup pull request with the direct re-run link, and `setup`'s `next:` says the same. The finding is written into section 8. | 8.8, 8.2 |
+
+Open, with their defaults:
 
 | Id | Question | Needed by | Default |
 | --- | --- | --- | --- |
-| D6 | Approval option for "Make it required", and G1, G2, 2b of the threat model. | 8.9 | The threat model's recommendation: the App passkey; close G1 in 8.9. |
-| P1 | C1 needs the App to re-run a workflow run: the GitHub App permission `actions: write`. Every existing installation must accept a permission change. | 8.8 | Ask the owner before the App requests it; 8.8's proposal names the exact permission and the accept step for the four onboarded installations. |
 | O4 | `setup` opens the pull request with `gh` when signed in, else prints the compare link. | 8.2 | As the design says. |
 | O6 | The App setup page needs a GitHub sign-in in rung 2. | 8.9 | Yes, to show state. The check and the comment need none. |
 
@@ -75,7 +83,7 @@ Open, for the owner (archfit-76 asks):
    `RELEASE_ON_PUSH=false`, so the merge does not deploy. The App tag follows the shared number.
 6. Deploy: started by the owner with `workflow_dispatch` (`mode=release`) after the exact commit, CI and
    rollback revisions are recorded (`gcloud run services describe`). The manager sends `NEED:` with the
-   command. If P1 is accepted, the permission change is announced to the four installations at this step.
+   command.
 7. Pins of the onboarded repositories (section 3.3).
 8. Cold run (8.13).
 
@@ -85,8 +93,8 @@ Open, for the owner (archfit-76 asks):
 2. `archfit setup`: runs `init` and `replay --last 30` (at most 60 s), writes the workflow, opens the setup
    pull request (or prints the compare link), prints the App install link. The setup pull request shows a
    neutral check: "Install the App" (C1).
-3. Install the App from that link. The App re-runs the check on the setup pull request: neutral, "merge to
-   start" (C1, C2).
+3. Install the App from that link. The App brings the check on the setup pull request up to date (P1): neutral,
+   "merge to start" (C1, C2).
 4. Merge the setup pull request. Advisory from the first merge; no sign-in, no passkey. `archfit setup`
    prints "rung 2: advisory" and the setup page.
 
@@ -120,7 +128,7 @@ Numbers follow the cold-run report of 2026-11-21.
 | 13 | Merge through the crew-net gate (harness). | Not a product step. 8.11 says to merge with GitHub's button. |
 | 14 | A fail verdict is `neutral` and a forbidden import can still merge. | Advisory stays non-blocking by design (D2). The block is rung 3: 8.6 (ruleset file), 8.9 ("Make it required"). |
 | 15 | Process notes (`safe.directory`, a safety hook on a scratch repo). | Not product. |
-| new | The setup pull request's first run fails before the App is installed. | 8.15 (neutral, "Install the App"), 8.8 (the App re-runs it on installation) |
+| new | The setup pull request's first run fails before the App is installed. | 8.15 (neutral, "Install the App"), 8.8 (re-request on installation, or a comment with the re-run link) |
 
 Deferred with reason: the report text prints a bare balance (report-model change), and the App owner-review
 page diffs a stale branch. Both stay in the deferred list of the beta plan, section 8.
@@ -133,7 +141,7 @@ page diffs a stale branch. Both stay in the deferred list of the beta plan, sect
 | `archfit.result.v1` | None (design section 6). | A 0.9.0 result decodes in the 0.10.0 App with the same verdict. Tested in 8.7. |
 | App manifest | Entries of 0.9.0 and 0.10.0 side by side. | The manifest reader takes several entries; checked in the App manifest step of 8.13. |
 | Action outcome without an App installation | Neutral with an install link, not a failed job (8.15). | Only the "no installation" refusal changes. Every other refusal still fails the job. |
-| App permission | `actions: write` if P1 is accepted (8.8). | Announced to existing installations; until one accepts, the App falls back to a comment with the re-run link. |
+| App permission | None new (P1). | The re-request uses the existing `checks: write`; if GitHub refuses it, the comment with the re-run link needs only the existing pull-request comment permission. |
 | Workflow line | `uses: coupling-dev/archfit-action@<40-hex> # vX`. | `doctor` reads `# vX` with no network. A missing comment is "cannot tell", never a mismatch. |
 | `setup`, `replay`, `why` output | Text only. | A public JSON form would need a schema and a golden contract (repository `CLAUDE.md`). None is planned. |
 | `doctor` output | Owner-without-person check (H1, merged). Text only. | `doctor` exits non-zero for an owners list with no person: a fix, since such a policy can never be approved. |
@@ -189,7 +197,9 @@ App:
       advisory mapping (pass → success, fail → neutral). A display-only record of rung-2 policy changes for
       8.9. Proposal approved. Agent: `pi`, merged by the manager.
 - [ ] **8.8 Install and admission (C1, C3).** A partner's account is admitted before the invite is sent. The
-      App re-runs the check on the open setup pull request when it is installed (P1). One clear message each
+      App brings the check on the open setup pull request up to date when it is installed: first a test on a
+      scratch repository of the check-suite re-request with the existing permissions; if GitHub refuses it, a
+      comment with the direct re-run link (P1; no `actions: write`). One clear message each
       for: account not admitted; installer is not an organization administrator (who to ask, what to send).
       Verify whether GitHub's `installations/new` can pre-select the account and the repository, and use it
       if so. Owner-side admin steps are `NEED:` items. Agent: `pi`.
@@ -197,7 +207,8 @@ App:
       step by step, and every pull-request text (check titles and summaries, comments), in one vocabulary
       and the App's existing style. A private page; `NEED:` to archfit-76 for the owner's review. Gates 8.9
       and 8.10; 8.2, 8.7 and 8.15 texts are aligned to it before their merge. Agent: `claude` (design).
-- [ ] **8.9 One setup page.** After 8.14 is reviewed and D6 is decided. One repository's state and one next
+- [ ] **8.9 One setup page.** After 8.14 is reviewed. D6 is decided: the App passkey, and the first-passkey
+      enrolment gap (G1) is closed here; the proposal picks how. One repository's state and one next
       action; never asks to copy a workflow. The last action "Make it required" carries D6, the first
       approval and the ruleset (8.6), and next to it "this week: N checked, N quiet, N asked" (C9). Before
       the first approval it lists every policy change since the setup pull request, with who merged it and
@@ -229,7 +240,7 @@ minutes and at most 4 steps; every stumble of section 4 fixed or deferred with i
 - Engine lane, one worker at a time where files overlap: 8.2, then 8.5; 8.4 in parallel in its own packages;
   8.6; then 8.3 and 8.12.
 - Action lane: 8.15, then the pin at release.
-- App lane: 8.7; 8.8 (after P1); 8.9 and 8.10 after 8.14's review and D6.
+- App lane: 8.7; 8.8 (starts with the P1 re-request test); 8.9 and 8.10 after 8.14's review.
 - Docs lane: 8.11 after 8.2 and 8.9 have their texts.
 - Then 8.13.
 
@@ -242,8 +253,8 @@ Filled as tasks finish. A later task reads its inputs here.
 | Item | Value | Task |
 | --- | --- | --- |
 | H1, H2 | Engine #36 (`11671833`); App #240 (`e693636f`), not deployed. A 0.9.1 release-notes pull request (#37) was closed when 0.9.1 was dropped. | H1, H2 |
-| D6 | (pending, owner) | 8.1 |
-| P1 | (pending, owner) | 8.8 |
+| D6 | Decided 2026-11-22: the App passkey; G1 closed in 8.9; G2 the O1 listing is enough; 2b on the roadmap as an alternative. Recorded in the threat model, section 7. | 8.1 |
+| P1 | Decided 2026-11-22: no new permission. Re-request test result: (pending) | 8.8 |
 | 8.14 review | (pending, owner) | 8.14 |
 | Engine `v0.10.0`: commit, tag object, release run, tap commit, image digests | (pending) | 8.13 |
 | Action `v0.10.0` commit and tag object | (pending) | 8.13 |
