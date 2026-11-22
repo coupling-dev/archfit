@@ -1,6 +1,7 @@
 # The story of a change and the four-part message (task 8.18)
 
-Status: accepted by the owner, 2026-11-22 ("I like the prototype — make it real"), with the public-part answers of section 5. Plan task 8.18
+Status: accepted by the owner, 2026-11-22 ("I like the prototype — make it real"), with the public-part answers of section 5.
+Build notes (manager, 2026-11-22): the answer page shows "Asked by @<login> <time>" from the request's GitHub issue or comment; there is no "Uses" row, because nothing stores use counts. Plan task 8.18
 of `docs/plans/20261122-archfit-0-10-onboarding.md`. It extends the accepted `docs/plans/20261122-archfit-onboarding-texts.md`
 (8.14) and does not change it. Where this file and 8.14 name the same thing, 8.14 wins.
 
@@ -142,7 +143,7 @@ rule graph · balance 9/10 (min 7) · request #40 · policy version 3f9a1c2 · r
 @alexei-led, you own `reports`. Pull request #412 makes `billing` use it at `internal/billing/invoice.go:42`.
 The policy does not allow that. The author says: "invoice needs the report totals".
 
-Evidence: `billing` → `reports`: 1 use. `reports` → `billing`: none. Balance 9/10 (min 7).
+Evidence: balance 9/10 (min 7): contract, `reports` is low.
 
 **Answer in the App** (1 minute, passkey): <answer page link>
 
