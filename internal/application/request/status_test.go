@@ -2,10 +2,12 @@ package request_test
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/coupling-dev/archfit/internal/application/request"
 	"github.com/coupling-dev/archfit/internal/model/result"
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 func TestStatusLines(t *testing.T) {
@@ -24,7 +26,11 @@ func TestStatusLines(t *testing.T) {
 		{"stale", request.StatusInput{Verdict: result.StatusPass}, []string{"✓ change   ○ check", "next: run archfit check"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := request.Status(tc.in); !reflect.DeepEqual(got, tc.want) {
+			got := request.Status(tc.in)
+			if words := testutil.StoryNotUsedIn(strings.Join(got, "\n")); len(words) > 0 {
+				t.Errorf("story wording: %v", words)
+			}
+			if got := got; !reflect.DeepEqual(got, tc.want) {
 				t.Errorf("got %#v, want %#v", got, tc.want)
 			}
 		})
