@@ -1,0 +1,100 @@
+package request
+
+import (
+	"encoding/json"
+	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/coupling-dev/archfit/internal/model/result"
+)
+
+// StatusInput holds the local result and optional pull request story.
+type StatusInput struct {
+	Verdict   result.Status
+	Fresh     bool
+	StoryText string
+}
+
+// Story is the version 1 pull request story.
+type Story struct {
+	Steps      map[string]string `json:"steps"`
+	Request    int               `json:"request"`
+	WaitingFor string            `json:"waiting_for"`
+	Since      string            `json:"since"`
+	Next       string            `json:"next"`
+}
+
+// ParseStory reads a version 1 story line.
+func ParseStory(text string) (Story, bool) {
+	const prefix = "<!-- archfit-story v1 "
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, prefix) && strings.HasSuffix(line, " -->") {
+			var story Story
+			err := json.Unmarshal([]byte(strings.TrimSuffix(strings.TrimPrefix(line, prefix), " -->")), &story)
+			return story, err == nil
+		}
+	}
+	return Story{}, false
+}
+
+// Status renders the current change and its next step.
+func Status(in StatusInput) []string {
+	row := "✓ change   ○ check"
+	if !in.Fresh {
+		return []string{row, "next: run archfit check"}
+	}
+	switch in.Verdict {
+	case result.StatusFail:
+		row = "✓ change   ✗ check"
+	case result.StatusPass:
+		row = "✓ change   ✓ check"
+	}
+	if story, ok := ParseStory(in.StoryText); ok {
+		const ask = "ask"
+		var steps []string
+		for _, step := range []struct{ key, label string }{{"change", "change"}, {"check", "check"}, {ask, ask}, {"answer", "answer"}, {"policy", "policy"}, {"recheck", "re-check"}} {
+			value := story.Steps[step.key]
+			mark := map[string]string{"done": "✓", "failed": "✗", "current": "●", "later": "○"}[value]
+			if mark == "" {
+				continue
+			}
+			label := step.label
+			if step.key == ask && story.Request > 0 {
+				label += fmt.Sprintf(" #%d", story.Request)
+			}
+			steps = append(steps, mark+" "+label)
+		}
+		lines := []string{strings.Join(steps, "   ")}
+		if since, err := time.Parse(time.RFC3339, story.Since); err == nil && story.Request > 0 && story.WaitingFor != "" {
+			lines = append(lines, fmt.Sprintf("request #%d waits for @%s since %s (about 1 minute of their time).", story.Request, cleanTerminal(story.WaitingFor), since.Format("15:04")))
+		}
+		return append(lines, "next: "+cleanTerminal(story.Next))
+	}
+	if strings.Contains(in.StoryText, "<!-- archfit-story v") && !strings.Contains(in.StoryText, "<!-- archfit-story v1 ") {
+		return []string{row, "next: update archfit to read the pull request's state"}
+	}
+	switch in.Verdict {
+	case result.StatusFail:
+		return []string{row, `next: archfit request -m "<why you need it>"`}
+	case result.StatusPass:
+		return []string{row, "next: push and open a pull request"}
+	default:
+		return []string{row, "next: run archfit check"}
+	}
+}
+
+// Remove complete ANSI escape sequences before stripping remaining control bytes.
+var terminalEscape = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[ -/]*[0-~])`)
+
+func cleanTerminal(s string) string {
+	s = terminalEscape.ReplaceAllString(s, "")
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
+}

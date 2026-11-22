@@ -62,11 +62,12 @@ const (
 	languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 )
 
-// cli exposes the seven public commands and the hidden hook entry point.
+// cli exposes the eight public commands and the hidden hook entry point.
 type cli struct {
 	Check   CheckCmd    `cmd:"" help:"The status of the change: pass (0), fail (1), or unknown (2)."`
 	Can     CanCmd      `cmd:"" help:"Before writing code: may this file, directory or module depend on that one, or use a library."`
 	Rules   RulesCmd    `cmd:"" help:"The rules that apply to paths or to the change, one rule in full, or the module graph."`
+	Status  StatusCmd   `cmd:"" help:"Show the change and request status."`
 	Request RequestCmd  `cmd:"" help:"Ask an owner to change the policy for the errors of the last check."`
 	Init    RepoInitCmd `cmd:"" help:"Set up a repository."`
 	Report  ReportCmd   `cmd:"" help:"The repository-wide picture for owners. Exits 0 whatever it shows."`

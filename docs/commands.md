@@ -310,3 +310,16 @@ It keeps every other setting and hook in a settings file and replaces its own ea
 Every command accepts `-h, --help`. The top-level command accepts `-v, --version`.
 
 See [configuration](configuration.md) for config fields, [results](results.md) for output contracts, and [CI](ci.md) for gate setup.
+
+## `archfit status`
+
+Show the local check and, when available, the pull request's current story. Status is informational and exits 0.
+
+```text
+$ archfit status
+✓ change   ✗ check   ● ask #40   ○ answer   ○ policy   ○ re-check
+request #40 waits for @alexei-led since 09:12 (about 1 minute of their time).
+next: wait, or work on something else. The check runs again by itself when #40 is answered.
+```
+
+Without a pull request or GitHub access, status shows the local check. Run `archfit check` again after changing the tree.
