@@ -317,7 +317,7 @@ func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []st
 		return err
 	}
 	if remote != local {
-		return errors.New("remote setup branch does not match the local branch")
+		return fmt.Errorf("%w: remote setup branch does not match the local branch", setup.ErrUnsafeBranch)
 	}
 	return g.validateRange(ctx, base, ref, paths)
 }
@@ -333,11 +333,11 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		}
 		parents, err := g.run(ctx, "rev-list", "--parents", "-n", "1", commit)
 		if err != nil || len(strings.Fields(parents)) != 2 {
-			return errors.New("setup branch contains a merge commit")
+			return fmt.Errorf("%w: merge commit", setup.ErrUnsafeBranch)
 		}
 		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
 		if err != nil || subject != "chore: set up archfit" {
-			return errors.New("setup branch contains a commit not made by setup")
+			return fmt.Errorf("%w: commit not made by setup", setup.ErrUnsafeBranch)
 		}
 		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-z", "-r", commit)
 		if err != nil {
@@ -345,7 +345,7 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		}
 		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
-				return fmt.Errorf("setup branch contains a commit changing %s", file)
+				return fmt.Errorf("%w: commit changing %s", setup.ErrUnsafeBranch, file)
 			}
 		}
 	}

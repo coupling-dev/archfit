@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -132,11 +133,21 @@ func TestSetupUsesActionRequiresRealWorkflowStep(t *testing.T) {
 		{"quoted action step", "jobs:\n  check:\n    steps:\n      - uses: 'coupling-dev/archfit-action@v1'\n", true},
 		{"script sample", "jobs:\n  check:\n    steps:\n      - run: |\n          uses: coupling-dev/archfit-action@v1\n", false},
 		{"bad yaml", "jobs: [", false},
+		{"empty ref", "jobs:\n  x:\n    steps:\n      - uses: coupling-dev/archfit-action@\n", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := setupUsesAction([]byte(tc.yaml)); got != tc.want {
 				t.Errorf("got %t want %t", got, tc.want)
 			}
 		})
+	}
+}
+
+func TestSetupNoHooksStillValidatesHistoricalHooks(t *testing.T) {
+	f := setupFiles{workflow: fixtureSetupWorkflow, noHooks: true}
+	for _, hook := range []string{harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex)} {
+		if !slices.Contains(f.ValidationPaths(), hook) {
+			t.Errorf("missing historical path %s", hook)
+		}
 	}
 }

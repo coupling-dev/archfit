@@ -28,8 +28,7 @@ type setupFiles struct {
 }
 
 func (f setupFiles) SafePaths() (string, error) {
-	paths := append([]string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore"}, harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex))
-	for _, rel := range paths {
+	for _, rel := range f.ValidationPaths() {
 		path := filepath.Join(f.co.root, rel)
 		if !within(f.co.root, path) {
 			return rel + " is a symbolic link; replace it with a file, then archfit setup", fmt.Errorf("%s is a symbolic link or resolves outside the checkout", rel)
@@ -208,10 +207,14 @@ func (f setupFiles) WriteBody(body string) error {
 	return writeFileAtomic(path, []byte(body), 0o600)
 }
 
+func (f setupFiles) ValidationPaths() []string {
+	return []string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore", harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex)}
+}
+
 func (f setupFiles) Paths() []string {
-	paths := []string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore"}
-	if !f.noHooks {
-		paths = append(paths, harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex))
+	paths := f.ValidationPaths()
+	if f.noHooks {
+		return paths[:len(paths)-2]
 	}
 	return paths
 }
@@ -229,7 +232,7 @@ func setupUsesAction(data []byte) bool {
 	}
 	for _, job := range workflow.Jobs {
 		for _, step := range job.Steps {
-			if strings.HasPrefix(step.Uses, actionRepo+"@") {
+			if ref, ok := strings.CutPrefix(step.Uses, actionRepo+"@"); ok && ref != "" && !strings.ContainsAny(ref, " \t\r\n") {
 				return true
 			}
 		}

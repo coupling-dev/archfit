@@ -5,6 +5,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -138,7 +139,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 				switch {
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --symref"):
 					return toolrun.Output{ExitCode: 1}, nil
-				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch ") && strings.Contains(args, "refs/heads/archfit/setup:"):
 					return process.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
 					return toolrun.Output{ExitCode: 1}, nil
@@ -205,19 +206,20 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			runner := toolrun.New()
 			var writes []string
 			prOpen := false
+			pushed := false
 			mock := &toolrun.RunnerMock{DetectFunc: runner.Detect, StreamFunc: runner.Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 				args := strings.Join(cmd.Args, " ")
 				switch {
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --symref"):
 					return toolrun.Output{ExitCode: 1}, nil
-				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch ") && strings.Contains(args, "refs/heads/archfit/setup:"):
 					return runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
 					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote https://"):
 					return toolrun.Output{Stdout: []byte(strings.Repeat("a", 40) + "\trefs/tags/v0.10.0\n")}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --heads"):
-					if len(writes) > 0 {
+					if pushed {
 						head, err := runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", headRef}})
 						if err != nil {
 							return head, err
@@ -227,6 +229,7 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 					return toolrun.Output{}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "-c push.followTags=false push "):
 					writes = append(writes, "push")
+					pushed = true
 					return toolrun.Output{}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "commit "):
 					writes = append(writes, "commit")
@@ -270,6 +273,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			}
 			if out := run(); !strings.Contains(out, "opened setup pull request #7") {
 				t.Fatal(out)
+			}
+			if !slices.Contains(writes, "push") {
+				t.Fatalf("push was not called: %v", writes)
 			}
 			before := len(writes)
 			if out := run(); !strings.Contains(out, "state: waiting for the App") {

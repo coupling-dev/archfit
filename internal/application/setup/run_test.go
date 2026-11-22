@@ -157,7 +157,7 @@ func assertActions(t *testing.T, got []string, want ...string) {
 type setupFixture struct {
 	branch, body                                                             string
 	policy, workflow, pending, merged, ahead, noAuthor, ready, scope, pushed bool
-	createErr, policyErr, workflowErr, pushSafetyErr, pushErr                error
+	createErr, policyErr, workflowErr, pushSafetyErr, pushErr, remoteErr     error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
 	ssh                                                                      bool
@@ -202,7 +202,8 @@ func (f *setupFixture) WriteBody(body string) error {
 	}
 	return nil
 }
-func (f *setupFixture) Paths() []string { return []string{".archfit.yaml", WorkflowPath} }
+func (f *setupFixture) ValidationPaths() []string { return f.Paths() }
+func (f *setupFixture) Paths() []string           { return []string{".archfit.yaml", WorkflowPath} }
 
 type fixtureGit struct{ *setupFixture }
 
@@ -237,8 +238,10 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 	g.pending, g.pushed = false, false
 	return nil
 }
-func (g fixtureGit) Pushed(context.Context, string) (bool, error)                   { return g.pushed, nil }
-func (g fixtureGit) ValidateRemote(context.Context, string, string, []string) error { return nil }
+func (g fixtureGit) Pushed(context.Context, string) (bool, error) { return g.pushed, nil }
+func (g fixtureGit) ValidateRemote(context.Context, string, string, []string) error {
+	return g.remoteErr
+}
 func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) {
 	return !g.ssh, g.pushSafetyErr
 }
@@ -305,4 +308,20 @@ func TestWorkflowPushRejectionExplainsPermission(t *testing.T) {
 	out := Run(t.Context(), f.deps(t))
 	assertOutcome(t, out, Blocked, 2, "give your token permission to change workflows (gh auth refresh -s workflow for gh), then archfit setup", "refusing to update workflow")
 	assertActions(t, f.actions, pushAction)
+}
+
+func TestRemoteValidationFailureHasSafeNext(t *testing.T) {
+	for _, tc := range []struct {
+		err  error
+		next string
+	}{
+		{errors.New("network timeout"), "could not reach origin; check the connection, then archfit setup"},
+		{ErrUnsafeBranch, "rename or delete the branch archfit/setup, then archfit setup"},
+	} {
+		t.Run(tc.next, func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, pushed: true, remoteErr: tc.err}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, Blocked, 2, tc.next)
+		})
+	}
 }
