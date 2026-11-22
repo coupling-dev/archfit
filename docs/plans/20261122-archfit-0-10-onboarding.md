@@ -172,15 +172,15 @@ Gate before the build of 8.2 to 8.15: this revision merged. Proposals may start 
 
 Engine:
 
-- [ ] **8.2 `archfit setup`.** The state machine of design section 4.2, built from the approved proposal
+- [x] **8.2 `archfit setup`.** The state machine of design section 4.2, built from the approved proposal
       (team report `b10-setup-design-plan.md`, its section 10). Plus C4 (`workflow` scope check before the
       push) and C5 (replay limited to 60 s). The engine re-run of a failed job is dropped: the App re-runs
       (C1). Its texts follow 8.14. Agent: `pi`.
-- [ ] **8.4 `archfit replay --last N`.** First-parent history of the default branch; `gh` only labels changes.
+- [x] **8.4 `archfit replay --last N`.** First-parent history of the default branch; `gh` only labels changes.
       Text output. Accepts a deadline and reports a partial count when it runs out (C5). Agent: `pi`.
-- [ ] **8.5 Open decisions at the end of `init`.** Printed by `init` and written in the report; never on a
+- [x] **8.5 Open decisions at the end of `init`.** Printed by `init` and written in the report; never on a
       pull request. After 8.2 (same file). Agent: `pi`.
-- [ ] **8.6 Ruleset file.** A ruleset JSON for GitHub's import and the `gh api` line, requiring
+- [x] **8.6 Ruleset file.** A ruleset JSON for GitHub's import and the `gh api` line, requiring
       `archfit/gate`. The setup page shows it at "Make it required". Agent: `pi`.
 - [ ] **8.3 `archfit setup --agent`.** Last in the engine lane; may slip past 0.10.0 (C9). Agent: `pi`.
 - [ ] **8.12 `archfit why <a> <b>`.** Last in the engine lane; may slip past 0.10.0 (C9). Agent: `pi`.
@@ -290,6 +290,12 @@ Filled as tasks finish. A later task reads its inputs here.
 | P1 | Decided 2026-11-22: no new permission. Re-request test result: (pending) | 8.8 |
 | 8.14 review | Accepted 2026-11-22 with three answers (beta-access issue form; advisory `unknown` neutral only for verified reports; "passed", "needed an owner"). Engine #39. | 8.14 |
 | Policy lines for setup and replay | Engine #44 (App policy pull request) admin-merged by the owner as `01a5eba7` (setup public, plus the #43 allowance); consumed in flow. The App could not bring its branch up to date (8.20). The replay line follows through the owner path of 8.19/8.20, or one verified editor step. | 8.2, 8.4 |
+| Setup and replay port | Engine #55 (`d0b3b38c`), #60 (`b3e409a1`), merged. | 8.2 |
+| Replay surface and command | Engine #57 (`d13feb6c`), #59 (`ea0de577`), merged. | 8.4 |
+| Init open decisions | Engine #58 (`4986fefa`), merged. | 8.5 |
+| Ruleset | Engine #45 (`fff5a4a7`), merged; import awaits cold run. | 8.6 |
+| Check story | App #249 (`6e5faf5d`), merged; partial implementation, task gates remain. | 8.22 |
+| Asker line and records-only batch | App #250 (`cce36846`), #254 (`f9d0bbb6`), merged; partial implementation, end-to-end gate remains. | 8.19 |
 | Usability test | (pending) | 8.23 |
 | Engine `v0.10.0`: commit, tag object, release run, tap commit, image digests | (pending) | 8.13 |
 | Action `v0.10.0` commit and tag object | (pending) | 8.13 |
