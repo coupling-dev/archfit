@@ -83,3 +83,9 @@ func TestReplayTimeout(t *testing.T) {
 		t.Errorf("summary %v, lines %q", got, out.Lines)
 	}
 }
+
+func TestShellQuote(t *testing.T) {
+	if got := ShellQuote("team's branch; echo bad"); got != "'team'\\''s branch; echo bad'" {
+		t.Fatalf("unsafe quoting: %q", got)
+	}
+}

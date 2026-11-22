@@ -104,8 +104,8 @@ func TestSetupStopsWithoutPublishing(t *testing.T) {
 		next, line string
 		actions    []string
 	}{
-		{"other branch", func(f *setupFixture, _ *Dependencies) { f.branch = "feature" }, "git switch main, then archfit setup", "default branch", nil},
-		{"unpublished default commits", func(f *setupFixture, _ *Dependencies) { f.ahead = true }, "sync main with origin/main, then archfit setup", "does not match", nil},
+		{"other branch", func(f *setupFixture, _ *Dependencies) { f.branch = "feature" }, "git switch 'main', then archfit setup", "default branch", nil},
+		{"unpublished default commits", func(f *setupFixture, _ *Dependencies) { f.ahead = true }, "sync 'main' with 'origin/main', then archfit setup", "does not match", nil},
 		{"non-v1 policy", func(f *setupFixture, _ *Dependencies) { f.policyErr = errors.New("version 2") }, "fix .archfit.yaml, then archfit setup", "version 2", nil},
 		{"foreign workflow", func(f *setupFixture, _ *Dependencies) { f.workflowErr = errors.New("foreign workflow") }, "fix or rename " + WorkflowPath + ", then archfit setup", "foreign workflow", nil},
 		{devBuild, func(_ *setupFixture, d *Dependencies) { d.Version = devBuild }, "install a released archfit (brew install coupling-dev/tap/archfit), then archfit setup", "development build", nil},

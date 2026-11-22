@@ -38,7 +38,7 @@ func (f setupFiles) SafePaths() (string, error) {
 			continue
 		}
 		if err != nil {
-			return rel, err
+			return "replace " + rel + " with a regular file, then archfit setup", err
 		}
 		if !info.Mode().IsRegular() {
 			return rel + " is a symbolic link; replace it with a file, then archfit setup", fmt.Errorf("%s is a symbolic link or not a regular file", rel)

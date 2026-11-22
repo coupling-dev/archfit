@@ -151,3 +151,15 @@ func TestSetupNoHooksStillValidatesHistoricalHooks(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupPathReadFailureSuggestsRegularFile(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".github"), []byte("not a directory"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	f := setupFiles{co: checkout{root: root, runner: toolrun.New()}, workflow: fixtureSetupWorkflow, noHooks: true}
+	next, err := f.SafePaths()
+	if err == nil || next != "replace "+fixtureSetupWorkflow+" with a regular file, then archfit setup" {
+		t.Fatalf("next %q error %v", next, err)
+	}
+}

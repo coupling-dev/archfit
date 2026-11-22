@@ -228,7 +228,7 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 	}
 	s.branch, err = d.Git.Branch(ctx)
 	if err != nil || (s.branch != s.Default && s.branch != Branch) {
-		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+s.Default+", then archfit setup")
+		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+ShellQuote(s.Default)+", then archfit setup")
 		return s, false
 	}
 	if s.branch == s.Default {
@@ -261,11 +261,11 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 	}
 	aligned, err := d.Git.Aligned(ctx, s.Default)
 	if err != nil || !aligned {
-		out.stop(errors.New("local "+s.Default+" does not match origin/"+s.Default), "sync "+s.Default+" with origin/"+s.Default+", then archfit setup")
+		out.stop(errors.New("local "+s.Default+" does not match origin/"+s.Default), "sync "+ShellQuote(s.Default)+" with "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
 	}
 	if merged, err := d.Git.Merged(ctx, s.Default); err != nil {
-		out.stop(err, "check origin/"+s.Default+", then archfit setup")
+		out.stop(err, "check "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
 	} else if merged {
 		s.State = Merged
@@ -470,7 +470,7 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	if s.ready {
 		pr, err := d.GitHub.PullRequest(ctx, s.Repo, s.Default, Branch)
 		if err != nil {
-			out.stop(err, "fix the pull request lookup")
+			out.stop(err, "fix the pull request lookup, then archfit setup")
 			return
 		}
 		if pr.Number != 0 {
@@ -578,4 +578,9 @@ func (o *Outcome) append(lines string) {
 	if lines = strings.TrimSpace(lines); lines != "" {
 		o.Lines = slices.Concat(o.Lines, strings.Split(lines, "\n"))
 	}
+}
+
+// ShellQuote produces one shell argument without allowing command substitution.
+func ShellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }

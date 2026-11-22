@@ -43,7 +43,7 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 	for range 2 {
 		var stdout, stderr bytes.Buffer
 		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
-		if code != exitUnknown || !strings.Contains(stdout.String(), "state: stopped") || !strings.Contains(stdout.String(), "next: git switch main") {
+		if code != exitUnknown || !strings.Contains(stdout.String(), "state: stopped") || !strings.Contains(stdout.String(), "next: git switch 'main'") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
 	}

@@ -63,7 +63,7 @@ func (c *SetupCmd) command() string {
 		command += " --no-hooks"
 	}
 	if c.Dir != "" {
-		command += " -C '" + strings.ReplaceAll(c.Dir, "'", "'\\''") + "'"
+		command += " -C " + setup.ShellQuote(c.Dir)
 	}
 	return command
 }
