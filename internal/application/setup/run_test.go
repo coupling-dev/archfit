@@ -236,7 +236,8 @@ func (g fixtureGit) Commit(context.Context, []string) error {
 	g.pending, g.pushed = false, false
 	return nil
 }
-func (g fixtureGit) Pushed(context.Context, string) (bool, error) { return g.pushed, nil }
+func (g fixtureGit) Pushed(context.Context, string) (bool, error)                   { return g.pushed, nil }
+func (g fixtureGit) ValidateRemote(context.Context, string, string, []string) error { return nil }
 func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) {
 	return !g.ssh, g.pushSafetyErr
 }

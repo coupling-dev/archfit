@@ -54,6 +54,7 @@ type Git interface {
 	Commit(context.Context, []string) error
 	Pushed(context.Context, string) (bool, error)
 	PushSafety(context.Context, string, []string) (https bool, err error)
+	ValidateRemote(context.Context, string, string, []string) error
 	Push(context.Context, string) error
 }
 
@@ -370,6 +371,10 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 			return
 		}
 		out.add("pushed %s", Branch)
+	}
+	if err := d.Git.ValidateRemote(ctx, Branch, s.Default, d.Files.Paths()); err != nil {
+		out.stop(err, "rename or delete the branch archfit/setup, then archfit setup")
+		return
 	}
 	out.State = Unpublished
 	publishPR(ctx, d, s, out)

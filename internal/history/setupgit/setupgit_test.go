@@ -458,3 +458,35 @@ func TestPushPinsDestinationAndDisablesTags(t *testing.T) {
 		t.Fatalf("called %v, error %v", called, err)
 	}
 }
+
+func TestValidateRemoteRejectsForeignCommits(t *testing.T) {
+	root := t.TempDir()
+	process := toolrun.New()
+	g := Git{Root: root, Runner: process}
+	run := func(args ...string) string {
+		t.Helper()
+		out, err := g.run(t.Context(), args...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	run("commit", "--allow-empty", "-m", "base")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	run("switch", "-c", "archfit/setup")
+	run("commit", "--allow-empty", "-m", "private work")
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
+			return process.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: root, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", "HEAD"}})
+		}
+		return process.Run(ctx, cmd)
+	}}
+	g.Runner = mock
+	if err := g.ValidateRemote(t.Context(), "archfit/setup", "main", nil); err == nil || !strings.Contains(err.Error(), "not made by setup") {
+		t.Fatalf("foreign commit accepted: %v", err)
+	}
+}

@@ -284,9 +284,36 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 	if repo := requestsend.Repository(fetch); repo == "" || !strings.EqualFold(repo, requestsend.Repository(push)) {
 		return false, setup.ErrPushRepository
 	}
-	commits, err := g.run(ctx, "rev-list", "--reverse", originRef+base+"..HEAD")
-	if err != nil {
+	if err := g.validateRange(ctx, base, "HEAD", paths); err != nil {
 		return false, err
+	}
+	return strings.HasPrefix(push, "https://"), nil
+}
+
+// ValidateRemote fetches and validates the actual branch used for the pull request.
+func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []string) error {
+	ref := originRef + branch
+	if _, err := g.run(ctx, "fetch", "--no-tags", "origin", headsRef+branch+":"+ref); err != nil {
+		return err
+	}
+	remote, err := g.run(ctx, "rev-parse", ref)
+	if err != nil {
+		return err
+	}
+	local, err := g.run(ctx, "rev-parse", "HEAD")
+	if err != nil {
+		return err
+	}
+	if remote != local {
+		return errors.New("remote setup branch does not match the local branch")
+	}
+	return g.validateRange(ctx, base, ref, paths)
+}
+
+func (g Git) validateRange(ctx context.Context, base, head string, paths []string) error {
+	commits, err := g.run(ctx, "rev-list", "--reverse", originRef+base+".."+head)
+	if err != nil {
+		return err
 	}
 	for commit := range strings.SplitSeq(commits, "\n") {
 		if commit == "" {
@@ -294,23 +321,23 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 		}
 		parents, err := g.run(ctx, "rev-list", "--parents", "-n", "1", commit)
 		if err != nil || len(strings.Fields(parents)) != 2 {
-			return false, errors.New("setup branch contains a merge commit")
+			return errors.New("setup branch contains a merge commit")
 		}
 		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
 		if err != nil || subject != "chore: set up archfit" {
-			return false, errors.New("setup branch contains a commit not made by setup")
+			return errors.New("setup branch contains a commit not made by setup")
 		}
 		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-z", "-r", commit)
 		if err != nil {
-			return false, err
+			return err
 		}
 		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
-				return false, fmt.Errorf("setup branch contains a commit changing %s", file)
+				return fmt.Errorf("setup branch contains a commit changing %s", file)
 			}
 		}
 	}
-	return strings.HasPrefix(push, "https://"), nil
+	return nil
 }
 
 // Push publishes the setup branch without rewriting remote history.

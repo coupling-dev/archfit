@@ -78,7 +78,7 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 	gitFixture(t, dir, "config", "commit.gpgsign", "false")
 	gitFixture(t, dir, "config", "core.hooksPath", ".git/hooks")
 	gitFixture(t, dir, "commit", "--allow-empty", "-m", "prior", "--no-gpg-sign")
-	gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", "HEAD")
+	gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", headRef)
 	writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  a:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
 	runner := toolrun.New()
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
@@ -118,13 +118,15 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 			gitFixture(t, dir, "add", ".github/workflows/archfit.yaml")
 			gitFixture(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
 			process := toolrun.New()
-			oid, err := process.Run(t.Context(), toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", "HEAD"}})
+			oid, err := process.Run(t.Context(), toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", headRef}})
 			if err != nil || oid.ExitCode != 0 {
 				t.Fatalf("head: %v %s", err, oid.Stderr)
 			}
 			mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 				args := strings.Join(cmd.Args, " ")
 				switch {
+				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
+					return process.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
 					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --heads"):
@@ -189,20 +191,22 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			gitFixture(t, dir, "config", "commit.gpgsign", "false")
 			gitFixture(t, dir, "config", "core.hooksPath", ".git/hooks")
 			gitFixture(t, dir, "commit", "--allow-empty", "-m", "prior", "--no-gpg-sign")
-			gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", "HEAD")
+			gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", headRef)
 			runner := toolrun.New()
 			var writes []string
 			prOpen := false
 			mock := &toolrun.RunnerMock{DetectFunc: runner.Detect, StreamFunc: runner.Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 				args := strings.Join(cmd.Args, " ")
 				switch {
+				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
+					return runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
 					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote https://"):
 					return toolrun.Output{Stdout: []byte(strings.Repeat("a", 40) + "\trefs/tags/v0.10.0\n")}, nil
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --heads"):
 					if len(writes) > 0 {
-						head, err := runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", "HEAD"}})
+						head, err := runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", headRef}})
 						if err != nil {
 							return head, err
 						}
