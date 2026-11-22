@@ -657,3 +657,24 @@ func TestFetchUpdatesRewrittenRemoteBranch(t *testing.T) {
 		t.Fatal("tracking ref remained stale")
 	}
 }
+
+func TestCreateAcceptsCaseInsensitiveRepositoryURL(t *testing.T) {
+	args := "pr create --repo o/r --base main --head archfit/setup --title Set up archfit --body-file body"
+	for _, tc := range []struct {
+		url string
+		ok  bool
+	}{
+		{"https://github.com/O/R/pull/7", true},
+		{"https://github.com/other/r/pull/7", false},
+		{"https://github.com.evil.invalid/o/r/pull/7", false},
+	} {
+		t.Run(tc.url, func(t *testing.T) {
+			gh := mockGH(t, args, tc.url, "", 0)
+			gh.BodyPath = "body"
+			got, err := gh.Create(t.Context(), repo, "main", "archfit/setup")
+			if (err == nil) != tc.ok || (tc.ok && got.Number != 7) {
+				t.Fatalf("got %+v, %v", got, err)
+			}
+		})
+	}
+}

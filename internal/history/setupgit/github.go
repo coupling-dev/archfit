@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	urlpkg "net/url"
 	"strconv"
 	"strings"
 
@@ -100,11 +101,20 @@ func (g GitHub) Create(ctx context.Context, repo, base, branch string) (PullRequ
 	if err != nil {
 		return PullRequest{}, err
 	}
-	var number int
-	if _, err := fmt.Sscanf(strings.TrimSpace(url), "https://github.com/"+repo+"/pull/%d", &number); err != nil || number <= 0 {
+	prURL := strings.TrimSpace(url)
+	parsed, err := urlpkg.Parse(prURL)
+	parts := strings.Split(strings.Trim(parsedPath(parsed), "/"), "/")
+	repository := strings.Split(repo, "/")
+	if err != nil || parsed == nil || parsed.Scheme != "https" || parsed.Host != "github.com" || parsed.User != nil ||
+		parsed.RawQuery != "" || parsed.Fragment != "" || len(parts) != 4 || len(repository) != 2 ||
+		!strings.EqualFold(parts[0], repository[0]) || !strings.EqualFold(parts[1], repository[1]) || parts[2] != "pull" {
 		return PullRequest{}, errors.New("gh did not return the setup pull request URL")
 	}
-	return PullRequest{Number: number, State: "OPEN", URL: strings.TrimSpace(url)}, nil
+	number, err := strconv.Atoi(parts[3])
+	if err != nil || number <= 0 {
+		return PullRequest{}, errors.New("gh did not return the setup pull request URL")
+	}
+	return PullRequest{Number: number, State: "OPEN", URL: prURL}, nil
 }
 
 // Check finds the named App check without accepting another app as its source.
@@ -192,4 +202,11 @@ func (g GitHub) command(ctx context.Context, args ...string) (toolrun.Output, er
 		Name: "gh", WorkDir: g.Root, Args: args, Timeout: gitTimeout,
 		Env: []string{"GH_PROMPT_DISABLED=1", "GH_PAGER=cat", "NO_COLOR=1"},
 	})
+}
+
+func parsedPath(u *urlpkg.URL) string {
+	if u == nil {
+		return ""
+	}
+	return u.Path
 }
