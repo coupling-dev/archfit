@@ -19,7 +19,7 @@ No sign-in or passkey is required for initial advisory checks. See the [setup co
 
 ## What to expect
 
-- The setup pull request shows a neutral check until it is merged. After the merge, checks are advisory, not required.
+- The planned 0.10.0 route makes the setup pull request show a neutral check until it is merged. After the merge, checks are advisory, not required.
 - On a later pull request, a change that follows the policy can pass; a change that breaks a rule reports the problem and its next step. An owner can answer a request for an exception.
 
 Fork pull requests cannot upload the record: GitHub does not grant them the `id-token: write` permission needed by the Action. They are not supported by the required check. See [CI](ci.md) for a local check.
