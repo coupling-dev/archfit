@@ -548,3 +548,25 @@ func TestPullRequestReturnsClosedForReopening(t *testing.T) {
 		t.Fatalf("closed pull request: %+v, %v", got, err)
 	}
 }
+
+func TestValidateRangePropagatesGitErrors(t *testing.T) {
+	for _, fail := range []string{"rev-list --parents", "show -s"} {
+		t.Run(fail, func(t *testing.T) {
+			g := Git{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+				args := strings.Join(cmd.Args, " ")
+				if strings.HasPrefix(args, fail) {
+					return toolrun.Output{ExitCode: 128, Stderr: []byte("repository unavailable")}, nil
+				}
+				if strings.HasPrefix(args, "rev-list --reverse") {
+					return toolrun.Output{Stdout: []byte(commitSHA + "\n")}, nil
+				}
+				return toolrun.Output{Stdout: []byte(commitSHA + " " + tagSHA + "\n")}, nil
+			}}}
+			err := g.validateRange(t.Context(), "main", "HEAD", nil)
+			var branch branchError
+			if err == nil || errors.As(err, &branch) || !strings.Contains(err.Error(), "repository unavailable") {
+				t.Fatalf("error %v", err)
+			}
+		})
+	}
+}

@@ -359,7 +359,11 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	if !s.pushed {
 		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.ValidationPaths())
 		if err != nil {
-			next := "rename or delete the branch archfit/setup, then archfit setup"
+			next := "check the git error, then archfit setup"
+			var branch unsafeBranch
+			if errors.As(err, &branch) {
+				next = "rename or delete the branch archfit/setup, then archfit setup"
+			}
 			var destination unsafeDestination
 			if errors.As(err, &destination) {
 				next = "fix the origin push URL, then archfit setup"

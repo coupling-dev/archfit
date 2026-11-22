@@ -351,6 +351,9 @@ func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 {
+			if cmd.Args[0] == "-c" {
+				t.Fatal("unexpected push")
+			}
 			switch cmd.Args[0] {
 			case lsRemote:
 				if len(cmd.Args) > 1 && cmd.Args[1] == "--heads" {
