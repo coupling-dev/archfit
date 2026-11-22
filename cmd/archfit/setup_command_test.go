@@ -163,3 +163,105 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 		})
 	}
 }
+
+func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process boundary enumerates each external response
+	old := version
+	version = "v0.10.0"
+	t.Cleanup(func() { version = old })
+	for _, tc := range []struct {
+		name     string
+		noPolicy bool
+	}{
+		{"no policy", true},
+		{"policy without workflow", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			files := fixtureFiles()
+			delete(files, ".github/workflows/archfit.yml")
+			if tc.noPolicy {
+				delete(files, defaultConfigPath)
+			}
+			dir := fixtureRepo(t, files, nil)
+			gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+			gitFixture(t, dir, "switch", "main")
+			gitFixture(t, dir, "config", "user.name", "Setup Author")
+			gitFixture(t, dir, "config", "user.email", "author@example.invalid")
+			gitFixture(t, dir, "config", "commit.gpgsign", "false")
+			gitFixture(t, dir, "config", "core.hooksPath", ".git/hooks")
+			gitFixture(t, dir, "commit", "--allow-empty", "-m", "prior", "--no-gpg-sign")
+			gitFixture(t, dir, "update-ref", "refs/remotes/origin/main", "HEAD")
+			runner := toolrun.New()
+			var writes []string
+			prOpen := false
+			mock := &toolrun.RunnerMock{DetectFunc: runner.Detect, StreamFunc: runner.Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+				args := strings.Join(cmd.Args, " ")
+				switch {
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
+					return toolrun.Output{ExitCode: 1}, nil
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote https://"):
+					return toolrun.Output{Stdout: []byte(strings.Repeat("a", 40) + "\trefs/tags/v0.10.0\n")}, nil
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --heads"):
+					if len(writes) > 0 {
+						head, err := runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"rev-parse", "HEAD"}})
+						if err != nil {
+							return head, err
+						}
+						return toolrun.Output{Stdout: []byte(strings.TrimSpace(string(head.Stdout)) + "\trefs/heads/archfit/setup\n")}, nil
+					}
+					return toolrun.Output{}, nil
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "push "):
+					writes = append(writes, "push")
+					return toolrun.Output{}, nil
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "commit "):
+					writes = append(writes, "commit")
+				case cmd.Name == "gh" && strings.HasPrefix(args, "auth status"):
+					return toolrun.Output{Stderr: []byte("- Token scopes: 'repo', 'workflow'\n")}, nil
+				case cmd.Name == "gh" && strings.HasPrefix(args, "pr list"):
+					if prOpen {
+						return toolrun.Output{Stdout: []byte(`[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`)}, nil
+					}
+					return toolrun.Output{Stdout: []byte("[]")}, nil
+				case cmd.Name == "gh" && strings.Contains(args, "--jq .owner.id"):
+					return toolrun.Output{Stdout: []byte("1\n2\n")}, nil
+				case cmd.Name == "gh" && strings.HasPrefix(args, "repo view"):
+					return toolrun.Output{Stdout: []byte(`{"isFork":false}`)}, nil
+				case cmd.Name == "gh" && strings.HasPrefix(args, "pr create"):
+					writes = append(writes, "create")
+					prOpen = true
+					return toolrun.Output{Stdout: []byte("https://github.com/o/r/pull/7\n")}, nil
+				case cmd.Name == "gh" && strings.Contains(args, "check-runs?"):
+					return toolrun.Output{Stdout: []byte(`{"check_runs":[]}`)}, nil
+				case cmd.Name == "gh" && strings.HasPrefix(args, "run list"):
+					return toolrun.Output{Stdout: []byte("[]")}, nil
+				case cmd.Name == "gh":
+					return toolrun.Output{ExitCode: 1}, nil
+				}
+				return runner.Run(ctx, cmd)
+			}}
+			run := func() string {
+				t.Helper()
+				var stdout, stderr bytes.Buffer
+				code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr, now: day(fixtureDate)})
+				if code != 0 {
+					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+				}
+				return stdout.String()
+			}
+			if tc.noPolicy {
+				if out := run(); !strings.Contains(out, "state: no workflow yet") {
+					t.Fatal(out)
+				}
+			}
+			if out := run(); !strings.Contains(out, "opened setup pull request #7") {
+				t.Fatal(out)
+			}
+			before := len(writes)
+			if out := run(); !strings.Contains(out, "state: waiting for the App") {
+				t.Fatal(out)
+			}
+			if len(writes) != before {
+				t.Fatalf("second publication repeated writes: %v", writes)
+			}
+		})
+	}
+}
