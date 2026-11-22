@@ -291,15 +291,19 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 		if commit == "" {
 			continue
 		}
+		parents, err := g.run(ctx, "rev-list", "--parents", "-n", "1", commit)
+		if err != nil || len(strings.Fields(parents)) != 2 {
+			return false, errors.New("setup branch contains a merge commit")
+		}
 		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
 		if err != nil || subject != "chore: set up archfit" {
 			return false, errors.New("setup branch contains a commit not made by setup")
 		}
-		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-r", commit)
+		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-z", "-r", commit)
 		if err != nil {
 			return false, err
 		}
-		for file := range strings.SplitSeq(files, "\n") {
+		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
 				return false, fmt.Errorf("setup branch contains a commit changing %s", file)
 			}
