@@ -51,9 +51,8 @@ func (g GitHub) Auth(ctx context.Context) (bool, bool) {
 	return true, true
 }
 
-// PullRequest finds an open setup pull request or, failing that, the newest closed one.
+// PullRequest finds an open setup pull request from the same repository.
 func (g GitHub) PullRequest(ctx context.Context, repo, base, branch string) (PullRequest, error) {
-	var prs []PullRequest
 	// gh pr list filters by branch name, not repository. Verify the head
 	// repository before using the pull request of a same-named fork.
 	var list []struct {
@@ -61,22 +60,14 @@ func (g GitHub) PullRequest(ctx context.Context, repo, base, branch string) (Pul
 		IsCrossRepository bool
 	}
 	err := g.read(ctx, &list, "pr", "list", "--repo", repo, "--head", branch, "--base", base,
-		"--state", "all", "--json", "number,state,url,headRefOid,isCrossRepository")
+		"--state", "open", "--json", "number,state,url,headRefOid,isCrossRepository")
 	if err != nil {
 		return PullRequest{}, err
 	}
 	for _, item := range list {
-		if !item.IsCrossRepository {
-			prs = append(prs, item.PullRequest)
+		if !item.IsCrossRepository && item.State == "OPEN" {
+			return item.PullRequest, nil
 		}
-	}
-	for _, pr := range prs {
-		if pr.State == "OPEN" {
-			return pr, nil
-		}
-	}
-	if len(prs) > 0 {
-		return prs[0], nil
 	}
 	return PullRequest{}, nil
 }

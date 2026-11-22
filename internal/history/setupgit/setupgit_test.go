@@ -81,7 +81,7 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 }
 
 func TestPullRequestChoosesOpenSameRepository(t *testing.T) {
-	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", `[
+	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state open --json number,state,url,headRefOid,isCrossRepository", `[
 		{"number":11,"state":"OPEN","isCrossRepository":true},
 		{"number":4,"state":"CLOSED","isCrossRepository":false},
 		{"number":7,"state":"OPEN","isCrossRepository":false,"url":"https://github.com/o/r/pull/7","headRefOid":"abc"}
@@ -528,5 +528,14 @@ func TestCommitAddsIgnoredSetupPathOnly(t *testing.T) {
 	}
 	if got := run("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"); got != setupPolicy {
 		t.Fatalf("committed %s", got)
+	}
+}
+
+func TestPullRequestIgnoresHistoricalMerged(t *testing.T) {
+	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state open --json number,state,url,headRefOid,isCrossRepository",
+		`[{"number":4,"state":"MERGED","url":"https://github.com/o/r/pull/4"}]`, "", 0)
+	got, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+	if err != nil || got.Number != 0 {
+		t.Fatalf("historical pull request: %+v, %v", got, err)
 	}
 }

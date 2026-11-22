@@ -106,7 +106,6 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 		name, auth, prs, checks, state, next string
 	}{
 		{"no gh", "", "", "", "setup pull request not opened; gh is not signed in", "open the pull request:"},
-		{"closed", signedIn, `[{"number":7,"state":"CLOSED","url":"https://github.com/o/r/pull/7"}]`, "", "stopped", "reopen #7:"},
 		{"no app check", signedIn, `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[]}`, "waiting for the App", "install the App:"},
 		{"app check", signedIn, `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[{"app":{"slug":"archfit-review"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/check","output":{"title":"merge to start"}}]}`, "waiting for the merge", "merge #7:"},
 	} {
@@ -157,9 +156,6 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 				var stdout, stderr bytes.Buffer
 				code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 				wantCode := 0
-				if tc.name == "closed" {
-					wantCode = 2
-				}
 				if code != wantCode || !strings.Contains(stdout.String(), "state: "+tc.state) || !strings.Contains(stdout.String(), "next: "+tc.next) {
 					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 				}
