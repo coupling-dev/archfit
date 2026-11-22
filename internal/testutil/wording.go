@@ -3,7 +3,6 @@ package testutil
 
 import (
 	"regexp"
-	"slices"
 	"strings"
 )
 
@@ -20,6 +19,9 @@ var notUsedWords = []string{
 	"blocker", "problem", "task", "gate", "scan", "blocked", "denied",
 	"needs attention", "healthy", "decision request", "CR", "accept", "decline",
 	"architect", "approver", "rating", "score", "analysis", "insight",
+}
+
+var storyOnlyWords = []string{
 	"proposal", "void", "voided", "outside the flow", "YAML edit", "edit the YAML",
 	"envelope", "digest", "hash", "sha", "reload", "refresh the page",
 	"behind", "update branch", "admin merge", "squash", "rebase", "stale",
@@ -30,10 +32,8 @@ var notUsedWords = []string{
 // name and the policy key.
 var gateNames = regexp.MustCompile(`(?i)archfit/gate|\bgate:`)
 
-// The story additions start here; legacy callers keep the original vocabulary.
-var legacyWordCount = slices.Index(notUsedWords, "proposal")
-
 var notUsedPatterns = compileNotUsed(notUsedWords)
+var storyOnlyPatterns = compileNotUsed(storyOnlyWords)
 
 func compileNotUsed(words []string) []*regexp.Regexp {
 	patterns := make([]*regexp.Regexp, len(words))
@@ -48,20 +48,20 @@ func compileNotUsed(words []string) []*regexp.Regexp {
 // whole words and in any case, in list order. A phrase matches across any
 // whitespace.
 func NotUsedIn(text string) []string {
-	return notUsedIn(text, legacyWordCount)
+	return notUsedIn(text, notUsedWords, notUsedPatterns)
 }
 
 // StoryNotUsedIn applies the extended story vocabulary.
 func StoryNotUsedIn(text string) []string {
-	return notUsedIn(text, len(notUsedWords))
+	return append(notUsedIn(text, notUsedWords, notUsedPatterns), notUsedIn(text, storyOnlyWords, storyOnlyPatterns)...)
 }
 
-func notUsedIn(text string, count int) []string {
+func notUsedIn(text string, words []string, patterns []*regexp.Regexp) []string {
 	text = gateNames.ReplaceAllString(text, " ")
 	var found []string
-	for i, pattern := range notUsedPatterns[:count] {
+	for i, pattern := range patterns {
 		if pattern.MatchString(text) {
-			found = append(found, notUsedWords[i])
+			found = append(found, words[i])
 		}
 	}
 	return found
