@@ -8,7 +8,7 @@ Sources:
 
 - The setup proposal, `reports/b10-setup-design-plan.md`, sections 2, 6, 10 and 11 (section 11 wins).
 - The onboarding design, `docs/plans/20261120-archfit-onboarding-design.md`, sections 2 to 4 and 8 (O1 amended).
-- The approval threat model, `docs/plans/20261122-archfit-approval-threat-model.md` (D6 open).
+- The approval threat model, `docs/plans/20261122-archfit-approval-threat-model.md` (D6 decided on 2026-11-22: the App passkey).
 - The cold run of 0.9.0, `reports/b9-coldrun-0-9-0.md`, stumbles 7, 8, 12 and 14.
 - The App's current texts: `internal/control/ui/wording.go`, `internal/gate/feedback/view.go`,
   `web/src/components/Setup.svelte`. The Action's current texts: `scripts/report.sh`.
@@ -158,7 +158,12 @@ App check: none yet on 3f9a1c2
 setup page: <setup page link>
 state: waiting for the App
 next: install the App: <install link>
+if the check does not start within a minute, re-run it: <run url>
 ```
+
+The last line is information, not an action. Setup prints it in both variants of 3.2, because it cannot tell which
+one the App uses (P1: no new App permission, so the App may not be allowed to start the check again). Setup itself
+re-runs nothing.
 
 With no `gh`, the same state reads: `pull request: open it, or check on GitHub; gh cannot show it` (a single
 information line, no second run needed).
@@ -250,7 +255,8 @@ Job conclusion: neutral. Job summary:
 archfit: not checked yet
 Install the App: <install link>
 This job did not check the change: the Archfit App is not installed on this repository.
-After you install it, the App runs the check on this pull request again. Nothing to re-run.
+After you install it, the App starts the check on this pull request again.
+If it does not start within a minute, re-run this job: <run url>
 ```
 
 Replaces the current `- App: refused the upload: HTTP 403 ...` line for this one refusal only. Every other refusal
@@ -269,6 +275,18 @@ Summary:
 ```text
 This pull request sets up Archfit. Merge it to start the checks.
 Nothing is checked, and no merge is stopped, before then.
+```
+
+**Variant A**: GitHub lets the App start the check again. The check above appears within a minute and nothing else
+is shown.
+
+**Variant B**: GitHub does not allow it (P1). The App posts this comment on the setup pull request (8.8):
+
+```markdown
+## Archfit is installed. The check has not started.
+
+GitHub did not let the App start the check on this pull request. Re-run it: <run url>
+After it runs, the check shows "merge to start".
 ```
 
 ### 3.3 Advisory pass on an ordinary pull request (8.7)
@@ -438,9 +456,10 @@ Section **What happens**, one line each:
 
 Warning line (above the steps, always shown): `Without the ruleset, a fail does not block a merge, even when the policy says required.`
 
-Button: **Approve with your passkey** (D6 default: the App passkey, pending the owner's choice; section 7).
+Button: **Approve with your passkey** (D6: the App passkey).
 
-If no passkey is registered: `You need a passkey to approve.` and button **Register a passkey**.
+If no passkey is registered: `You need a passkey to approve.` Two steps, in this order: **Confirm it is you** (a
+placeholder step; 8.9 picks the method and so closes G1 of the threat model), then **Register a passkey**.
 
 Disclosure **Why a passkey?**: `A passkey proves that a person made this approval now. A token or a saved session does not.`
 
@@ -506,6 +525,7 @@ Button: **Copy the message** with the link and the page address.
 | install step      | `install the App: <link>, then archfit setup`                                        | `next: install the App: <link>`; the rerun is the user's                               | one action per `next:` line (the brief); the proposal's rerun is dropped (C1) |
 | no `gh`           | `open the pull request: <compare link>, install the App: <link>, then archfit setup` | `next: open the pull request: <compare link>`; the install link on an information line | one action per `next:` line                                                   |
 | PR open, no check | `App check: none on <head>`                                                          | `App check: none yet`                                                                  | short and plain                                                               |
+| PR open, no check | `next: install the App: <link>; if the check does not start within a minute, re-run it: <run url>` | `next: install the App: <link>`; the re-run on an information line | one action per `next:` line (P1) |
 | PR open, no check | `re-ran the archfit job: <run url>`                                                  | removed                                                                                | C1: the App re-runs; setup does not                                           |
 | advisory replay   | `which three an owner would have wanted to see`                                      | `3 to show an owner`                                                                   | short                                                                         |
 | no policy         | `read .archfit.yaml, then archfit setup`                                             | `next: archfit setup` with the line "read the policy first" above                      | one action per `next:` line                                                   |
@@ -546,8 +566,9 @@ and App test). The check ran on the text of these sections, not on the table in 
 
 | Id                  | Question                                                                      | Default in this file                                              |
 | ------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| D6                  | Which approval does "Make it required" use in 0.10.0?                         | The App passkey, shown in 4.4 as the default and marked pending.  |
-| D6-G1               | The threat model's G1 (first registration): does the page need a step for it? | 8.9 decides how; the page shows the registration issue as a line. |
+| D6 (decided)        | Which approval does "Make it required" use in 0.10.0?                         | The App passkey (owner, 2026-11-22). Shown in 4.4.                |
+| G1 (decided)        | The threat model's G1 (first registration): does the page need a step for it? | Yes: the placeholder step "Confirm it is you" in 4.4; 8.9 picks the method. |
+| P1 (decided)        | Does the App get a new permission to start the check again?                   | No. Variant A or B of 3.2; the engine rerun stays dropped.        |
 | install link        | Does GitHub's install page pre-select the repository?                         | `<install link>`, verified by 8.8.                                |
 | operator contact    | Who admits accounts (5.1)?                                                    | `<operator contact>`: the owner names the person or address.      |
 | counts              | Is "asked" the right word for the count (C9 uses it)?                         | Yes; section 1 defines it. Alternative: "needed an owner".        |
