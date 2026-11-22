@@ -51,6 +51,7 @@ Owner changes of 2026-11-22 (relayed by archfit-76), part of this plan:
 | C6 | The route page has a short "how to leave" section: uninstall the App, delete the two files. | 8.11 |
 | C7 | A design task before 8.9 and 8.10: mockups of every state of the App setup page, the `archfit setup` output step by step, and every pull-request text (check titles, comments), in one vocabulary and the App's existing style. A private page; the owner reviews it before the App pages are built. | 8.14 |
 | C8 | No separate 0.9.1 release. H1, H2, H3, #33 and the Go 1.27 note ship in 0.10.0. | section 3 |
+| C10 | Owner and developer UX (owner, 2026-11-22, after the policy-editor round of PR #44): "these actions: reload, edit, approve — are not that obvious; I am not sure I would know what to do without AI working on these." Principles: every message says what is happening, why, what you do next (who) and what happens after; one next action with its owner; one story everywhere (Change → Check → Ask → Owner answers → Policy updated → Re-check passes); the App owns git mechanics; the effect is shown before the click; a small vocabulary (never in user-facing text: proposal, void, outside the flow, YAML edit, envelope, digest). | 8.18 to 8.23 |
 | C9 | `archfit why` (8.12) and `setup --agent` (8.3) move to the end of the engine lane and may slip past 0.10.0. The 7-day digest comment is dropped: the setup page shows "this week: N checked, N quiet, N asked" next to "Make it required". No new infrastructure. | 8.3, 8.9, 8.10, 8.12 |
 
 Owner decisions of 2026-11-22 on the open points:
@@ -215,6 +216,37 @@ App:
       its request (O1 amended). One approval covers the policy and the workflow. Agent: `pi`.
 - [ ] **8.10 Welcome comment.** A comment on the setup pull request: how to ask, what happens next. No digest
       comment (C9). After 8.14. Agent: `pi`.
+- [x] **8.16 Request duplicates.** A surface request is matched by its module edge and target package, so a
+      question about another package on the same edge is not swallowed (engine request #46). App #242.
+- [ ] **8.17 Policy editor fixes.** Absorbed by 8.20 (the editor stays an advanced tool off the normal path):
+      refuse an edit equal to the open policy pull request, Preview against it, a refused merge shown as a
+      warning, a Reload that would drop lines says so first.
+
+UX (C10; owner decision 2026-11-22):
+
+- [ ] **8.18 Story and message spec.** The life of a change across terminal, pull request and App; the
+      four-part message rule; the vocabulary list; a test in the engine, the Action and the App that fails on
+      a banned word in user-facing text. Mockups (extends 8.14) for the owner's review. First of the UX tasks.
+      Done when the owner accepts the mockups and the vocabulary test runs in all three repositories.
+      Agent: `claude` (design), then `pi` for the three vocabulary tests.
+- [ ] **8.19 Answer pages.** One App page per request: the question, the evidence (code line, dependency), three
+      or four answers as large buttons (allow, allow until a date, make it public, reject with `instead`), the
+      effect of each before the click, one passkey; batch answers ("3 requests waiting"); undo ("Revert this
+      answer"). Replaces the editor on the normal path. Done when an end-to-end test answers a request and the
+      pull request passes with no editor and no Reload. After 8.18. Agent: `claude` (design), `pi` slices.
+- [ ] **8.20 The App owns git.** The App keeps its policy pull request up to date with the default branch
+      (rebuilds it on the tip with the same bytes, App commits only) and merges it itself when the required
+      checks are green; an approval binds the policy bytes, so a default-branch move does not void it; if it
+      must be voided, the page says why and offers one re-approve. Absorbs 8.17. Done when an end-to-end test
+      moves main between the owner's approval and the merge and the owner does nothing extra. Agent: `claude`.
+- [ ] **8.21 `archfit status`.** The story row and the next action (who, link, what happens after) in the
+      terminal, for people and agents; the hooks and `archfit request` use the same lines. Tests per state;
+      docs. After 8.18. Agent: `pi` (step-by-step brief).
+- [ ] **8.22 Notifications.** The App @-mentions the owner who must act on GitHub; the "Needs you" list shows
+      the story row. Tests; mockup state. After 8.18. Agent: `pi`.
+- [ ] **8.23 Human usability test.** Before the release, the owner (and ideally one person without AI) runs a
+      scripted task list: set up, ask, answer, see the pull request pass, with no help; minutes and every
+      confusion recorded in section 8. Release gate: no step where the tester had to ask what to do. HUMAN.
 
 Docs:
 
@@ -230,19 +262,20 @@ Release:
       with the exact `gh repo create` command) in a clean container, with the method of task 7.3. Minutes
       and steps in section 8. CONFIRM.
 
-Gate for epic 8 done: 8.2, 8.4 to 8.11, 8.14, 8.15 merged (8.3 and 8.12 if they fit); the cold run under 10
-minutes and at most 4 steps; every stumble of section 4 fixed or deferred with its reason; the four pins on
-0.10.0.
+Gate for epic 8 done: 8.2, 8.4 to 8.11, 8.14 to 8.22 merged (8.3 and 8.12 if they fit); 8.23 passed; the
+cold run under 10 minutes and at most 4 steps; every stumble of section 4 fixed or deferred with its reason; the
+four pins on 0.10.0.
 
 ## 7. Order of work and lanes
 
-- Now: this revision; H3's README sentence; 8.14 (Claude).
+- Now: 8.18 (Claude) first among the UX tasks; its mockups go to the owner; 8.20 (Claude) in parallel.
 - Engine lane, one worker at a time where files overlap: 8.2, then 8.5; 8.4 in parallel in its own packages;
   8.6; then 8.3 and 8.12.
 - Action lane: 8.15, then the pin at release.
-- App lane: 8.7; 8.8 (starts with the P1 re-request test); 8.9 and 8.10 after 8.14's review.
+- App lane: 8.7, 8.8, 8.16 (done or in review); 8.20 now; 8.19, 8.9, 8.10 and 8.22 after 8.18's mockups are accepted.
+- Engine UX: 8.21 after 8.18.
 - Docs lane: 8.11 after 8.2 and 8.9 have their texts.
-- Then 8.13.
+- Then 8.23 (the owner), then 8.13.
 
 No two workers edit the same files. At most 6 workers; at most 2 Claude workers.
 
@@ -255,7 +288,9 @@ Filled as tasks finish. A later task reads its inputs here.
 | H1, H2 | Engine #36 (`11671833`); App #240 (`e693636f`), not deployed. A 0.9.1 release-notes pull request (#37) was closed when 0.9.1 was dropped. | H1, H2 |
 | D6 | Decided 2026-11-22: the App passkey; G1 closed in 8.9; G2 the O1 listing is enough; 2b on the roadmap as an alternative. Recorded in the threat model, section 7. | 8.1 |
 | P1 | Decided 2026-11-22: no new permission. Re-request test result: (pending) | 8.8 |
-| 8.14 review | (pending, owner) | 8.14 |
+| 8.14 review | Accepted 2026-11-22 with three answers (beta-access issue form; advisory `unknown` neutral only for verified reports; "passed", "needed an owner"). Engine #39. | 8.14 |
+| Policy lines for setup and replay | Engine #44 (App policy pull request) admin-merged by the owner as `01a5eba7` (setup public, plus the #43 allowance); consumed in flow. The App could not bring its branch up to date (8.20). The replay line follows through the owner path of 8.19/8.20, or one verified editor step. | 8.2, 8.4 |
+| Usability test | (pending) | 8.23 |
 | Engine `v0.10.0`: commit, tag object, release run, tap commit, image digests | (pending) | 8.13 |
 | Action `v0.10.0` commit and tag object | (pending) | 8.13 |
 | App deploy. Live now: `archfit-public-r44923382504-1`, `archfit-worker-r44923382504-1`. Rollback target: the live revisions at the time of the deploy, recorded then. | (pending) | 8.13 |
