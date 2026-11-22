@@ -3,6 +3,7 @@ package request
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -14,7 +15,6 @@ type StatusInput struct {
 	Verdict   result.Status
 	Fresh     bool
 	StoryText string
-	Now       time.Time
 }
 
 // Story is the version 1 pull request story.
@@ -69,17 +69,9 @@ func Status(in StatusInput) []string {
 		}
 		lines := []string{strings.Join(steps, "   ")}
 		if since, err := time.Parse(time.RFC3339, story.Since); err == nil && story.Request > 0 && story.WaitingFor != "" {
-			minutes := int(in.Now.Sub(since).Minutes())
-			if minutes < 1 {
-				minutes = 1
-			}
-			unit := "minutes"
-			if minutes == 1 {
-				unit = "minute"
-			}
-			lines = append(lines, fmt.Sprintf("request #%d waits for @%s since %s (about %d %s of their time).", story.Request, story.WaitingFor, since.Format("15:04"), minutes, unit))
+			lines = append(lines, fmt.Sprintf("request #%d waits for @%s since %s (about 1 minute of their time).", story.Request, cleanTerminal(story.WaitingFor), since.Format("15:04")))
 		}
-		return append(lines, "next: "+story.Next)
+		return append(lines, "next: "+cleanTerminal(story.Next))
 	}
 	if strings.Contains(in.StoryText, "<!-- archfit-story v") && !strings.Contains(in.StoryText, "<!-- archfit-story v1 ") {
 		return []string{row, "next: update archfit to read the pull request's state"}
@@ -92,4 +84,17 @@ func Status(in StatusInput) []string {
 	default:
 		return []string{row, "next: run archfit check"}
 	}
+}
+
+// Remove complete ANSI escape sequences before stripping remaining control bytes.
+var terminalEscape = regexp.MustCompile(`\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[ -/]*[0-~])`)
+
+func cleanTerminal(s string) string {
+	s = terminalEscape.ReplaceAllString(s, "")
+	return strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return -1
+		}
+		return r
+	}, s)
 }

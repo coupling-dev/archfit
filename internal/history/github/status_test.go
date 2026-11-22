@@ -19,10 +19,25 @@ func TestStoryText(t *testing.T) {
 		if calls == 1 {
 			return toolrun.Output{Stdout: []byte(`{"number":1,"headRefOid":"abc"}`)}, nil
 		}
-		return toolrun.Output{Stdout: []byte(`{"check_runs":[{"started_at":"2026-01-01T00:00:00Z","output":{"text":"old"}},{"started_at":"2026-01-02T00:00:00Z","output":{"text":"new"}}]}`)}, nil
+		return toolrun.Output{Stdout: []byte(`{"check_runs":[{"app":{"slug":"archfit-review"},"started_at":"2026-01-01T00:00:00Z","output":{"text":"old"}},{"app":{"slug":"archfit-review"},"started_at":"2026-01-02T00:00:00Z","output":{"text":"new"}}]}`)}, nil
 	}}
 	got, state := requestsend.StoryText(context.Background(), ".", runner)
 	if got != "new" || state != "" || calls != 2 {
 		t.Errorf("got %q, %q, %d calls", got, state, calls)
+	}
+}
+
+func TestStoryTextIgnoresOtherApps(t *testing.T) {
+	calls := 0
+	runner := &toolrun.RunnerMock{RunFunc: func(_ context.Context, _ toolrun.ToolCmd) (toolrun.Output, error) {
+		calls++
+		if calls == 1 {
+			return toolrun.Output{Stdout: []byte(`{"number":1,"headRefOid":"abc"}`)}, nil
+		}
+		return toolrun.Output{Stdout: []byte(`{"check_runs":[{"app":{"slug":"other"},"started_at":"2026-01-01T00:00:00Z","output":{"text":"malicious"}}]}`)}, nil
+	}}
+	text, state := requestsend.StoryText(context.Background(), ".", runner)
+	if text != "" || state != "" {
+		t.Errorf("got %q, %q", text, state)
 	}
 }

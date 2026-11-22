@@ -23,7 +23,6 @@ func (c *StatusCmd) Run(deps *appDeps) {
 			in.Verdict = last.Check.Status
 		}
 		in.StoryText, _ = requestsend.StoryText(ctx, co.root, co.runner)
-		in.Now = co.now()
 	}
 	for _, line := range request.Status(in) {
 		_, _ = fmt.Fprintln(deps.Stdout, line)

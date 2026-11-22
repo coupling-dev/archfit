@@ -36,7 +36,10 @@ func StoryText(ctx context.Context, dir string, runner toolrun.Runner) (string, 
 	var checks struct {
 		Runs []struct {
 			StartedAt time.Time `json:"started_at"`
-			Output    struct {
+			App       struct {
+				Slug string `json:"slug"`
+			} `json:"app"`
+			Output struct {
 				Text string `json:"text"`
 			} `json:"output"`
 		} `json:"check_runs"`
@@ -47,7 +50,7 @@ func StoryText(ctx context.Context, dir string, runner toolrun.Runner) (string, 
 	var latest time.Time
 	var text string
 	for _, check := range checks.Runs {
-		if latest.IsZero() || check.StartedAt.After(latest) {
+		if check.App.Slug == "archfit-review" && (latest.IsZero() || check.StartedAt.After(latest)) {
 			latest = check.StartedAt
 			text = check.Output.Text
 		}
