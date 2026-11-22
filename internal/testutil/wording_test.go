@@ -13,6 +13,7 @@ func TestNotUsedIn(t *testing.T) {
 		text string
 		want []string
 	}{
+		{name: "legacy vocabulary unchanged", text: "proposal surface PR reload"},
 		{name: "clean record", text: "pkg/tc/netem.go:12: graph: pkg_tc -> pkg_util is not an allowed dependency\narchfit: fail, 1 error\n"},
 		{name: "a whole word", text: "1 finding", want: []string{"finding"}},
 		{name: "any case", text: "Waiver added", want: []string{"waiver"}},
@@ -31,6 +32,27 @@ func TestNotUsedIn(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := testutil.NotUsedIn(tc.text); !slices.Equal(got, tc.want) {
 				t.Errorf("NotUsedIn(%q) = %q, want %q", tc.text, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestStoryNotUsedIn(t *testing.T) {
+	for _, tc := range []struct {
+		name, text string
+		want       []string
+	}{
+		{name: "story phrase", text: "outside\n the flow", want: []string{"outside the flow"}},
+		{name: "story upper case", text: "PROPOSAL", want: []string{"proposal"}},
+		{name: "short word", text: "PR", want: []string{"PR"}},
+		{name: "short word in identifier", text: "PR_name"},
+		{name: "editorial reload", text: "reload", want: []string{"reload"}},
+		{name: "literal command", text: "gh auth refresh -s workflow"},
+		{name: "gate names", text: "archfit/gate gate:"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := testutil.StoryNotUsedIn(tc.text); !slices.Equal(got, tc.want) {
+				t.Errorf("StoryNotUsedIn(%q) = %q, want %q", tc.text, got, tc.want)
 			}
 		})
 	}
