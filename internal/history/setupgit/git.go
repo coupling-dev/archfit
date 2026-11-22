@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/coupling-dev/archfit/internal/application/setup"
 	"github.com/coupling-dev/archfit/internal/history/git"
 	requestsend "github.com/coupling-dev/archfit/internal/history/github"
 	"github.com/coupling-dev/archfit/internal/toolrun"
@@ -278,10 +279,10 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 	}
 	urls := strings.Split(push, "\n")
 	if len(urls) != 1 {
-		return false, errors.New("origin has more than one push URL")
+		return false, setup.ErrMultiplePushURLs
 	}
 	if repo := requestsend.Repository(fetch); repo == "" || !strings.EqualFold(repo, requestsend.Repository(push)) {
-		return false, errors.New("origin pushes to another repository")
+		return false, setup.ErrPushRepository
 	}
 	commits, err := g.run(ctx, "rev-list", "--reverse", originRef+base+"..HEAD")
 	if err != nil {

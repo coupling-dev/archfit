@@ -33,6 +33,12 @@ type Files interface {
 	Paths() []string
 }
 
+// ErrMultiplePushURLs and ErrPushRepository identify unsafe Git destinations.
+var (
+	ErrMultiplePushURLs = errors.New("origin has more than one push URL")
+	ErrPushRepository   = errors.New("origin pushes to another repository")
+)
+
 // Git reads the checkout and publishes only the setup paths.
 type Git interface {
 	Repository(context.Context) (repo string, err error)
@@ -344,7 +350,7 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
 		if err != nil {
 			next := "rename or delete the branch archfit/setup, then archfit setup"
-			if strings.HasPrefix(err.Error(), "origin has more than one push URL") || strings.HasPrefix(err.Error(), "origin pushes to another repository") {
+			if errors.Is(err, ErrMultiplePushURLs) || errors.Is(err, ErrPushRepository) {
 				next = "fix the origin push URL, then archfit setup"
 			}
 			out.stop(err, next)

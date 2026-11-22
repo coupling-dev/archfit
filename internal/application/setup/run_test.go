@@ -265,11 +265,11 @@ func (h fixtureGH) IsFork(context.Context, string) bool                     { re
 func (h fixtureGH) InstallTarget(context.Context, string) (uint64, uint64)  { return 123, 456 }
 
 func TestPushDestinationErrorsStopBeforePush(t *testing.T) {
-	for _, message := range []string{"origin has more than one push URL", "origin pushes to another repository"} {
-		t.Run(message, func(t *testing.T) {
-			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, scope: true, pushSafetyErr: errors.New(message)}
+	for _, destinationErr := range []error{ErrMultiplePushURLs, ErrPushRepository} {
+		t.Run(destinationErr.Error(), func(t *testing.T) {
+			f := setupFixture{branch: Branch, policy: true, workflow: true, ready: true, scope: true, pushSafetyErr: destinationErr}
 			out := Run(t.Context(), f.deps(t))
-			assertOutcome(t, out, Blocked, 2, "fix the origin push URL, then archfit setup", message)
+			assertOutcome(t, out, Blocked, 2, "fix the origin push URL, then archfit setup", destinationErr.Error())
 			assertActions(t, f.actions)
 		})
 	}
