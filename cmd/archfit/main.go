@@ -62,7 +62,7 @@ const (
 	languagesDocsURL = "https://github.com/coupling-dev/archfit/blob/main/docs/languages.md"
 )
 
-// cli exposes the eight public commands and the hidden hook entry point.
+// cli exposes the nine public commands and the hidden hook entry point.
 type cli struct {
 	Check   CheckCmd    `cmd:"" help:"The status of the change: pass (0), fail (1), or unknown (2)."`
 	Can     CanCmd      `cmd:"" help:"Before writing code: may this file, directory or module depend on that one, or use a library."`

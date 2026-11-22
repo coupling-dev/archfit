@@ -1,6 +1,6 @@
 # Commands
 
-Archfit has eight public commands. Run `archfit <command> --help` for their flags. Bare `archfit` prints a usage error; it runs no check or report.
+Archfit has nine public commands. Run `archfit <command> --help` for their flags. Bare `archfit` prints a usage error; it runs no check or report.
 
 ## Policy version
 
