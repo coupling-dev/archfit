@@ -304,3 +304,25 @@ func TestSetupRejectsSymlinkedPolicyWithoutReadingIt(t *testing.T) {
 		}
 	}
 }
+
+func TestSetupRefusesExistingIgnoredHarnessSettings(t *testing.T) {
+	files := fixtureFiles()
+	delete(files, ".github/workflows/archfit.yml")
+	dir := fixtureRepo(t, files, nil)
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "switch", "main")
+	writeFixtureFile(t, dir, ".gitignore", ".claude/settings.json\n")
+	writeFixtureFile(t, dir, ".claude/settings.json", `{"env":{"PRIVATE":"local"}}`)
+	runner := toolrun.New()
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		return runner.Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+	if code != 2 || !strings.Contains(stdout.String(), "next: .claude/settings.json is ignored by git; setup will not publish it.") {
+		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+	}
+}

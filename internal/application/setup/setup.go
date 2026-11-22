@@ -230,8 +230,8 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+s.Default+", then archfit setup")
 		return s, false
 	}
-	if unsafePath, err := d.Files.SafePaths(); err != nil {
-		out.stop(err, unsafePath+" is a symbolic link; replace it with a file, then archfit setup")
+	if next, err := d.Files.SafePaths(); err != nil {
+		out.stop(err, next)
 		return s, false
 	}
 	policy, err := d.Files.Policy()

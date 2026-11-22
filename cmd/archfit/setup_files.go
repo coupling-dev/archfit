@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	workflowYAML = ".yaml"
-	workflowYML  = ".yml"
+	setupCheckIgnore = "check-ignore"
+	workflowYAML     = ".yaml"
+	workflowYML      = ".yml"
 )
 
 type setupFiles struct {
@@ -27,10 +28,11 @@ type setupFiles struct {
 }
 
 func (f setupFiles) SafePaths() (string, error) {
-	for _, rel := range f.Paths() {
+	paths := append([]string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore"}, harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex))
+	for _, rel := range paths {
 		path := filepath.Join(f.co.root, rel)
 		if !within(f.co.root, path) {
-			return rel, fmt.Errorf("%s is a symbolic link or resolves outside the checkout", rel)
+			return rel + " is a symbolic link; replace it with a file, then archfit setup", fmt.Errorf("%s is a symbolic link or resolves outside the checkout", rel)
 		}
 		info, err := os.Lstat(path)
 		if errors.Is(err, fs.ErrNotExist) {
@@ -40,7 +42,19 @@ func (f setupFiles) SafePaths() (string, error) {
 			return rel, err
 		}
 		if !info.Mode().IsRegular() {
-			return rel, fmt.Errorf("%s is a symbolic link or not a regular file", rel)
+			return rel + " is a symbolic link; replace it with a file, then archfit setup", fmt.Errorf("%s is a symbolic link or not a regular file", rel)
+		}
+		out, err := f.co.runner.Run(context.Background(), toolrun.ToolCmd{
+			Name: gitBinary, WorkDir: f.co.root, Args: []string{setupCheckIgnore, "--", rel},
+		})
+		if err != nil {
+			return "check git ignore rules, then archfit setup", err
+		}
+		if out.ExitCode == 0 {
+			return rel + " is ignored by git; setup will not publish it. Remove it from .gitignore or move it, then archfit setup", fmt.Errorf("%s is ignored by git", rel)
+		}
+		if out.ExitCode != 1 {
+			return "check git ignore rules, then archfit setup", fmt.Errorf("git check-ignore exited %d", out.ExitCode)
 		}
 	}
 	return "", nil
