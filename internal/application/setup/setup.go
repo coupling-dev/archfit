@@ -45,6 +45,7 @@ type Git interface {
 	Repository(context.Context) (repo string, err error)
 	Default(context.Context) (string, string, error)
 	Branch(context.Context) (string, error)
+	SetupBranchExists(context.Context, string) (bool, error)
 	Fetch(context.Context, string) error
 	Aligned(context.Context, string) (bool, error)
 	Merged(context.Context, string) (bool, error)
@@ -229,6 +230,17 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 	if err != nil || (s.branch != s.Default && s.branch != Branch) {
 		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+s.Default+", then archfit setup")
 		return s, false
+	}
+	if s.branch == s.Default {
+		exists, err := d.Git.SetupBranchExists(ctx, Branch)
+		if err != nil {
+			out.stop(err, "check the setup branch on origin, then archfit setup")
+			return s, false
+		}
+		if exists {
+			out.stop(errors.New("the setup branch already exists"), "git switch archfit/setup, then archfit setup")
+			return s, false
+		}
 	}
 	if next, err := d.Files.SafePaths(); err != nil {
 		out.stop(err, next)

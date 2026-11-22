@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -15,6 +17,7 @@ import (
 const (
 	lsRemote     = "ls-remote"
 	setupFetch   = "fetch"
+	setupHeads   = "--heads"
 	setupNoHooks = "--no-hooks"
 	setupCommand = "setup"
 )
@@ -30,6 +33,9 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 			t.Fatal("wrong branch should not call GitHub")
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		return runner.Run(ctx, cmd)
@@ -62,6 +68,9 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 			t.Fatal("merged detection must not require gh")
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == setupFetch {
@@ -97,6 +106,9 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 			return toolrun.Output{Stderr: []byte("- Token scopes: 'repo'\n")}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == setupFetch {
@@ -303,9 +315,19 @@ func TestSetupRejectsSymlinkedPolicyWithoutReadingIt(t *testing.T) {
 	if err := os.Symlink(external, filepath.Join(dir, defaultConfigPath)); err != nil {
 		t.Fatal(err)
 	}
+	process := toolrun.New()
+	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		return process.Run(ctx, cmd)
+	}}
 	for range 2 {
 		var stdout, stderr bytes.Buffer
-		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: toolrun.New(), Stdout: &stdout, Stderr: &stderr})
+		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 		if code != 2 || !strings.Contains(stdout.String(), "next: .archfit.yaml is a symbolic link; replace it with a file, then archfit setup") {
 			t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 		}
@@ -323,6 +345,9 @@ func TestSetupRefusesExistingIgnoredHarnessSettings(t *testing.T) {
 	runner := toolrun.New()
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		return runner.Run(ctx, cmd)
@@ -356,7 +381,7 @@ func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
 			}
 			switch cmd.Args[0] {
 			case lsRemote:
-				if len(cmd.Args) > 1 && cmd.Args[1] == "--heads" {
+				if len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
 					return toolrun.Output{}, nil
 				}
 				return toolrun.Output{ExitCode: 1}, nil
@@ -382,6 +407,9 @@ func TestSetupNoHooksIgnoresPrivateHarnessAfterMerge(t *testing.T) {
 	runner := toolrun.New()
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && (cmd.Args[0] == lsRemote || cmd.Args[0] == setupFetch) {
+			if cmd.Args[0] == lsRemote && len(cmd.Args) > 1 && cmd.Args[1] == setupHeads {
+				return toolrun.Output{}, nil
+			}
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		return runner.Run(ctx, cmd)
@@ -406,5 +434,38 @@ func TestSetupContinuationPreservesFlags(t *testing.T) {
 		if got := tc.cmd.continuation(tc.next); got != tc.want {
 			t.Errorf("got %q want %q", got, tc.want)
 		}
+	}
+}
+
+func TestSetupOnMainStopsForExistingBranchBeforeWrites(t *testing.T) {
+	for _, remote := range []bool{false, true} {
+		t.Run(fmt.Sprintf("remote=%t", remote), func(t *testing.T) {
+			files := fixtureFiles()
+			delete(files, defaultConfigPath)
+			dir := fixtureRepo(t, files, nil)
+			gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+			gitFixture(t, dir, "switch", "main")
+			if !remote {
+				gitFixture(t, dir, "branch", "archfit/setup")
+			}
+			process := toolrun.New()
+			mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+				if cmd.Name == gitBinary && len(cmd.Args) > 1 && cmd.Args[0] == lsRemote {
+					if cmd.Args[1] == setupHeads && remote {
+						return toolrun.Output{Stdout: []byte(strings.Repeat("a", 40) + "\trefs/heads/archfit/setup\n")}, nil
+					}
+					return toolrun.Output{ExitCode: 1}, nil
+				}
+				return process.Run(ctx, cmd)
+			}}
+			var stdout, stderr bytes.Buffer
+			code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+			if code != 2 || !strings.Contains(stdout.String(), "next: git switch archfit/setup, then archfit setup --no-hooks") {
+				t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+			}
+			if _, err := os.Stat(filepath.Join(dir, defaultConfigPath)); !errors.Is(err, os.ErrNotExist) {
+				t.Fatalf("policy was written: %v", err)
+			}
+		})
 	}
 }

@@ -107,6 +107,28 @@ func (g Git) Branch(ctx context.Context) (string, error) {
 	return g.run(ctx, "symbolic-ref", "--quiet", "--short", gitHead)
 }
 
+// SetupBranchExists checks both the local branch and the live origin.
+func (g Git) SetupBranchExists(ctx context.Context, branch string) (bool, error) {
+	o, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
+		Name: gitBinary, WorkDir: g.Root, Timeout: gitTimeout,
+		Args: []string{"show-ref", "--verify", "--quiet", headsRef + branch},
+	})
+	if err != nil {
+		return false, err
+	}
+	if o.ExitCode == 0 {
+		return true, nil
+	}
+	if o.ExitCode != 1 {
+		return false, gitError("show-ref", o)
+	}
+	refs, err := g.run(ctx, "ls-remote", "--heads", "origin", headsRef+branch)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(refs) != "", nil
+}
+
 // Fetch updates only the specified remote-tracking branch, without tags.
 func (g Git) Fetch(ctx context.Context, branch string) error {
 	_, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+originRef+branch)
