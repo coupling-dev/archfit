@@ -249,3 +249,55 @@ func TestSwitchRefusesStaleDefaultBranch(t *testing.T) {
 		t.Fatalf("branch %q, %v", branch, err)
 	}
 }
+
+func TestMergedReadsDefaultBranchContent(t *testing.T) {
+	root := t.TempDir()
+	g := Git{
+		Root: root, Runner: toolrun.New(), PolicyPath: ".archfit.yaml",
+		WorkflowsDir: ".github/workflows",
+		Version1:     func(data []byte) bool { return strings.TrimSpace(string(data)) == "version: 1" },
+		UsesAction:   func(data []byte) bool { return strings.Contains(string(data), "coupling-dev/archfit-action@") },
+	}
+	run := func(args ...string) {
+		t.Helper()
+		if _, err := g.run(t.Context(), args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write := func(name, body string) {
+		t.Helper()
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	run("commit", "--allow-empty", "-m", "initial")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	assertMerged := func(want bool) {
+		t.Helper()
+		got, err := g.Merged(t.Context(), "main")
+		if err != nil || got != want {
+			t.Fatalf("merged %t, error %v; want %t", got, err, want)
+		}
+	}
+	assertMerged(false)
+	write(".archfit.yaml", "version: 1\n")
+	write(".github/workflows/other.yaml", "- uses: coupling-dev/archfit-action@abcd\n")
+	run("add", "-A")
+	run("commit", "-m", "onboard")
+	assertMerged(false)
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	assertMerged(true)
+	write(".archfit.yaml", "version: 2\n")
+	run("add", "-A")
+	run("commit", "-m", "invalid policy")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	assertMerged(false)
+}
