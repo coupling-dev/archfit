@@ -197,12 +197,16 @@ wrote AGENTS.md: the instruction block for agents
 installed hooks: .claude/settings.json
 installed hooks: .codex/hooks.json
   codex runs these hooks only after you trust them: start codex and approve the hooks
-exceptions for the owner to review:
+for the owner to decide:
   exception: duplication pkg_tc -> pkg_util until 2027-02-08
+  module pkg_chaos: volatility not set; taken as high
+  module pkg_runtime: volatility not set; taken as high
+  module pkg_tc: volatility not set; taken as high
+  module pkg_util: volatility not set; taken as high
 next: read .archfit.yaml, then open a pull request with it
 ```
 
-Read the policy and its exceptions before you open the pull request. A place in the code that `init` could not read is listed with `not read:` and its fix. Unbalanced markers in `AGENTS.md` stop `init` before it writes anything, with exit `2`.
+The list identifies exceptions, modules with no public part declared, and modules whose volatility defaults to high. Read the policy before you open the pull request. A place in the code that `init` could not read is listed with `not read:` and its fix. Unbalanced markers in `AGENTS.md` stop `init` before it writes anything, with exit `2`.
 
 | Flag | Meaning |
 | --- | --- |
