@@ -25,7 +25,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 	if err != nil {
 		return setup.Dependencies{}, err
 	}
-	files := setupFiles{co: co, workflow: setup.WorkflowPath, body: setup.BodyPath}
+	files := setupFiles{co: co, workflow: setup.WorkflowPath, body: setup.BodyPath, noHooks: noHooks}
 	git := setupgit.Git{
 		Root: co.root, Runner: local.Runner, ActionRepository: actionRepo,
 		PolicyPath: defaultConfigPath, WorkflowsDir: workflowsDir,

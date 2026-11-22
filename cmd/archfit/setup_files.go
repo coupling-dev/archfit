@@ -21,6 +21,7 @@ const (
 type setupFiles struct {
 	co             checkout
 	workflow, body string
+	noHooks        bool
 }
 
 func (f setupFiles) SafePaths() (string, error) {
@@ -192,5 +193,9 @@ func (f setupFiles) WriteBody(body string) error {
 }
 
 func (f setupFiles) Paths() []string {
-	return []string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore", harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex)}
+	paths := []string{defaultConfigPath, f.workflow, "AGENTS.md", ".gitignore"}
+	if !f.noHooks {
+		paths = append(paths, harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex))
+	}
+	return paths
 }

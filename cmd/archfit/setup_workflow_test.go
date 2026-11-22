@@ -113,3 +113,12 @@ func TestSetupRejectsInvalidMergedPolicy(t *testing.T) {
 		t.Fatal("invalid version 1 policy accepted")
 	}
 }
+
+func TestSetupNoHooksExcludesHookFiles(t *testing.T) {
+	f := setupFiles{workflow: fixtureSetupWorkflow, noHooks: true}
+	for _, path := range f.Paths() {
+		if path == harnessConfigFile(harnessClaude) || path == harnessConfigFile(harnessCodex) {
+			t.Errorf("disabled hook path included: %s", path)
+		}
+	}
+}
