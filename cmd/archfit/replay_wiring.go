@@ -22,8 +22,8 @@ func (co checkout) replay(deps *appDeps) replay.Service {
 	}
 }
 
-// replayHistory is replay.History: the first-parent history of origin/HEAD,
-// read from this clone, labelled with the merged pull requests gh knows.
+// replayHistory reads first-parent history from this clone. Standalone replay
+// defaults to origin/HEAD and labels changes with merged pull requests.
 type replayHistory struct {
 	co       checkout
 	ref      string

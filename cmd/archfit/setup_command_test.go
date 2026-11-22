@@ -298,7 +298,7 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 				t.Fatal(out)
 			}
 			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md")) //nolint:gosec // dir is a test fixture
-			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests") {
+			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests\n\n1 passed, 0 needed an owner, 1 to show an owner.") {
 				t.Fatalf("missing replay in PR body: %s, %v", body, err)
 			}
 			if !slices.Contains(writes, "push") {
