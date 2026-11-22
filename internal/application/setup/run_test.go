@@ -206,12 +206,12 @@ func (f *setupFixture) Paths() []string { return []string{".archfit.yaml", Workf
 
 type fixtureGit struct{ *setupFixture }
 
-func (g fixtureGit) Repository(context.Context) (string, error)    { return "o/r", nil }
-func (g fixtureGit) Default(context.Context) (string, error)       { return fixtureBranch, nil }
-func (g fixtureGit) Branch(context.Context) (string, error)        { return g.branch, nil }
-func (g fixtureGit) Fetch(context.Context, string) error           { return nil }
-func (g fixtureGit) Aligned(context.Context, string) (bool, error) { return !g.ahead, nil }
-func (g fixtureGit) Merged(context.Context, string) (bool, error)  { return g.merged, nil }
+func (g fixtureGit) Repository(context.Context) (string, error)      { return "o/r", nil }
+func (g fixtureGit) Default(context.Context) (string, string, error) { return fixtureBranch, "", nil }
+func (g fixtureGit) Branch(context.Context) (string, error)          { return g.branch, nil }
+func (g fixtureGit) Fetch(context.Context, string) error             { return nil }
+func (g fixtureGit) Aligned(context.Context, string) (bool, error)   { return !g.ahead, nil }
+func (g fixtureGit) Merged(context.Context, string) (bool, error)    { return g.merged, nil }
 func (g fixtureGit) Pending(_ context.Context, paths []string) ([]string, error) {
 	if g.pending {
 		return paths, nil

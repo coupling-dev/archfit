@@ -43,7 +43,7 @@ var (
 // Git reads the checkout and publishes only the setup paths.
 type Git interface {
 	Repository(context.Context) (repo string, err error)
-	Default(context.Context) (string, error)
+	Default(context.Context) (string, string, error)
 	Branch(context.Context) (string, error)
 	Fetch(context.Context, string) error
 	Aligned(context.Context, string) (bool, error)
@@ -218,7 +218,9 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		out.stop(err, "set origin to a github.com repository, then archfit setup")
 		return s, false
 	}
-	s.Default, err = d.Git.Default(ctx)
+	var defaultNote string
+	s.Default, defaultNote, err = d.Git.Default(ctx)
+	out.append(defaultNote)
 	if err != nil {
 		out.stop(err, "git remote set-head origin --auto, then archfit setup")
 		return s, false

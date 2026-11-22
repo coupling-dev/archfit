@@ -74,24 +74,32 @@ func (g Git) Repository(ctx context.Context) (string, error) {
 }
 
 // Default finds the default branch even when origin/HEAD is not set locally.
-func (g Git) Default(ctx context.Context) (string, error) {
-	if ref, err := g.run(ctx, "symbolic-ref", "--quiet", originHead); err == nil {
-		if branch, ok := strings.CutPrefix(ref, originRef); ok && branch != "" {
-			return branch, nil
+func (g Git) Default(ctx context.Context) (string, string, error) {
+	localRef, _ := g.run(ctx, "symbolic-ref", "--quiet", originHead)
+	local := strings.TrimPrefix(localRef, originRef)
+	out, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
+		Name: gitBinary, WorkDir: g.Root, Timeout: 15 * time.Second,
+		Args: []string{"ls-remote", "--symref", "origin", "HEAD"},
+	})
+	if err == nil && out.ExitCode == 0 {
+		for line := range strings.SplitSeq(string(out.Stdout), "\n") {
+			ref, name, _ := strings.Cut(line, "\t")
+			if branch, ok := strings.CutPrefix(ref, "ref: "+headsRef); name == "HEAD" && ok && branch != "" {
+				valid, validErr := g.run(ctx, "check-ref-format", "--branch", branch)
+				if validErr != nil {
+					return "", "", validErr
+				}
+				if local != "" && local != valid {
+					return valid, fmt.Sprintf("origin default branch is %s; local origin/HEAD points to %s", valid, local), nil
+				}
+				return valid, "", nil
+			}
 		}
 	}
-	refs, err := g.run(ctx, "ls-remote", "--symref", "origin", "HEAD")
-	if err != nil {
-		return "", err
+	if local != "" {
+		return local, "could not read the remote default branch; using origin/HEAD", nil
 	}
-	for line := range strings.SplitSeq(refs, "\n") {
-		ref, name, _ := strings.Cut(line, "\t")
-		if branch, ok := strings.CutPrefix(ref, "ref: "+headsRef); name == "HEAD" && ok && branch != "" {
-			// A remote reply is not itself proof of a valid Git branch name.
-			return g.run(ctx, "check-ref-format", "--branch", branch)
-		}
-	}
-	return "", errors.New("cannot find the default branch of origin")
+	return "", "", errors.New("cannot find the default branch of origin")
 }
 
 // Branch resolves HEAD to the current branch, rejecting a detached checkout.

@@ -12,6 +12,7 @@ import (
 )
 
 const (
+	lsRemote     = "ls-remote"
 	setupNoHooks = "--no-hooks"
 	setupCommand = "setup"
 )
@@ -25,6 +26,9 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 		commands = append(commands, cmd.Name+" "+strings.Join(cmd.Args, " "))
 		if cmd.Name == "gh" {
 			t.Fatal("wrong branch should not call GitHub")
+		}
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			return toolrun.Output{ExitCode: 1}, nil
 		}
 		return runner.Run(ctx, cmd)
 	}}
@@ -54,6 +58,9 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 		if cmd.Name == "gh" {
 			t.Fatal("merged detection must not require gh")
+		}
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			return toolrun.Output{ExitCode: 1}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
 			return toolrun.Output{ExitCode: 1, Stderr: []byte("offline")}, nil
@@ -87,6 +94,9 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 		if cmd.Name == "gh" {
 			return toolrun.Output{Stderr: []byte("- Token scopes: 'repo'\n")}, nil
 		}
+		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == lsRemote {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 && cmd.Args[0] == "fetch" {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
@@ -100,7 +110,7 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 	gitFixture(t, dir, "cat-file", "-e", "HEAD^{commit}")
 }
 
-func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
+func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:gocyclo // process stub covers each external command
 	const signedIn = "repo, workflow"
 	for _, tc := range []struct {
 		name, auth, prs, checks, state, next string
@@ -126,6 +136,8 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) {
 			mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 				args := strings.Join(cmd.Args, " ")
 				switch {
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --symref"):
+					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
 					return process.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):
@@ -196,6 +208,8 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			mock := &toolrun.RunnerMock{DetectFunc: runner.Detect, StreamFunc: runner.Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 				args := strings.Join(cmd.Args, " ")
 				switch {
+				case cmd.Name == gitBinary && strings.HasPrefix(args, "ls-remote --symref"):
+					return toolrun.Output{ExitCode: 1}, nil
 				case cmd.Name == gitBinary && strings.Contains(args, "refs/heads/archfit/setup:"):
 					return runner.Run(ctx, toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: []string{"update-ref", "refs/remotes/origin/archfit/setup", headRef}})
 				case cmd.Name == gitBinary && strings.HasPrefix(args, "fetch "):

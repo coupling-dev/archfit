@@ -192,13 +192,15 @@ func TestCommitKeepsUnrelatedChangesStaged(t *testing.T) {
 }
 
 func TestDefaultBranchFromRemoteSymref(t *testing.T) {
+	const defaultBranch = "main"
 	for _, tc := range []struct {
 		name, symref, remote, want string
 		symrefExit                 int
 		wantError                  bool
 	}{
 		{"local", "refs/remotes/origin/trunk", "", "trunk", 0, false},
-		{"network fallback", "", "ref: refs/heads/main\tHEAD\n" + commitSHA + "\tHEAD", "main", 1, false},
+		{"remote wins", "refs/remotes/origin/old", "ref: refs/heads/main\tHEAD", defaultBranch, 0, false},
+		{"network fallback", "", "ref: refs/heads/main\tHEAD\n" + commitSHA + "\tHEAD", defaultBranch, 1, false},
 		{"no remote symref", "", commitSHA + "\tHEAD", "", 1, true},
 		{"invalid", "", "ref: refs/heads/-invalid\tHEAD", "", 1, true},
 	} {
@@ -222,7 +224,7 @@ func TestDefaultBranchFromRemoteSymref(t *testing.T) {
 					return toolrun.Output{}, nil
 				}
 			}}}
-			got, err := g.Default(t.Context())
+			got, _, err := g.Default(t.Context())
 			if got != tc.want || (err != nil) != tc.wantError {
 				t.Errorf("got %q, %v; want %q, error %v", got, err, tc.want, tc.wantError)
 			}
