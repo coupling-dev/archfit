@@ -6,7 +6,12 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/coupling-dev/archfit/internal/toolrun"
 )
+
+const fixtureSetupWorkflow = //nolint:gosec // test fixture path, not a credential
+".github/workflows/archfit.yaml"
 
 func TestSetupWorkflow(t *testing.T) {
 	const sha = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -28,7 +33,7 @@ func TestSetupWorkflow(t *testing.T) {
 
 func TestSetupFilesDoNotOverwriteForeignWorkflow(t *testing.T) {
 	root := t.TempDir()
-	f := setupFiles{co: checkout{root: root}, workflow: ".github/workflows/archfit.yaml", body: ".archfit-cache/setup-pull-request.md"}
+	f := setupFiles{co: checkout{root: root}, workflow: fixtureSetupWorkflow, body: ".archfit-cache/setup-pull-request.md"}
 	path := filepath.Join(root, f.workflow)
 	if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 		t.Fatal(err)
@@ -55,7 +60,7 @@ func TestSetupFilesRejectWritesOutsideCheckout(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(root, ".github")); err != nil {
 		t.Fatal(err)
 	}
-	f := setupFiles{co: checkout{root: root}, workflow: ".github/workflows/archfit.yaml", body: ".github/body.md"}
+	f := setupFiles{co: checkout{root: root}, workflow: fixtureSetupWorkflow, body: ".github/body.md"}
 	if err := f.WriteWorkflow("main", "v0.10.0", strings.Repeat("a", 40)); err == nil {
 		t.Error("workflow escaped checkout")
 	}
@@ -81,5 +86,30 @@ func TestSetupBodyDoesNotRewriteIdenticalContents(t *testing.T) {
 	info, err := os.Stat(path)
 	if err != nil || !info.ModTime().Equal(stamp) {
 		t.Fatalf("body rewritten: %v %v", info, err)
+	}
+}
+
+func TestSetupIgnoresUncommittedAlternateWorkflow(t *testing.T) {
+	files := fixtureFiles()
+	delete(files, ".github/workflows/archfit.yml")
+	dir := fixtureRepo(t, files, nil)
+	f := setupFiles{co: checkout{root: dir, runner: toolrun.New()}, workflow: fixtureSetupWorkflow}
+	writeFixtureFile(t, dir, ".github/workflows/custom.yml", "- uses: coupling-dev/archfit-action@v1\n")
+	found, err := f.Workflow()
+	if err != nil || found {
+		t.Fatalf("untracked alternate workflow: found %v, error %v", found, err)
+	}
+	gitFixture(t, dir, "add", ".github/workflows/custom.yml")
+	gitFixture(t, dir, "commit", "-m", "workflow", "--no-gpg-sign")
+	found, err = f.Workflow()
+	if err != nil || !found {
+		t.Fatalf("committed alternate workflow: found %v, error %v", found, err)
+	}
+}
+
+func TestSetupRejectsInvalidMergedPolicy(t *testing.T) {
+	f := setupFiles{}
+	if f.ValidPolicy([]byte("version: 1\ninvalid_key: true\n")) {
+		t.Fatal("invalid version 1 policy accepted")
 	}
 }

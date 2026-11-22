@@ -29,7 +29,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 	git := setupgit.Git{
 		Root: co.root, Runner: local.Runner, ActionRepository: actionRepo,
 		PolicyPath: defaultConfigPath, WorkflowsDir: workflowsDir,
-		Version1: isVersion1, UsesAction: usesAction.Match,
+		Version1: files.ValidPolicy, UsesAction: usesAction.Match,
 	}
 	gh := setupGH{setupgit.GitHub{Root: co.root, Runner: local.Runner, BodyPath: setup.BodyPath}}
 	return setup.Dependencies{

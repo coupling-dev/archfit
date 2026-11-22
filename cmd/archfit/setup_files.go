@@ -10,6 +10,12 @@ import (
 	"strings"
 
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/toolrun"
+)
+
+const (
+	workflowYAML = ".yaml"
+	workflowYML  = ".yml"
 )
 
 type setupFiles struct {
@@ -47,7 +53,30 @@ func (f setupFiles) Workflow() (bool, error) {
 		}
 		return true, nil
 	}
-	return (protection{co: f.co}).Protected(context.Background())
+	entries, err := os.ReadDir(filepath.Join(f.co.root, workflowsDir))
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, entry := range entries {
+		if entry.IsDir() || (filepath.Ext(entry.Name()) != workflowYAML && filepath.Ext(entry.Name()) != workflowYML) {
+			continue
+		}
+		name := filepath.ToSlash(filepath.Join(workflowsDir, entry.Name()))
+		// Only a workflow committed on HEAD can accompany the setup commit.
+		out, err := f.co.runner.Run(context.Background(), toolrun.ToolCmd{
+			Name: gitBinary, WorkDir: f.co.root, Args: []string{"show", "HEAD:" + name},
+		})
+		if err != nil {
+			return false, err
+		}
+		if out.ExitCode == 0 && usesAction.Match(out.Stdout) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func (f setupFiles) WriteWorkflow(branch, tag, sha string) error {
@@ -87,6 +116,11 @@ jobs:
         with:
           endpoint: https://app.coupling.dev
 `, strings.ReplaceAll(branch, "'", "''"), actionRepo, sha, tag)
+}
+
+func (f setupFiles) ValidPolicy(data []byte) bool {
+	_, err := policyfile.Decode(data)
+	return err == nil
 }
 
 func (f setupFiles) PinNote() string { return doctorPin(f.co.root, version) }
