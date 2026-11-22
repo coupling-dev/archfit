@@ -23,6 +23,26 @@ type setupFiles struct {
 	workflow, body string
 }
 
+func (f setupFiles) SafePaths() (string, error) {
+	for _, rel := range f.Paths() {
+		path := filepath.Join(f.co.root, rel)
+		if !within(f.co.root, path) {
+			return rel, fmt.Errorf("%s is a symbolic link or resolves outside the checkout", rel)
+		}
+		info, err := os.Lstat(path)
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return rel, err
+		}
+		if !info.Mode().IsRegular() {
+			return rel, fmt.Errorf("%s is a symbolic link or not a regular file", rel)
+		}
+	}
+	return "", nil
+}
+
 func (f setupFiles) Policy() (bool, error) {
 	data, found, err := f.co.policyAt("")
 	if err != nil || !found {

@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -267,5 +269,28 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 				t.Fatalf("second publication repeated writes: %v", writes)
 			}
 		})
+	}
+}
+
+func TestSetupRejectsSymlinkedPolicyWithoutReadingIt(t *testing.T) {
+	files := fixtureFiles()
+	delete(files, defaultConfigPath)
+	delete(files, ".github/workflows/archfit.yml")
+	dir := fixtureRepo(t, files, nil)
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
+	gitFixture(t, dir, "switch", "main")
+	external := filepath.Join(t.TempDir(), "policy.yaml")
+	if err := os.WriteFile(external, []byte(fixturePolicy), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(external, filepath.Join(dir, defaultConfigPath)); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		var stdout, stderr bytes.Buffer
+		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: toolrun.New(), Stdout: &stdout, Stderr: &stderr})
+		if code != 2 || !strings.Contains(stdout.String(), "next: .archfit.yaml is a symbolic link; replace it with a file, then archfit setup") {
+			t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+		}
 	}
 }

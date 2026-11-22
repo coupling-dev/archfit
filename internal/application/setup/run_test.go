@@ -183,8 +183,9 @@ func (f *setupFixture) deps(t *testing.T) Dependencies {
 	}
 }
 
-func (f *setupFixture) Policy() (bool, error)   { return f.policy, f.policyErr }
-func (f *setupFixture) Workflow() (bool, error) { return f.workflow, f.workflowErr }
+func (f *setupFixture) SafePaths() (string, error) { return "", nil }
+func (f *setupFixture) Policy() (bool, error)      { return f.policy, f.policyErr }
+func (f *setupFixture) Workflow() (bool, error)    { return f.workflow, f.workflowErr }
 func (f *setupFixture) WriteWorkflow(_, _, _ string) error {
 	f.actions = append(f.actions, workflowAction)
 	f.workflow, f.pending = true, true

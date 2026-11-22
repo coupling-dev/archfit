@@ -24,6 +24,7 @@ const (
 
 // Files reads and writes onboarding files in the current checkout.
 type Files interface {
+	SafePaths() (string, error)
 	Policy() (exists bool, err error)
 	Workflow() (exists bool, err error)
 	WriteWorkflow(branch, tag, sha string) error
@@ -225,6 +226,10 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 	s.branch, err = d.Git.Branch(ctx)
 	if err != nil || (s.branch != s.Default && s.branch != Branch) {
 		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+s.Default+", then archfit setup")
+		return s, false
+	}
+	if unsafePath, err := d.Files.SafePaths(); err != nil {
+		out.stop(err, unsafePath+" is a symbolic link; replace it with a file, then archfit setup")
 		return s, false
 	}
 	policy, err := d.Files.Policy()
