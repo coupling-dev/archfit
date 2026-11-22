@@ -5,13 +5,13 @@ import (
 	"testing"
 )
 
-func TestHelpShowsOnlyTheSevenCommands(t *testing.T) {
+func TestHelpShowsOnlyTheEightCommands(t *testing.T) {
 	t.Parallel()
 	code, stdout, stderr := runArchfit(t, flagHelp)
 	if code != 0 || stderr != "" {
 		t.Fatalf("exit %d, stderr %q", code, stderr)
 	}
-	for _, command := range []string{cmdCheck, cmdCan, cmdRules, cmdRequest, cmdInit, cmdReport, cmdDoctor} {
+	for _, command := range []string{cmdCheck, cmdCan, cmdRules, cmdRequest, "status", cmdInit, cmdReport, cmdDoctor} {
 		if !strings.Contains(stdout, "  "+command) {
 			t.Errorf("help missing %s:\n%s", command, stdout)
 		}
