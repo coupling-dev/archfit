@@ -38,7 +38,7 @@ From your repository, run:
 archfit init
 ```
 
-`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the owners from the GitHub `origin` remote. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes when the evidence is complete. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
+`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the authenticated GitHub user as owner, or an unverified login from a GitHub noreply author email. If neither identity is available, replace the placeholder with your GitHub login. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes when the evidence is complete. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
 
 ```text
 $ archfit init

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/history/identity"
 	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
 	"github.com/coupling-dev/archfit/internal/model/evidence"
 )
@@ -34,7 +35,7 @@ changes a version 1 policy.
 
   No .archfit.yaml      writes a version 1 policy from the code: modules,
                         public, depends_on as the dependencies that exist,
-                        tests, generated, owners from the origin remote,
+                        tests, generated, owners from the GitHub identity,
                         and a dated exception for each error that exists today,
                         when the evidence is complete
   Version 1 policy      leaves it as it is
@@ -94,7 +95,11 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	if !found {
 		writeUnread(&b, draft.Unknown)
 		writeExceptionDecisions(&b, draft.File.Exceptions)
-		b.WriteString(initNext + "\n")
+		if draft.File.Owners[0] == identity.PlaceholderOwner {
+			b.WriteString("no person is named as an owner yet\nnext: put your GitHub login in owners in .archfit.yaml\n")
+		} else {
+			b.WriteString(initNext + "\n")
+		}
 	}
 	if _, err := io.WriteString(deps.Stdout, b.String()); err != nil {
 		return noVerdict(err)
@@ -104,12 +109,16 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 
 // initFresh writes the first policy of a repository.
 func (co checkout) initFresh(ctx context.Context, b *strings.Builder) (policy3.Result, error) {
-	res, err := policy3.Init(ctx, policy3.Deps{Runner: co.runner, Facts: co.facts(policy3.FactsConfig()), Now: co.now}, co.root)
+	owner, verified := identity.OwnerIdentity(ctx, co.root, co.runner)
+	res, err := policy3.Init(ctx, policy3.Deps{Facts: co.facts(policy3.FactsConfig()), Now: co.now}, co.root, owner)
 	if err != nil {
 		return policy3.Result{}, err
 	}
 	writePolicySummary(b, "wrote", res.File)
 	b.WriteString("wrote " + policy3.AgentsFile + ": the instruction block for agents\n")
+	if !verified && owner != identity.PlaceholderOwner {
+		b.WriteString("owner from git noreply email is not verified\n")
+	}
 	return res, nil
 }
 

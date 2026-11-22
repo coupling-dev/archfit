@@ -4,7 +4,7 @@
 // Init reads the head check facts, the facts archfit check reads, finds the
 // modules in them, and writes .archfit.yaml: modules with paths, public (the
 // packages other modules use today), depends_on (the dependencies between
-// modules that exist), tests, generated, owners from the origin remote, an only
+// modules that exist), tests, generated, the supplied owner, an only
 // rule for each package set that only some modules use, and an exception for
 // each error the written policy reports on the head. With complete evidence,
 // the first check passes. depends_on, public and the only rules come from
@@ -29,7 +29,6 @@ import (
 	"github.com/coupling-dev/archfit/internal/evidence/acquisition/checkfacts"
 	"github.com/coupling-dev/archfit/internal/model/evidence"
 	"github.com/coupling-dev/archfit/internal/policy/resolved"
-	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
 // The files Init writes, relative to the repository root.
@@ -50,10 +49,8 @@ type HeadFacts interface {
 
 // Deps are what Init runs.
 type Deps struct {
-	// Runner runs git, to read the origin remote.
-	Runner toolrun.Runner
-	Facts  HeadFacts
-	Now    func() time.Time
+	Facts HeadFacts
+	Now   func() time.Time
 }
 
 // Result is what Init wrote and what it could not read.
@@ -74,7 +71,7 @@ func FactsConfig() checkfacts.Config {
 // Init writes the policy of the repository at root and the instruction block
 // in its AGENTS.md. It returns ErrPolicyExists, and writes nothing, when the
 // repository has a policy file.
-func Init(ctx context.Context, deps Deps, root string) (Result, error) {
+func Init(ctx context.Context, deps Deps, root, owner string) (Result, error) {
 	policyPath := filepath.Join(root, PolicyFile)
 	if err := absent(policyPath); err != nil {
 		return Result{}, err
@@ -83,10 +80,6 @@ func Init(ctx context.Context, deps Deps, root string) (Result, error) {
 	agents, err := spliceFile(agentsPath)
 	if err != nil {
 		return Result{}, fmt.Errorf("%s: %w", AgentsFile, err)
-	}
-	owner, err := originOwner(ctx, root, deps.Runner)
-	if err != nil {
-		return Result{}, err
 	}
 	facts, err := deps.Facts.Head(ctx, root)
 	if err != nil {

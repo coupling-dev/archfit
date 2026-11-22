@@ -120,6 +120,12 @@ func (c *DoctorCmd) Run(deps *appDeps) error {
 	_, _ = fmt.Fprintf(deps.Stdout, "\nWorkflow pin: %s\n", doctorPin(root, version))
 	writeAgentLoop(deps.Stdout, loop)
 	writeClaudePlugin(deps.Stdout, plugin)
+	if ownerReport, ownerErr := doctorOwners(ctx, root, deps.Runner); ownerReport != "" {
+		_, _ = fmt.Fprintln(deps.Stdout, "\n"+ownerReport)
+		if ownerErr != nil {
+			invalid = append(invalid, ownerErr)
+		}
+	}
 
 	if c.Fix {
 		// The hooks come first: a toolchain install that fails (brew offline)
