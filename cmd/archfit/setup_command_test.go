@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coupling-dev/archfit/internal/testutil"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -43,6 +44,9 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 	for range 2 {
 		var stdout, stderr bytes.Buffer
 		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+		if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
+			t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
+		}
 		if code != exitUnknown || !strings.Contains(stdout.String(), "state: stopped") || !strings.Contains(stdout.String(), "next: git switch 'main'") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
@@ -81,6 +85,9 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 	for range 2 {
 		var stdout, stderr bytes.Buffer
 		code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+		if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
+			t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
+		}
 		if code != 0 || !strings.Contains(stdout.String(), "state: done") || !strings.Contains(stdout.String(), "advisory:") || strings.Contains(stdout.String(), "next:") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
@@ -118,6 +125,9 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 	}}
 	var stdout, stderr bytes.Buffer
 	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr, now: day(fixtureDate)})
+	if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
+		t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
+	}
 	if code != 0 || !strings.Contains(stdout.String(), "state: stopped before the push") {
 		t.Fatalf("setup: exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 	}
@@ -181,6 +191,9 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 			for range 2 {
 				var stdout, stderr bytes.Buffer
 				code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
+				if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
+					t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
+				}
 				wantCode := 0
 				if code != wantCode || !strings.Contains(stdout.String(), "state: "+tc.state) || !strings.Contains(stdout.String(), "next: "+tc.next) {
 					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
@@ -287,6 +300,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 				if code != 0 {
 					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 				}
+				if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
+					t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
+				}
 				return stdout.String()
 			}
 			if tc.noPolicy {
@@ -300,6 +316,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md")) //nolint:gosec // dir is a test fixture
 			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests\n\n1 passed, 0 needed an owner, 1 to show an owner.") {
 				t.Fatalf("missing replay in PR body: %s, %v", body, err)
+			}
+			if words := testutil.StoryNotUsedIn(string(body)); len(words) > 0 {
+				t.Errorf("body vocabulary %v in:\n%s", words, body)
 			}
 			if !slices.Contains(writes, "push") {
 				t.Fatalf("push was not called: %v", writes)
