@@ -94,7 +94,7 @@ func TestSetupIgnoresUncommittedAlternateWorkflow(t *testing.T) {
 	delete(files, ".github/workflows/archfit.yml")
 	dir := fixtureRepo(t, files, nil)
 	f := setupFiles{co: checkout{root: dir, runner: toolrun.New()}, workflow: fixtureSetupWorkflow}
-	writeFixtureFile(t, dir, ".github/workflows/custom.yml", "- uses: coupling-dev/archfit-action@v1\n")
+	writeFixtureFile(t, dir, ".github/workflows/custom.yml", "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
 	found, err := f.Workflow()
 	if err != nil || found {
 		t.Fatalf("untracked alternate workflow: found %v, error %v", found, err)
@@ -120,5 +120,23 @@ func TestSetupNoHooksExcludesHookFiles(t *testing.T) {
 		if path == harnessConfigFile(harnessClaude) || path == harnessConfigFile(harnessCodex) {
 			t.Errorf("disabled hook path included: %s", path)
 		}
+	}
+}
+
+func TestSetupUsesActionRequiresRealWorkflowStep(t *testing.T) {
+	for _, tc := range []struct {
+		name, yaml string
+		want       bool
+	}{
+		{"step", "jobs:\n  check:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n", true},
+		{"quoted action step", "jobs:\n  check:\n    steps:\n      - uses: 'coupling-dev/archfit-action@v1'\n", true},
+		{"script sample", "jobs:\n  check:\n    steps:\n      - run: |\n          uses: coupling-dev/archfit-action@v1\n", false},
+		{"bad yaml", "jobs: [", false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := setupUsesAction([]byte(tc.yaml)); got != tc.want {
+				t.Errorf("got %t want %t", got, tc.want)
+			}
+		})
 	}
 }

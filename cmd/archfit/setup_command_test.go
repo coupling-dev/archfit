@@ -125,7 +125,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 			dir := fixtureRepo(t, files, nil)
 			gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
 			gitFixture(t, dir, "switch", "-c", "archfit/setup", "main")
-			writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "- uses: coupling-dev/archfit-action@v1\n")
+			writeFixtureFile(t, dir, ".github/workflows/archfit.yaml", "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n")
 			gitFixture(t, dir, "add", ".github/workflows/archfit.yaml")
 			gitFixture(t, dir, "commit", "-m", "chore: set up archfit", "--no-gpg-sign")
 			process := toolrun.New()

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/goccy/go-yaml"
+
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
@@ -69,7 +71,7 @@ func (f setupFiles) Workflow() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !usesAction.Match(data) {
+		if !setupUsesAction(data) {
 			return false, fmt.Errorf("%s exists and does not use %s; setup does not overwrite it", f.workflow, actionRepo)
 		}
 		return true, nil
@@ -93,7 +95,7 @@ func (f setupFiles) Workflow() (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if out.ExitCode == 0 && usesAction.Match(out.Stdout) {
+		if out.ExitCode == 0 && setupUsesAction(out.Stdout) {
 			return true, nil
 		}
 	}
@@ -198,4 +200,25 @@ func (f setupFiles) Paths() []string {
 		paths = append(paths, harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex))
 	}
 	return paths
+}
+
+func setupUsesAction(data []byte) bool {
+	var workflow struct {
+		Jobs map[string]struct {
+			Steps []struct {
+				Uses string `yaml:"uses"`
+			} `yaml:"steps"`
+		} `yaml:"jobs"`
+	}
+	if yaml.Unmarshal(data, &workflow) != nil {
+		return false
+	}
+	for _, job := range workflow.Jobs {
+		for _, step := range job.Steps {
+			if strings.HasPrefix(step.Uses, actionRepo+"@") {
+				return true
+			}
+		}
+	}
+	return false
 }
