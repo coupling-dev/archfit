@@ -185,3 +185,67 @@ func TestCommitKeepsUnrelatedChangesStaged(t *testing.T) {
 		t.Errorf("staged paths: %q", got)
 	}
 }
+
+func TestDefaultBranchFromRemoteSymref(t *testing.T) {
+	for _, tc := range []struct {
+		name, symref, remote, want string
+		symrefExit                 int
+		wantError                  bool
+	}{
+		{"local", "refs/remotes/origin/trunk", "", "trunk", 0, false},
+		{"network fallback", "", "ref: refs/heads/main\tHEAD\n" + commitSHA + "\tHEAD", "main", 1, false},
+		{"no remote symref", "", commitSHA + "\tHEAD", "", 1, true},
+		{"invalid", "", "ref: refs/heads/-invalid\tHEAD", "", 1, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := Git{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+				if !slices.Contains(cmd.Env, "GIT_TERMINAL_PROMPT=0") {
+					t.Error("git prompt not disabled")
+				}
+				switch cmd.Args[0] {
+				case "symbolic-ref":
+					return toolrun.Output{Stdout: []byte(tc.symref), ExitCode: tc.symrefExit}, nil
+				case "ls-remote":
+					return toolrun.Output{Stdout: []byte(tc.remote)}, nil
+				case "check-ref-format":
+					if strings.HasPrefix(cmd.Args[2], "-") {
+						return toolrun.Output{ExitCode: 1}, nil
+					}
+					return toolrun.Output{Stdout: []byte(cmd.Args[2])}, nil
+				default:
+					t.Fatalf("unexpected command %v", cmd.Args)
+					return toolrun.Output{}, nil
+				}
+			}}}
+			got, err := g.Default(t.Context())
+			if got != tc.want || (err != nil) != tc.wantError {
+				t.Errorf("got %q, %v; want %q, error %v", got, err, tc.want, tc.wantError)
+			}
+		})
+	}
+}
+
+func TestSwitchRefusesStaleDefaultBranch(t *testing.T) {
+	root := t.TempDir()
+	g := Git{Root: root, Runner: toolrun.New()}
+	run := func(args ...string) {
+		t.Helper()
+		if _, err := g.run(t.Context(), args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	run("commit", "--allow-empty", "-m", "one")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	run("commit", "--allow-empty", "-m", "two")
+	if err := g.Switch(t.Context(), "archfit/setup", "main"); err == nil {
+		t.Fatal("created setup branch from unpublished default commit")
+	}
+	branch, err := g.Branch(t.Context())
+	if err != nil || branch != "main" {
+		t.Fatalf("branch %q, %v", branch, err)
+	}
+}
