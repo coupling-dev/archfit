@@ -77,7 +77,7 @@ func (g GitHub) PullRequest(ctx context.Context, repo, base, branch string) (Pul
 		}
 		if head == "" {
 			out, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
-				Name: gitBinary, WorkDir: g.Root, Args: []string{"rev-parse", "--verify", originRef + branch},
+				Name: gitBinary, WorkDir: g.Root, Args: []string{"rev-parse", "--verify", OriginRef(branch)},
 			})
 			if err != nil {
 				return PullRequest{}, err

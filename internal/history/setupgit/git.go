@@ -129,9 +129,12 @@ func (g Git) SetupBranchExists(ctx context.Context, branch string) (bool, error)
 	return strings.TrimSpace(refs) != "", nil
 }
 
+// OriginRef names the local remote-tracking ref for an origin branch.
+func OriginRef(branch string) string { return originRef + branch }
+
 // Fetch updates only the specified remote-tracking branch, without tags.
 func (g Git) Fetch(ctx context.Context, branch string) error {
-	_, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+originRef+branch)
+	_, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+OriginRef(branch))
 	return err
 }
 
@@ -140,7 +143,7 @@ func (g Git) Fetch(ctx context.Context, branch string) error {
 func (g Git) Aligned(ctx context.Context, branch string) (bool, error) {
 	o, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
 		Name: gitBinary, WorkDir: g.Root, Timeout: gitTimeout,
-		Args: []string{"merge-base", "--is-ancestor", headsRef + branch, originRef + branch},
+		Args: []string{"merge-base", "--is-ancestor", headsRef + branch, OriginRef(branch)},
 	})
 	switch {
 	case err != nil:
@@ -156,7 +159,7 @@ func (g Git) Aligned(ctx context.Context, branch string) (bool, error) {
 
 // Merged detects an onboarded default branch without relying on pull request history.
 func (g Git) Merged(ctx context.Context, branch string) (bool, error) {
-	ref := originRef + branch
+	ref := OriginRef(branch)
 	names, err := g.run(ctx, "ls-tree", "-z", "-r", "--name-only", ref, "--", g.PolicyPath, g.WorkflowsDir)
 	if err != nil {
 		return false, err
@@ -262,7 +265,7 @@ func (g Git) Switch(ctx context.Context, branch, base string) error {
 	if err != nil {
 		return err
 	}
-	remote, err := g.run(ctx, "rev-parse", originRef+base)
+	remote, err := g.run(ctx, "rev-parse", OriginRef(base))
 	if err != nil {
 		return err
 	}
@@ -326,7 +329,7 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 
 // ValidateRemote fetches and validates the actual branch used for the pull request.
 func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []string) error {
-	ref := originRef + branch
+	ref := OriginRef(branch)
 	if _, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+ref); err != nil {
 		return err
 	}
@@ -345,7 +348,7 @@ func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []st
 }
 
 func (g Git) validateRange(ctx context.Context, base, head string, paths []string) error {
-	commits, err := g.run(ctx, "rev-list", "--reverse", originRef+base+".."+head)
+	commits, err := g.run(ctx, "rev-list", "--reverse", OriginRef(base)+".."+head)
 	if err != nil {
 		return err
 	}
