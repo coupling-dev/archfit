@@ -72,7 +72,7 @@ func TestBody(t *testing.T) {
 
 func TestReplayTimeout(t *testing.T) {
 	var out Outcome
-	got := out.replay(t.Context(), func(ctx context.Context) (ReplaySummary, error) {
+	got := out.replay(t.Context(), "main", func(ctx context.Context, _ string) (ReplaySummary, error) {
 		deadline, ok := ctx.Deadline()
 		if !ok || time.Until(deadline) > time.Minute {
 			t.Errorf("replay is not bounded to a minute")

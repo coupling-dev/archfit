@@ -90,7 +90,7 @@ type Dependencies struct {
 	Init      func(context.Context) (string, error)
 	Check     func(context.Context, string) (CheckResult, error)
 	Hooks     func(context.Context) string
-	Replay    func(context.Context) (ReplaySummary, error)
+	Replay    func(context.Context, string) (ReplaySummary, error)
 	Decisions func() ([]string, error)
 	Version   string
 }
@@ -308,7 +308,7 @@ func Run(ctx context.Context, d Dependencies) Outcome {
 			out.stop(err, "fix the init error, then archfit setup")
 			return out
 		}
-		if summary := out.replay(ctx, d.Replay); summary != nil {
+		if summary := out.replay(ctx, s.Default, d.Replay); summary != nil {
 			out.add("replay: %d merged pull requests read: %s", summary.Read, summary.counts())
 		}
 		decisions, err := decisionLines(d)
@@ -492,7 +492,7 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.stop(err, "fix .archfit.yaml")
 		return
 	}
-	if err := d.Files.WriteBody(Body(d.Version, out.InstallURL, out.replay(ctx, d.Replay), decisions)); err != nil {
+	if err := d.Files.WriteBody(Body(d.Version, out.InstallURL, out.replay(ctx, s.Default, d.Replay), decisions)); err != nil {
 		out.stop(err, "fix the pull request body file")
 		return
 	}
@@ -544,13 +544,13 @@ func showPR(ctx context.Context, gh GitHub, pr PullRequest, repo string, out *Ou
 	}
 }
 
-func (o *Outcome) replay(ctx context.Context, replay func(context.Context) (ReplaySummary, error)) *ReplaySummary {
+func (o *Outcome) replay(ctx context.Context, ref string, replay func(context.Context, string) (ReplaySummary, error)) *ReplaySummary {
 	if replay == nil {
 		return nil
 	}
 	bounded, cancel := context.WithTimeout(ctx, 60*time.Second)
 	defer cancel()
-	summary, err := replay(bounded)
+	summary, err := replay(bounded, ref)
 	switch {
 	case errors.Is(bounded.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded):
 		o.add("replay: stopped after 60 s, %d of 30 read; run archfit replay later", summary.Read)
