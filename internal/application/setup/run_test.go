@@ -82,10 +82,16 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 				checked := Run(t.Context(), deps)
 				assertOutcome(t, checked, CheckPresent, 0, "merge #7: "+setupPRURL, `App check "merge to start" (neutral)`)
 				assertActions(t, f.actions)
+				checkedAgain := Run(t.Context(), deps)
+				assertOutcome(t, checkedAgain, CheckPresent, 0, "merge #7: "+setupPRURL)
+				assertActions(t, f.actions)
 			}
 			f.merged, f.ready = true, false
 			merged := Run(t.Context(), deps)
 			assertOutcome(t, merged, Merged, 0, "", "advisory:", "setup page:")
+			assertActions(t, f.actions)
+			mergedAgain := Run(t.Context(), deps)
+			assertOutcome(t, mergedAgain, Merged, 0, "", "advisory:", "setup page:")
 			assertActions(t, f.actions)
 		})
 	}
