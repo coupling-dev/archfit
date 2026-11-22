@@ -7,8 +7,8 @@ import (
 )
 
 // Text writes the result of a replay. deadline is the time the run was given;
-// it is named only when the run stopped. The first line is the one `archfit
-// setup` shows (onboarding texts, section 2).
+// it is named only when the run stopped, and 0 means the run had none. The
+// first line is the one `archfit setup` shows (onboarding texts, section 2).
 func (r Result) Text(w io.Writer, deadline time.Duration) error {
 	var err error
 	line := func(format string, args ...any) {
@@ -16,9 +16,12 @@ func (r Result) Text(w io.Writer, deadline time.Duration) error {
 			_, err = fmt.Fprintf(w, format+"\n", args...)
 		}
 	}
-	if r.Stopped {
+	switch {
+	case r.Stopped && deadline == 0:
+		line("replay: stopped, %d of %d read", r.Read, r.Total)
+	case r.Stopped:
 		line("replay: stopped after %s, %d of %d read; run archfit replay later", duration(deadline), r.Read, r.Total)
-	} else {
+	default:
 		line("replay: %d merged pull requests read: %d passed, %d would have needed an owner, %d to look at first",
 			r.Read, r.Passed, r.Asked, r.Look)
 	}

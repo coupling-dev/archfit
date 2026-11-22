@@ -70,6 +70,7 @@ type cli struct {
 	Request RequestCmd  `cmd:"" help:"Ask an owner to change the policy for the errors of the last check."`
 	Init    RepoInitCmd `cmd:"" help:"Set up a repository."`
 	Report  ReportCmd   `cmd:"" help:"The repository-wide picture for owners. Exits 0 whatever it shows."`
+	Replay  ReplayCmd   `cmd:"" help:"Run the policy over the last changes of the default branch."`
 	Doctor  DoctorCmd   `cmd:"" help:"This checkout: the tools and hooks. --fix installs what is missing."`
 	Hook    HookCmd     `cmd:"" hidden:"" help:"The hook entry points installed by doctor --fix."`
 	Version versionFlag `short:"v" help:"Print version and exit."`

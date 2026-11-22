@@ -245,6 +245,16 @@ func TestText(t *testing.T) {
 				"source: first-parent history of origin/main, read locally; each change against its first parent, under the current policy\n",
 		},
 	}
+	cases = append(cases, struct {
+		name     string
+		res      replay.Result
+		deadline time.Duration
+		want     string
+	}{
+		name: "stopped with no deadline",
+		res:  replay.Result{Total: 30, Read: 3, Stopped: true},
+		want: "replay: stopped, 3 of 30 read\n",
+	})
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer
