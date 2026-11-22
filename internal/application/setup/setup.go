@@ -161,7 +161,7 @@ func Next(p Progress) string {
 	case CheckPresent:
 		return fmt.Sprintf("merge #%d: %s", p.PR.Number, p.PR.URL)
 	case Closed:
-		return fmt.Sprintf("reopen #%d: %s", p.PR.Number, p.PR.URL)
+		return fmt.Sprintf("pull request #%d was closed; reopen it, or delete the branch archfit/setup, then archfit setup", p.PR.Number)
 	default:
 		return ""
 	}
@@ -481,7 +481,6 @@ func showPR(ctx context.Context, gh GitHub, pr PullRequest, repo string, out *Ou
 	out.PR = pr
 	if pr.State != "OPEN" {
 		out.stop(fmt.Errorf("setup pull request #%d was closed without a merge: %s", pr.Number, pr.URL), Next(Progress{State: Closed, PR: pr}))
-		out.After = append(out.After, "or delete the branch "+Branch+" and run archfit setup again")
 		return
 	}
 	check, err := gh.Check(ctx, repo, pr.HeadRefOid)

@@ -60,12 +60,17 @@ func (g GitHub) PullRequest(ctx context.Context, repo, base, branch string) (Pul
 		IsCrossRepository bool
 	}
 	err := g.read(ctx, &list, "pr", "list", "--repo", repo, "--head", branch, "--base", base,
-		"--state", "open", "--json", "number,state,url,headRefOid,isCrossRepository")
+		"--state", "all", "--json", "number,state,url,headRefOid,isCrossRepository")
 	if err != nil {
 		return PullRequest{}, err
 	}
 	for _, item := range list {
 		if !item.IsCrossRepository && item.State == "OPEN" {
+			return item.PullRequest, nil
+		}
+	}
+	for _, item := range list {
+		if !item.IsCrossRepository && item.State == "CLOSED" {
 			return item.PullRequest, nil
 		}
 	}

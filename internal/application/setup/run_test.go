@@ -118,7 +118,7 @@ func TestSetupStopsWithoutPublishing(t *testing.T) {
 		{"closed", func(f *setupFixture, _ *Dependencies) {
 			f.branch, f.workflow, f.pushed, f.pending, f.ready = Branch, true, true, false, true
 			f.pr = PullRequest{Number: 7, State: "CLOSED", URL: setupPRURL}
-		}, "reopen #7: " + setupPRURL, "closed without a merge", nil},
+		}, "pull request #7 was closed; reopen it, or delete the branch archfit/setup, then archfit setup", "closed without a merge", nil},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f := setupFixture{branch: fixtureBranch, policy: true, pending: true}

@@ -19,7 +19,7 @@ func TestNext(t *testing.T) {
 		{ManualPR, "open the pull request: https://github.com/o/r/compare/release%2Fmain...archfit/setup?expand=1"},
 		{NoCheck, "install the App: " + installURL},
 		{CheckPresent, "merge #7: https://github.com/o/r/pull/7"},
-		{Closed, "reopen #7: https://github.com/o/r/pull/7"},
+		{Closed, "pull request #7 was closed; reopen it, or delete the branch archfit/setup, then archfit setup"},
 		{Merged, ""},
 		{Blocked, ""},
 	} {
