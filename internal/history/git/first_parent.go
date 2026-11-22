@@ -3,6 +3,7 @@ package git
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/coupling-dev/archfit/internal/toolrun"
@@ -48,5 +49,8 @@ func FirstParent(ctx context.Context, dir, ref string, n int, runner toolrun.Run
 // It runs: git rev-parse --is-shallow-repository
 func Shallow(ctx context.Context, dir string, runner toolrun.Runner) (bool, error) {
 	out, err := runGitRevParse(ctx, dir, runner, []string{"--is-shallow-repository"}, "rev-parse --is-shallow-repository")
-	return out == "true", err
+	if err != nil {
+		return false, err
+	}
+	return strconv.ParseBool(out)
 }

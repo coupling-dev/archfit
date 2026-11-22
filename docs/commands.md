@@ -1,10 +1,10 @@
 # Commands
 
-Archfit has seven public commands. Run `archfit <command> --help` for their flags. Bare `archfit` prints a usage error; it runs no check or report.
+Archfit has eight public commands. Run `archfit <command> --help` for their flags. Bare `archfit` prints a usage error; it runs no check or report.
 
 ## Policy version
 
-`check`, `can`, `rules`, `request`, and `report` need a version 1 `.archfit.yaml`. A version 2 file (Archfit 3) is an error: remove it and run `archfit init` to write a fresh version 1 policy.
+`check`, `can`, `rules`, `request`, `report`, and `replay` need a version 1 `.archfit.yaml`. A version 2 file (Archfit 3) is an error: remove it and run `archfit init` to write a fresh version 1 policy.
 
 ## Choose a command
 
@@ -16,6 +16,7 @@ Archfit has seven public commands. Run `archfit <command> --help` for their flag
 | Ask an owner to change the policy | `archfit request -m "<why>" [--expires DATE]` |
 | Set up a repository | `archfit init` |
 | See the state of the repository and its measurements | `archfit report` |
+| See how the last changes of the default branch fare under the policy | `archfit replay [--last N]` |
 | Check tools and hooks, or install what is missing | `archfit doctor` or `archfit doctor --fix` |
 
 ## Exit codes
@@ -245,6 +246,39 @@ A version 2 policy stops the report with exit `2` and guidance to run `archfit i
 | Flag | Meaning |
 | --- | --- |
 | `--format <name>` | `text` (default) or `json`. |
+| `-C, --directory <dir>` | Run in `<dir>` instead of the current directory. |
+
+### `replay`
+
+`archfit replay [--last N]` runs the policy over the last `N` changes of the default branch (30 by default), to show how many would have passed and how many would have needed an owner. It decides nothing about the working tree and exits `0` when it ran; it exits `2` on wrong usage, a missing or invalid policy, no default branch, or a tool error.
+
+The changes are the first-parent commits of the default branch that origin/HEAD names, as this clone holds them. Archfit fetches nothing. A merge commit and a squash merge are one change each. A pull request merged by rebase shows as several changes, one for each commit, and the output says so when no change in the list is a merge commit. Each change is checked against its first parent, in a temporary worktree of its commit that is removed when the change is done, whatever the outcome. The working tree, the index, `git worktree list` and `.archfit-cache/last.json` stay as they were.
+
+Every change is judged under the policy file of the working tree, not the policy the change had. A policy edit you have not committed counts.
+
+| Class | Meaning |
+| --- | --- |
+| passed | The status of the change is `pass`. |
+| would have needed an owner | The status is `fail` and an error says `archfit request`: only an owner can allow it. |
+| to look at first | Everything else: a `fail` that only says to fix the code, `unknown`, a change with no parent in this clone, or a check that could not run. Missing evidence is never counted as a pass. |
+
+When `gh` is signed in, it only labels a change with its pull request number and title. The counts are the same without it.
+
+```text
+$ archfit replay --last 30
+replay: 30 merged pull requests read: 22 passed, 5 would have needed an owner, 3 to look at first
+source: first-parent history of origin/main, read locally; each change against its first parent, under the current policy
+would have needed an owner, for example:
+  #431 Add the tc shaper: pkg_tc -> pkg_util is not an allowed dependency
+```
+
+A shallow clone holds fewer changes than asked for: the oldest change it holds has no parent, so it is counted under "to look at first", and the output adds `incomplete history` and the command that fetches the rest. Text is the only output form.
+
+`archfit setup` runs the same replay with a limit of 60 seconds. When the limit ends, the replay stops and prints `replay: stopped after 60 s, 14 of 30 read; run archfit replay later`. The change being read at that moment is not counted. A run you interrupt with `SIGINT` prints what it has read and exits `2`.
+
+| Flag | Meaning |
+| --- | --- |
+| `--last <N>` | How many changes to read. Default 30. |
 | `-C, --directory <dir>` | Run in `<dir>` instead of the current directory. |
 
 ### `doctor`

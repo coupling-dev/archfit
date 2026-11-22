@@ -11,6 +11,8 @@ import (
 	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
+const mainRef = "origin/main"
+
 type history struct {
 	src replay.Source
 	err error
@@ -72,7 +74,7 @@ func TestRunClassifiesEveryChange(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			svc := replay.Service{
-				History: &history{src: replay.Source{Ref: "origin/main", Changes: []replay.Change{change("c1", true)}}},
+				History: &history{src: replay.Source{Ref: mainRef, Changes: []replay.Change{change("c1", true)}}},
 				Checker: &checker{results: map[string]result.Result{"c1": tc.res}},
 			}
 			got, err := svc.Run(context.Background(), 30)
@@ -226,7 +228,7 @@ func TestText(t *testing.T) {
 		{
 			name: "complete, with every note",
 			res: replay.Result{
-				Ref: "origin/main", Total: 30, Read: 30, Passed: 22, Asked: 5, Look: 3,
+				Ref: mainRef, Total: 30, Read: 30, Passed: 22, Asked: 5, Look: 3,
 				Incomplete: true, Rebase: true,
 				Examples: []replay.Example{{Label: "#12 Add billing", What: "billing uses reports"}},
 			},
@@ -239,22 +241,17 @@ func TestText(t *testing.T) {
 		},
 		{
 			name:     "stopped by the deadline",
-			res:      replay.Result{Ref: "origin/main", Total: 30, Read: 14, Passed: 14, Stopped: true},
+			res:      replay.Result{Ref: mainRef, Total: 30, Read: 14, Passed: 14, Stopped: true},
 			deadline: 60 * time.Second,
 			want: "replay: stopped after 60 s, 14 of 30 read; run archfit replay later\n" +
 				"source: first-parent history of origin/main, read locally; each change against its first parent, under the current policy\n",
 		},
+		{
+			name: "stopped with no deadline",
+			res:  replay.Result{Total: 30, Read: 3, Stopped: true},
+			want: "replay: stopped, 3 of 30 read\n",
+		},
 	}
-	cases = append(cases, struct {
-		name     string
-		res      replay.Result
-		deadline time.Duration
-		want     string
-	}{
-		name: "stopped with no deadline",
-		res:  replay.Result{Total: 30, Read: 3, Stopped: true},
-		want: "replay: stopped, 3 of 30 read\n",
-	})
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var buf bytes.Buffer

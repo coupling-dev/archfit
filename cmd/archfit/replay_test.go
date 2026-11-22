@@ -205,7 +205,7 @@ func (r *ghStub) Run(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, 
 			return toolrun.Output{ExitCode: 4}, nil
 		}
 		return toolrun.Output{Stdout: []byte(r.list)}, nil
-	case cmd.Name == "git" && len(cmd.Args) > 1 && cmd.Args[0] == "worktree" && cmd.Args[1] == "add":
+	case cmd.Name == harnessGit && len(cmd.Args) > 1 && cmd.Args[0] == "worktree" && cmd.Args[1] == "add":
 		r.mu.Lock()
 		r.adds++
 		n := r.adds
