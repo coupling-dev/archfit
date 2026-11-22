@@ -24,10 +24,18 @@ func (co checkout) replay(deps *appDeps) replay.Service {
 
 // replayHistory is replay.History: the first-parent history of origin/HEAD,
 // read from this clone, labelled with the merged pull requests gh knows.
-type replayHistory struct{ co checkout }
+type replayHistory struct {
+	co       checkout
+	ref      string
+	noLabels bool
+}
 
 func (h replayHistory) Changes(ctx context.Context, n int) (replay.Source, error) {
-	ref, ok := gitpkg.OriginHead(ctx, h.co.root, h.co.runner)
+	ref := h.ref
+	ok := ref != ""
+	if !ok {
+		ref, ok = gitpkg.OriginHead(ctx, h.co.root, h.co.runner)
+	}
 	if !ok {
 		if err := ctx.Err(); err != nil {
 			return replay.Source{}, err
@@ -46,7 +54,10 @@ func (h replayHistory) Changes(ctx context.Context, n int) (replay.Source, error
 			return replay.Source{}, err
 		}
 	}
-	pulls := requestsend.MergedPulls(ctx, h.co.root, h.co.runner)
+	var pulls map[string]requestsend.Pull
+	if !h.noLabels {
+		pulls = requestsend.MergedPulls(ctx, h.co.root, h.co.runner)
+	}
 	for _, c := range commits {
 		ch := replay.Change{Commit: c.SHA, Merge: len(c.Parents) > 1, Subject: c.Subject}
 		if len(c.Parents) > 0 {
