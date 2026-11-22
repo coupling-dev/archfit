@@ -219,7 +219,7 @@ Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a ch
 | --- | --- | --- |
 | No policy | Writes a policy and the agent instructions. | Read `.archfit.yaml`, then run `archfit setup` again. |
 | No workflow | Keeps the policy and writes a [pinned workflow](ci.md#the-workflow-archfit-setup-writes). | Follow the next step after the push. |
-| Stopped before the push | The HTTPS push uses a signed-in `gh` account without the `workflow` scope. | Run `gh auth refresh -s workflow`, then run setup again. |
+| Stopped before the push | The HTTPS push uses a `gh` login with known classic scopes, without `workflow`. | Run `gh auth refresh -s workflow`, then run setup again. |
 | Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. | Open the pull request on GitHub with the saved body. |
 | Pull request open, no App check | Prints the App install link. Setup does not re-run the workflow. | Install the App. Use the printed re-run link if the check does not start. |
 | App check present | Prints the status of `archfit/gate`. | Review and merge the setup pull request. |
@@ -231,6 +231,7 @@ Setup commits only changed setup paths, but includes any existing edits in those
 Review the pull request before merging.
 
 SSH pushes use the SSH key and do not require the `gh` `workflow` scope.
+When `gh` does not report classic scopes, setup attempts the push and reports a permission error if Git rejects it.
 Without a signed-in `gh`, setup still pushes via Git. It cannot see the pull request or App check.
 A later run does not push an unchanged branch. If Git refuses to update the workflow, fix your Git credentials.
 When setup can detect a merged policy and workflow, it works without `gh`.

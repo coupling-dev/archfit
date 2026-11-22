@@ -370,7 +370,7 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		if err := d.Git.Push(ctx, Branch); err != nil {
 			next := "git push -u origin " + Branch + ", then archfit setup"
 			if strings.Contains(strings.ToLower(err.Error()), "workflow") {
-				next = refreshNext
+				next = "give your token permission to change workflows (gh auth refresh -s workflow for gh), then archfit setup"
 			}
 			out.stop(err, next)
 			return

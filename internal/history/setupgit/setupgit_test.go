@@ -66,6 +66,7 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 		ready, workflow bool
 	}{
 		{"valid", "  - Token scopes: 'repo', 'workflow'\n", 0, true, true},
+		{"unknown scopes", "  - Token: fine-grained\n", 0, true, true},
 		{"missing", "  - Token scopes: 'repo', 'not-workflow'\n", 0, true, false},
 		{"account not signed in", "  - Token scopes: 'workflow'\n", 1, false, false},
 	} {

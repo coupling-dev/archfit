@@ -29,7 +29,8 @@ type AppCheck struct {
 	Status, Conclusion, HTMLURL, Title string
 }
 
-// Auth reports whether the active login works and has the workflow scope.
+// Auth reports whether the active login works and whether a known scope permits workflows.
+// Missing scope information is not evidence of a missing permission.
 func (g GitHub) Auth(ctx context.Context) (bool, bool) {
 	out, err := g.command(ctx, "auth", "status", "--hostname", "github.com", "--active")
 	if err != nil || out.ExitCode != 0 {
@@ -43,10 +44,11 @@ func (g GitHub) Auth(ctx context.Context) (bool, bool) {
 						return true, true
 					}
 				}
+				return true, false
 			}
 		}
 	}
-	return true, false
+	return true, true
 }
 
 // PullRequest finds an open setup pull request or, failing that, the newest closed one.

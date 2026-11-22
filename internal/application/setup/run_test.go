@@ -157,7 +157,7 @@ func assertActions(t *testing.T, got []string, want ...string) {
 type setupFixture struct {
 	branch, body                                                             string
 	policy, workflow, pending, merged, ahead, noAuthor, ready, scope, pushed bool
-	createErr, policyErr, workflowErr, pushSafetyErr                         error
+	createErr, policyErr, workflowErr, pushSafetyErr, pushErr                error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
 	ssh                                                                      bool
@@ -244,6 +244,9 @@ func (g fixtureGit) PushSafety(context.Context, string, []string) (bool, error) 
 }
 func (g fixtureGit) Push(context.Context, string) error {
 	g.actions = append(g.actions, pushAction)
+	if g.pushErr != nil {
+		return g.pushErr
+	}
 	g.pushed = true
 	return nil
 }
@@ -295,4 +298,11 @@ func TestWorkflowScopeOnlyForHTTPS(t *testing.T) {
 			assertActions(t, f.actions, tc.actions...)
 		})
 	}
+}
+
+func TestWorkflowPushRejectionExplainsPermission(t *testing.T) {
+	f := setupFixture{branch: Branch, policy: true, workflow: true, pushErr: errors.New("refusing to update workflow")}
+	out := Run(t.Context(), f.deps(t))
+	assertOutcome(t, out, Blocked, 2, "give your token permission to change workflows (gh auth refresh -s workflow for gh), then archfit setup", "refusing to update workflow")
+	assertActions(t, f.actions, pushAction)
 }
