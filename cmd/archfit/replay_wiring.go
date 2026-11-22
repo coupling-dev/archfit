@@ -29,6 +29,9 @@ type replayHistory struct{ co checkout }
 func (h replayHistory) Changes(ctx context.Context, n int) (replay.Source, error) {
 	ref, ok := gitpkg.OriginHead(ctx, h.co.root, h.co.runner)
 	if !ok {
+		if err := ctx.Err(); err != nil {
+			return replay.Source{}, err
+		}
 		return replay.Source{}, errors.New("no default branch: origin/HEAD is not set; run git remote set-head origin --auto")
 	}
 	commits, err := gitpkg.FirstParent(ctx, h.co.root, ref, n, h.co.runner)
@@ -36,7 +39,9 @@ func (h replayHistory) Changes(ctx context.Context, n int) (replay.Source, error
 		return replay.Source{}, err
 	}
 	src := replay.Source{Ref: ref, Changes: make([]replay.Change, 0, len(commits))}
-	if len(commits) < n {
+	// The oldest change has no parent in a shallow clone, and in a clone that
+	// holds the whole history only when it is the first commit.
+	if len(commits) > 0 && len(commits[len(commits)-1].Parents) == 0 {
 		if src.Short, err = gitpkg.Shallow(ctx, h.co.root, h.co.runner); err != nil {
 			return replay.Source{}, err
 		}
@@ -66,9 +71,7 @@ type replayChecker struct {
 }
 
 func (c replayChecker) Check(ctx context.Context, ch replay.Change) (result.Result, error) {
-	// The worktree is removed with a context the deadline cannot end: a
-	// stopped replay must leave no worktree behind.
-	root, cleanup, err := gitpkg.Worktree{Runner: c.co.runner}.Checkout(context.WithoutCancel(ctx), ch.Commit, c.co.root, c.co.root)
+	root, cleanup, err := gitpkg.Worktree{Runner: c.co.runner}.Checkout(ctx, ch.Commit, c.co.root, c.co.root)
 	defer cleanup()
 	if err != nil {
 		return result.Result{}, fmt.Errorf("check out %s: %w", ch.Commit, err)

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	pullsTimeout = 10 * time.Second
+	pullsTimeout = 5 * time.Second
 	// pullsLimit is how many of the latest merged pull requests are listed.
 	pullsLimit = "200"
 )

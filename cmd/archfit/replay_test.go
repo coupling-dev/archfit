@@ -173,7 +173,7 @@ func TestReplayOfAShallowCloneSaysTheHistoryIsIncomplete(t *testing.T) {
 	src := replayRepo(t)
 	clone := filepath.Join(t.TempDir(), "clone")
 	gitRun(t, src, "clone", "-q", "--depth", "2", "file://"+src, clone)
-	got := runCLI(t, fixtureDate, cmdReplay, "--last", "5", "-C", clone)
+	got := runCLI(t, fixtureDate, cmdReplay, "--last", "2", "-C", clone)
 	if got.code != 0 {
 		t.Fatalf("exit %d\n%s%s", got.code, got.stdout, got.stderr)
 	}

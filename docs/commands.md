@@ -274,7 +274,7 @@ would have needed an owner, for example:
 
 A shallow clone holds fewer changes than asked for: the oldest change it holds has no parent, so it is counted under "to look at first", and the output adds `incomplete history` and the command that fetches the rest. Text is the only output form.
 
-`archfit setup` runs the same replay with a limit of 60 seconds. When the limit ends, the replay stops and prints `replay: stopped after 60 s, 14 of 30 read; run archfit replay later`. The change being read at that moment is not counted. A run you interrupt with `SIGINT` prints what it has read and exits `2`.
+A run you interrupt with `SIGINT` stops, prints how many changes it has read (`replay: stopped, 14 of 30 read`), and exits `2`. The change being read at that moment is not counted.
 
 | Flag | Meaning |
 | --- | --- |

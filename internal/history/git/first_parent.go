@@ -25,7 +25,7 @@ func FirstParent(ctx context.Context, dir, ref string, n int, runner toolrun.Run
 	if err := checkRef("ref", ref); err != nil {
 		return nil, err
 	}
-	out, err := run(ctx, dir, runner, "log", "--first-parent", fmt.Sprintf("-n%d", n), "--format=%H%x00%P%x00%s", ref, "--")
+	out, err := run(ctx, dir, runner, "log", "--first-parent", "--no-show-signature", fmt.Sprintf("-n%d", n), "--format=%H%x00%P%x00%s", ref, "--")
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +37,11 @@ func FirstParent(ctx context.Context, dir, ref string, n int, runner toolrun.Run
 		if line == "" {
 			continue
 		}
-		sha, rest, _ := strings.Cut(line, "\x00")
-		parents, subject, _ := strings.Cut(rest, "\x00")
+		sha, rest, ok := strings.Cut(line, "\x00")
+		parents, subject, ok2 := strings.Cut(rest, "\x00")
+		if !ok || !ok2 {
+			continue // not a record: a line git added to the log
+		}
 		commits = append(commits, Commit{SHA: sha, Parents: strings.Fields(parents), Subject: subject})
 	}
 	return commits, nil

@@ -3,6 +3,7 @@ package git_test
 import (
 	"context"
 	"path/filepath"
+	"slices"
 	"testing"
 
 	gitpkg "github.com/coupling-dev/archfit/internal/history/git"
@@ -43,7 +44,14 @@ func TestFirstParentFollowsTheFirstParentOnly(t *testing.T) {
 }
 
 func TestFirstParentRefusesAnOptionAsARef(t *testing.T) {
-	if _, err := gitpkg.FirstParent(context.Background(), t.TempDir(), "--all", 5, toolrun.New()); err == nil {
+	requireGit(t)
+	dir := t.TempDir()
+	gitIn(t, dir, "init", "-q")
+	writeIn(t, dir, "a.txt", "a")
+	gitIn(t, dir, "add", ".")
+	gitIn(t, dir, "commit", "-q", "-m", "first")
+	// Without the guard git reads --all as an option and lists the commit.
+	if _, err := gitpkg.FirstParent(context.Background(), dir, "--all", 5, toolrun.New()); err == nil {
 		t.Error("a ref that starts with a dash was accepted")
 	}
 }
@@ -74,5 +82,31 @@ func TestShallowClone(t *testing.T) {
 	}
 	if len(commits) != 2 || len(commits[1].Parents) != 0 {
 		t.Errorf("got %+v, want two commits, the oldest with no parent", commits)
+	}
+}
+
+// logRunner answers git log with fixed output, as git does when a signature
+// is shown before a commit.
+type logRunner struct {
+	toolrun.Runner
+	args []string
+}
+
+func (r *logRunner) Run(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+	r.args = cmd.Args
+	out := "gpg: Signature made Sat Nov 22\ngpg: Good signature\n" +
+		"aaa\x00bbb\x00signed change\n"
+	return toolrun.Output{Stdout: []byte(out)}, nil
+}
+
+func TestFirstParentIgnoresSignatureLines(t *testing.T) {
+	t.Parallel()
+	r := &logRunner{}
+	commits, err := gitpkg.FirstParent(context.Background(), t.TempDir(), "origin/main", 5, r)
+	if err != nil || len(commits) != 1 || commits[0].SHA != "aaa" || commits[0].Subject != "signed change" {
+		t.Errorf("got %+v, %v; want the one commit", commits, err)
+	}
+	if !slices.Contains(r.args, "--no-show-signature") {
+		t.Errorf("git log was run with %v; want --no-show-signature", r.args)
 	}
 }
