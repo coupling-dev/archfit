@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/coupling-dev/archfit/internal/toolrun"
 
 	"github.com/coupling-dev/archfit/internal/initcfg/policy3"
 )
@@ -61,7 +65,15 @@ func readText(t *testing.T, path string) string {
 func TestInitAFreshRepository(t *testing.T) {
 	t.Parallel()
 	dir := initRepo(t, initFixture())
-	got := runCLI(t, fixtureDate, cmdInit, "-C", dir)
+	var stdout, stderr bytes.Buffer
+	runner := &toolrun.RunnerMock{DetectFunc: toolrun.New().Detect, StreamFunc: toolrun.New().Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == "gh" {
+			return toolrun.Output{Stdout: []byte("alice User")}, nil
+		}
+		return toolrun.New().Run(ctx, cmd)
+	}}
+	got := cliRun{code: runDeps([]string{cmdInit, "-C", dir}, &appDeps{Runner: runner, Stdout: &stdout, Stderr: &stderr, now: day(fixtureDate)})}
+	got.stdout, got.stderr = stdout.String(), stderr.String()
 	if got.code != 0 || got.stderr != "" {
 		t.Fatalf("init: exit %d, stderr %q", got.code, got.stderr)
 	}
@@ -123,7 +135,6 @@ func TestInitErrorsExit2(t *testing.T) {
 	otherVersion[defaultConfigPath] = version3
 	archfit3 := initFixture()
 	archfit3[defaultConfigPath] = archfit3Policy
-	noRemote := initFixture()
 	for _, tc := range []struct {
 		name   string
 		files  map[string]string
@@ -133,7 +144,6 @@ func TestInitErrorsExit2(t *testing.T) {
 		{name: "unbalanced markers", files: unbalanced, remote: true, want: "markers are unbalanced"},
 		{name: "a version 3 policy", files: otherVersion, remote: true, want: "version 3 is not supported"},
 		{name: "a version 2 policy", files: archfit3, remote: true, want: "version 2 is not supported"},
-		{name: "no origin remote", files: noRemote, want: "origin"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()

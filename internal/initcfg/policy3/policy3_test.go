@@ -128,7 +128,7 @@ func (f fixed) Head(context.Context, string) (evidence.CheckFacts, error) {
 
 func initWith(t *testing.T, facts policy3.HeadFacts, root string) (policy3.Result, error) {
 	t.Helper()
-	return policy3.Init(context.Background(), policy3.Deps{Runner: toolrun.New(), Facts: facts, Now: func() time.Time { return time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC) }}, root)
+	return policy3.Init(context.Background(), policy3.Deps{Facts: facts, Now: func() time.Time { return time.Date(2026, 11, 10, 0, 0, 0, 0, time.UTC) }}, root, "acme")
 }
 
 var goRepo = map[string]string{
@@ -391,8 +391,6 @@ func TestInitWritesNothingOnAnError(t *testing.T) {
 		{"unbalanced markers", "<!-- archfit:start -->\nno end\n", origin, goFacts, unbalanced},
 		{"end marker first", "<!-- archfit:end -->\n<!-- archfit:start -->\n", origin, goFacts, unbalanced},
 		{"a second start marker", "<!-- archfit:start -->\na\n<!-- archfit:end -->\n<!-- archfit:start -->\n", origin, goFacts, unbalanced},
-		{"no origin", "", "", goFacts, "no origin remote"},
-		{"origin outside GitHub", "", "https://gitlab.com/acme/shop.git", goFacts, "on gitlab.com"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			files := map[string]string{}

@@ -175,11 +175,13 @@ next: ask an owner     (open a pull request first if there is none)
 
 | The repository has | `archfit init` |
 | --- | --- |
-| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the GitHub `origin` remote; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
+| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the local GitHub identity; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 1 `.archfit.yaml` | Leaves it as it is. |
 
 `init` adds `.archfit-cache/` to the root `.gitignore`. A missing tool leaves a draft based on available evidence. The output lists unread paths and prints each install hint once.
+
+For the owner, init first uses the authenticated GitHub user. Otherwise it uses a GitHub noreply author email as an unverified login. If neither is available, it writes a placeholder and asks you to replace it. No origin remote is required.
 
 New exceptions expire 90 days after the run. The final list names them as decisions for the owner.
 
@@ -199,7 +201,7 @@ exceptions for the owner to review:
 next: read .archfit.yaml, then open a pull request with it
 ```
 
-Read the policy and its exceptions before you open the pull request. A place in the code that `init` could not read is listed with `not read:` and its fix. A missing tool, unbalanced markers in `AGENTS.md`, or no GitHub `origin` remote stops `init` before it writes anything, with exit `2`.
+Read the policy and its exceptions before you open the pull request. A place in the code that `init` could not read is listed with `not read:` and its fix. Unbalanced markers in `AGENTS.md` stop `init` before it writes anything, with exit `2`.
 
 | Flag | Meaning |
 | --- | --- |
@@ -246,6 +248,8 @@ A version 2 policy stops the report with exit `2` and guidance to run `archfit i
 | `-C, --directory <dir>` | Run in `<dir>` instead of the current directory. |
 
 ### `doctor`
+
+Doctor checks whether the policy names a person as an owner. A placeholder or an organization-only list fails the text check. Without GitHub access, doctor reports that it cannot verify the owner. The JSON report does not include this check.
 
 `archfit doctor [flags]` checks this checkout: the tools archfit uses and the hooks of the agent loop. `--fix` installs the hooks.
 
