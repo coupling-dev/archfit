@@ -316,7 +316,7 @@ func TestRemoteValidationFailureHasSafeNext(t *testing.T) {
 		next string
 	}{
 		{errors.New("network timeout"), "could not reach origin; check the connection, then archfit setup"},
-		{fixtureBranchError("foreign"), "rename or delete the branch archfit/setup, then archfit setup"},
+		{fixtureBranchError("foreign"), "delete the branch archfit/setup only if you do not need its commits, then archfit setup"},
 	} {
 		t.Run(tc.next, func(t *testing.T) {
 			f := setupFixture{branch: Branch, policy: true, workflow: true, pushed: true, remoteErr: tc.err}
@@ -344,5 +344,5 @@ func (fixtureHookError) HookHistory()    {}
 func TestNoHooksHistoryGivesSpecificNext(t *testing.T) {
 	f := setupFixture{branch: Branch, policy: true, workflow: true, pushSafetyErr: fixtureHookError("hook history")}
 	out := Run(t.Context(), f.deps(t))
-	assertOutcome(t, out, Blocked, 2, "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks")
+	assertOutcome(t, out, Blocked, 2, "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks")
 }

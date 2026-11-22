@@ -14,6 +14,7 @@ import (
 
 // Paths and the branch name shared by the setup workflow and its adapters.
 const (
+	Command      = "archfit setup"
 	Branch       = "archfit/setup"
 	WorkflowPath = ".github/workflows/archfit.yaml"
 	BodyPath     = ".archfit-cache/setup-pull-request.md"
@@ -149,7 +150,7 @@ func Next(p Progress) string {
 	}
 	switch p.State {
 	case NoPolicy:
-		return "archfit setup"
+		return Command
 	case NeedsScope:
 		return refreshNext
 	case NoWorkflow, Unpublished, NoCheck:
@@ -363,11 +364,11 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 			next := "check the git error, then archfit setup"
 			var branch unsafeBranch
 			if errors.As(err, &branch) {
-				next = "rename or delete the branch archfit/setup, then archfit setup"
+				next = "delete the branch archfit/setup only if you do not need its commits, then archfit setup"
 			}
 			var hooks hookHistory
 			if errors.As(err, &hooks) {
-				next = "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks"
+				next = "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks"
 			}
 			var destination unsafeDestination
 			if errors.As(err, &destination) {
@@ -395,11 +396,11 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		next := "could not reach origin; check the connection, then archfit setup"
 		var branch unsafeBranch
 		if errors.As(err, &branch) {
-			next = "rename or delete the branch archfit/setup, then archfit setup"
+			next = "delete the branch archfit/setup only if you do not need its commits, then archfit setup"
 		}
 		var hooks hookHistory
 		if errors.As(err, &hooks) {
-			next = "delete the branch archfit/setup (it contains hook settings), then archfit setup --no-hooks"
+			next = "delete the branch archfit/setup only if you do not need its commits (it contains hook settings), then archfit setup --no-hooks"
 		}
 		out.stop(err, next)
 		return

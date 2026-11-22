@@ -336,14 +336,14 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 			return err
 		}
 		if len(strings.Fields(parents)) != 2 {
-			return branchError("setup branch contains a merge commit")
+			return branchError("setup branch contains a merge commit; commits beyond the default branch:\n" + commits)
 		}
 		subject, err := g.run(ctx, "show", "-s", "--format=%s", commit)
 		if err != nil {
 			return err
 		}
 		if subject != "chore: set up archfit" {
-			return branchError("setup branch contains a commit not made by setup")
+			return branchError("setup branch contains a commit not made by setup; commits beyond the default branch:\n" + commits)
 		}
 		files, err := g.run(ctx, "diff-tree", "--root", "--no-commit-id", "--name-only", "-z", "-r", commit)
 		if err != nil {
@@ -352,9 +352,9 @@ func (g Git) validateRange(ctx context.Context, base, head string, paths []strin
 		for file := range strings.SplitSeq(files, "\x00") {
 			if file != "" && !slices.Contains(paths, file) {
 				if file == ".claude/settings.json" || file == ".codex/hooks.json" {
-					return hookHistoryError("setup branch contains hook settings")
+					return hookHistoryError("setup branch contains hook settings; commits beyond the default branch:\n" + commits)
 				}
-				return branchError("setup branch contains a commit changing " + file)
+				return branchError("setup branch contains a commit changing " + file + "; commits beyond the default branch:\n" + commits)
 			}
 		}
 	}

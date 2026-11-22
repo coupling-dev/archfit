@@ -351,7 +351,7 @@ func TestSetupRejectsMultiplePushDestinations(t *testing.T) {
 			return toolrun.Output{ExitCode: 1}, nil
 		}
 		if cmd.Name == gitBinary && len(cmd.Args) > 0 {
-			if cmd.Args[0] == "-c" {
+			if slices.Contains(cmd.Args, "push") {
 				t.Fatal("unexpected push")
 			}
 			switch cmd.Args[0] {
@@ -390,5 +390,21 @@ func TestSetupNoHooksIgnoresPrivateHarnessAfterMerge(t *testing.T) {
 	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
 	if code != 0 || !strings.Contains(stdout.String(), "state: done") {
 		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+	}
+}
+
+func TestSetupContinuationPreservesFlags(t *testing.T) {
+	for _, tc := range []struct {
+		cmd        SetupCmd
+		next, want string
+	}{
+		{SetupCmd{NoHooks: true}, "archfit setup", "archfit setup --no-hooks"},
+		{SetupCmd{NoHooks: true}, "then archfit setup --no-hooks", "then archfit setup --no-hooks"},
+		{SetupCmd{NoHooks: true, Dir: "/tmp/a b"}, "then archfit setup", "then archfit setup --no-hooks -C '/tmp/a b'"},
+		{SetupCmd{Dir: "repo's path"}, "archfit setup", "archfit setup -C 'repo'\\''s path'"},
+	} {
+		if got := tc.cmd.continuation(tc.next); got != tc.want {
+			t.Errorf("got %q want %q", got, tc.want)
+		}
 	}
 }

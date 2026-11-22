@@ -31,7 +31,7 @@ func (c *SetupCmd) Run(deps *appDeps) error {
 	if err != nil {
 		_, _ = fmt.Fprintln(deps.Stdout, err)
 		_, _ = fmt.Fprintln(deps.Stdout, "state: stopped")
-		_, _ = fmt.Fprintln(deps.Stdout, "next: run archfit setup in a git checkout")
+		_, _ = fmt.Fprintln(deps.Stdout, "next: run "+c.command()+" in a git checkout")
 		return exitWith(exitUnknown)
 	}
 	out := setup.Run(deps.runContext(), service)
@@ -44,7 +44,7 @@ func (c *SetupCmd) Run(deps *appDeps) error {
 		return noVerdict(err)
 	}
 	if out.Next != "" {
-		if _, err := fmt.Fprintf(deps.Stdout, "next: %s\n", strings.TrimPrefix(out.Next, "next: ")); err != nil {
+		if _, err := fmt.Fprintf(deps.Stdout, "next: %s\n", c.continuation(strings.TrimPrefix(out.Next, "next: "))); err != nil {
 			return noVerdict(err)
 		}
 	}
@@ -54,4 +54,21 @@ func (c *SetupCmd) Run(deps *appDeps) error {
 		}
 	}
 	return exitWith(out.Exit)
+}
+
+// command preserves the selected checkout and hook mode when setup is resumed.
+func (c *SetupCmd) command() string {
+	command := setup.Command
+	if c.NoHooks {
+		command += " --no-hooks"
+	}
+	if c.Dir != "" {
+		command += " -C '" + strings.ReplaceAll(c.Dir, "'", "'\\''") + "'"
+	}
+	return command
+}
+
+func (c *SetupCmd) continuation(next string) string {
+	next = strings.ReplaceAll(next, setup.Command+" --no-hooks", setup.Command)
+	return strings.ReplaceAll(next, setup.Command, c.command())
 }
