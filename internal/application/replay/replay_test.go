@@ -264,3 +264,13 @@ func TestText(t *testing.T) {
 		})
 	}
 }
+
+func TestRunStopsWhenTheContextEndsInTheHistory(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	svc := replay.Service{History: &history{err: ctx.Err()}, Checker: &checker{}}
+	got, err := svc.Run(ctx, 30)
+	if err != nil || !got.Stopped || got.Read != 0 {
+		t.Errorf("got %+v, %v; want a stopped result with nothing read", got, err)
+	}
+}

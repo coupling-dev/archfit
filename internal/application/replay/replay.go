@@ -77,8 +77,8 @@ type Source struct {
 	Ref string
 	// Changes are newest first, at most the number asked for.
 	Changes []Change
-	// Short is true when the clone holds fewer changes than were asked for
-	// because it is shallow.
+	// Short is true when the oldest change has no parent because the clone
+	// is shallow.
 	Short bool
 }
 
@@ -125,8 +125,8 @@ type Result struct {
 	Examples []Example
 	// Stopped is true when the context ended before every change was read.
 	Stopped bool
-	// Incomplete is true when the clone is shallow and holds fewer changes
-	// than were asked for.
+	// Incomplete is true when the clone is shallow and the history it holds
+	// ends in the changes read.
 	Incomplete bool
 	// Rebase is true when no change is a merge commit: a pull request merged
 	// by rebase can then show as several changes.
@@ -138,6 +138,9 @@ type Result struct {
 func (s Service) Run(ctx context.Context, n int) (Result, error) {
 	src, err := s.History.Changes(ctx, n)
 	if err != nil {
+		if ctx.Err() != nil {
+			return Result{Stopped: true}, nil
+		}
 		return Result{}, err
 	}
 	res := Result{Ref: src.Ref, Total: len(src.Changes), Incomplete: src.Short, Rebase: linear(src.Changes)}
