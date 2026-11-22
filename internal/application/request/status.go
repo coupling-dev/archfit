@@ -9,6 +9,7 @@ import (
 	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
+// StatusInput holds the local result and optional pull request story.
 type StatusInput struct {
 	Verdict   result.Status
 	Fresh     bool
@@ -16,6 +17,7 @@ type StatusInput struct {
 	Now       time.Time
 }
 
+// Story is the version 1 pull request story.
 type Story struct {
 	Steps      map[string]string `json:"steps"`
 	Request    int               `json:"request"`
@@ -24,6 +26,7 @@ type Story struct {
 	Next       string            `json:"next"`
 }
 
+// ParseStory reads a version 1 story line.
 func ParseStory(text string) (Story, bool) {
 	const prefix = "<!-- archfit-story v1 "
 	for _, line := range strings.Split(text, "\n") {
@@ -37,6 +40,7 @@ func ParseStory(text string) (Story, bool) {
 	return Story{}, false
 }
 
+// Status renders the current change and its next step.
 func Status(in StatusInput) []string {
 	row := "✓ change   ○ check"
 	if !in.Fresh {
@@ -49,15 +53,16 @@ func Status(in StatusInput) []string {
 		row = "✓ change   ✓ check"
 	}
 	if story, ok := ParseStory(in.StoryText); ok {
+		const ask = "ask"
 		var steps []string
-		for _, step := range []struct{ key, label string }{{"change", "change"}, {"check", "check"}, {"ask", "ask"}, {"answer", "answer"}, {"policy", "policy"}, {"recheck", "re-check"}} {
+		for _, step := range []struct{ key, label string }{{"change", "change"}, {"check", "check"}, {ask, ask}, {"answer", "answer"}, {"policy", "policy"}, {"recheck", "re-check"}} {
 			value := story.Steps[step.key]
 			mark := map[string]string{"done": "✓", "failed": "✗", "current": "●", "later": "○"}[value]
 			if mark == "" {
 				continue
 			}
 			label := step.label
-			if step.key == "ask" && story.Request > 0 {
+			if step.key == ask && story.Request > 0 {
 				label += fmt.Sprintf(" #%d", story.Request)
 			}
 			steps = append(steps, mark+" "+label)

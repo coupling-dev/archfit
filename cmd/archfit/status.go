@@ -11,7 +11,7 @@ type StatusCmd struct {
 	Dir string `short:"C" name:"directory" help:"Run in DIR instead of the current directory." placeholder:"DIR"`
 }
 
-func (c *StatusCmd) Run(deps *appDeps) error {
+func (c *StatusCmd) Run(deps *appDeps) {
 	ctx := deps.runContext()
 	in := request.StatusInput{}
 	co, err := openCheckout(ctx, deps, dirOr(c.Dir))
@@ -28,5 +28,4 @@ func (c *StatusCmd) Run(deps *appDeps) error {
 	for _, line := range request.Status(in) {
 		_, _ = fmt.Fprintln(deps.Stdout, line)
 	}
-	return nil
 }
