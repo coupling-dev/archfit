@@ -1,6 +1,6 @@
 # Archfit approval threat model (D6)
 
-Status: proposed, 2026-11-22. Task 8.1 of the onboarding plan
+Status: decided by the owner on 2026-11-22 (section 7). Task 8.1 of the onboarding plan
 (`docs/plans/20261122-archfit-0-10-onboarding.md`, section 6.2). Decision D6 is the owner's. No code.
 
 Sources:
@@ -139,6 +139,16 @@ built and tested, adds no step to the route, and needs no GitHub plan and no har
 | D6-G1 | Close G1 in 8.9, or accept it for the beta with the registration issue as the only notice?        | Close it in 8.9; the 8.9 proposal picks how.  |
 | D6-G2 | Is the amended O1 listing enough for the rung 2 window, or must 8.9 do more?                     | The listing is enough for the beta.           |
 | D6-2b | Put 2b on the roadmap after 0.10.0, as an alternative to the passkey or as its replacement?       | Roadmap, as an alternative; no date.          |
+
+
+## 7. Owner decisions (2026-11-22)
+
+| Id | Decision |
+| --- | --- |
+| D6 | Option 1, the App passkey, for "Make it required" in 0.10.0. |
+| D6-G1 | Closed in task 8.9. The 8.9 proposal picks how (for example a GitHub re-authentication or a one-time code to the owner) and says why it stops an agent that drives a signed-in browser. |
+| D6-G2 | The amended O1 listing (every policy change since setup, who merged it, its request) is enough for the beta. |
+| D6-2b | Hardware-key signed policy commits go on the roadmap after 0.10.0, as an alternative to the passkey, with no date. |
 
 [gh-codeowners]: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 [gh-rulesets]: https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets
