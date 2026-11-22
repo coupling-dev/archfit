@@ -19,6 +19,7 @@ import (
 
 const (
 	gitBinary  = "git"
+	gitHead    = "HEAD"
 	gitCommit  = "commit"
 	gitTimeout = 30 * time.Second
 	originHead = "refs/remotes/origin/HEAD"
@@ -78,12 +79,12 @@ func (g Git) Default(ctx context.Context) (string, string, error) {
 	local := strings.TrimPrefix(localRef, originRef)
 	out, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
 		Name: gitBinary, WorkDir: g.Root, Timeout: 15 * time.Second,
-		Args: []string{"ls-remote", "--symref", "origin", "HEAD"},
+		Args: []string{"ls-remote", "--symref", "origin", gitHead},
 	})
 	if err == nil && out.ExitCode == 0 {
 		for line := range strings.SplitSeq(string(out.Stdout), "\n") {
 			ref, name, _ := strings.Cut(line, "\t")
-			if branch, ok := strings.CutPrefix(ref, "ref: "+headsRef); name == "HEAD" && ok && branch != "" {
+			if branch, ok := strings.CutPrefix(ref, "ref: "+headsRef); name == gitHead && ok && branch != "" {
 				valid, validErr := g.run(ctx, "check-ref-format", "--branch", branch)
 				if validErr != nil {
 					return "", "", validErr
@@ -103,7 +104,7 @@ func (g Git) Default(ctx context.Context) (string, string, error) {
 
 // Branch resolves HEAD to the current branch, rejecting a detached checkout.
 func (g Git) Branch(ctx context.Context) (string, error) {
-	return g.run(ctx, "symbolic-ref", "--quiet", "--short", "HEAD")
+	return g.run(ctx, "symbolic-ref", "--quiet", "--short", gitHead)
 }
 
 // Fetch updates only the specified remote-tracking branch, without tags.
@@ -165,7 +166,7 @@ func (g Git) Merged(ctx context.Context, branch string) (bool, error) {
 func (g Git) Pending(ctx context.Context, paths []string) ([]string, error) {
 	var pending []string
 	for _, file := range paths {
-		tracked, err := g.run(ctx, "diff", "--name-only", "HEAD", "--", file)
+		tracked, err := g.run(ctx, "diff", "--name-only", gitHead, "--", file)
 		if err != nil {
 			return nil, err
 		}
@@ -235,7 +236,7 @@ func (g Git) Identity(ctx context.Context) (string, error) {
 
 // Switch creates the setup branch only from the remote default branch tip.
 func (g Git) Switch(ctx context.Context, branch, base string) error {
-	local, err := g.run(ctx, "rev-parse", "HEAD")
+	local, err := g.run(ctx, "rev-parse", gitHead)
 	if err != nil {
 		return err
 	}
@@ -295,7 +296,7 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 	if repo := requestsend.Repository(fetch); repo == "" || !strings.EqualFold(repo, requestsend.Repository(push)) {
 		return false, destinationError("origin pushes to another repository")
 	}
-	if err := g.validateRange(ctx, base, "HEAD", paths); err != nil {
+	if err := g.validateRange(ctx, base, gitHead, paths); err != nil {
 		return false, err
 	}
 	return strings.HasPrefix(push, "https://"), nil
@@ -311,7 +312,7 @@ func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []st
 	if err != nil {
 		return err
 	}
-	local, err := g.run(ctx, "rev-parse", "HEAD")
+	local, err := g.run(ctx, "rev-parse", gitHead)
 	if err != nil {
 		return err
 	}

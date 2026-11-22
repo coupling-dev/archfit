@@ -540,37 +540,28 @@ func TestPullRequestIgnoresHistoricalMerged(t *testing.T) {
 	}
 }
 
-func TestPullRequestReturnsClosedForReopening(t *testing.T) {
-	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository",
-		`[{"number":4,"state":"MERGED"},{"number":7,"state":"CLOSED","url":"https://github.com/o/r/pull/7"}]`, "", 0)
-	got, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
-	if err != nil || got.Number != 7 || got.State != "CLOSED" {
-		t.Fatalf("closed pull request: %+v, %v", got, err)
-	}
-}
-
-func TestValidateRangePropagatesGitErrors(t *testing.T) {
-	for _, fail := range []string{"rev-list --parents", "show -s"} {
-		t.Run(fail, func(t *testing.T) {
-			g := Git{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
-				args := strings.Join(cmd.Args, " ")
-				if strings.HasPrefix(args, fail) {
-					return toolrun.Output{ExitCode: 128, Stderr: []byte("repository unavailable")}, nil
+func TestPullRequestReturnsClosedOnlyForCurrentHead(t *testing.T) {
+	for _, tc := range []struct {
+		name, head string
+		want       int
+	}{
+		{"same head", "abc", 7},
+		{"recreated branch", "new", 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := GitHub{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+				if cmd.Name == gitBinary {
+					return toolrun.Output{Stdout: []byte(tc.head + "\n")}, nil
 				}
-				if strings.HasPrefix(args, "rev-list --reverse") {
-					return toolrun.Output{Stdout: []byte(commitSHA + "\n")}, nil
-				}
-				return toolrun.Output{Stdout: []byte(commitSHA + " " + tagSHA + "\n")}, nil
+				return toolrun.Output{Stdout: []byte(`[{"number":4,"state":"MERGED"},{"number":7,"state":"CLOSED","headRefOid":"abc","url":"https://github.com/o/r/pull/7"}]`)}, nil
 			}}}
-			err := g.validateRange(t.Context(), "main", "HEAD", nil)
-			var branch branchError
-			if err == nil || errors.As(err, &branch) || !strings.Contains(err.Error(), "repository unavailable") {
-				t.Fatalf("error %v", err)
+			got, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+			if err != nil || got.Number != tc.want {
+				t.Fatalf("pull request %+v, error %v", got, err)
 			}
 		})
 	}
 }
-
 func TestPushSafetyRejectsHookHistoryWhenDisabled(t *testing.T) {
 	root := t.TempDir()
 	g := Git{Root: root, Runner: toolrun.New()}

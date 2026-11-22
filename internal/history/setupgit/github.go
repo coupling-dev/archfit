@@ -69,8 +69,24 @@ func (g GitHub) PullRequest(ctx context.Context, repo, base, branch string) (Pul
 			return item.PullRequest, nil
 		}
 	}
+	var head string
 	for _, item := range list {
-		if !item.IsCrossRepository && item.State == "CLOSED" {
+		if item.IsCrossRepository || item.State != "CLOSED" {
+			continue
+		}
+		if head == "" {
+			out, err := (NonInteractive{g.Runner}).Run(ctx, toolrun.ToolCmd{
+				Name: gitBinary, WorkDir: g.Root, Args: []string{"rev-parse", "--verify", gitHead},
+			})
+			if err != nil {
+				return PullRequest{}, err
+			}
+			if out.ExitCode != 0 {
+				return PullRequest{}, gitError("rev-parse", out)
+			}
+			head = strings.TrimSpace(string(out.Stdout))
+		}
+		if item.HeadRefOid != "" && item.HeadRefOid == head {
 			return item.PullRequest, nil
 		}
 	}
