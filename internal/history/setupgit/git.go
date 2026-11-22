@@ -109,7 +109,7 @@ func (g Git) Branch(ctx context.Context) (string, error) {
 
 // Fetch updates only the specified remote-tracking branch, without tags.
 func (g Git) Fetch(ctx context.Context, branch string) error {
-	_, err := g.run(ctx, "fetch", "--no-tags", "origin", headsRef+branch+":"+originRef+branch)
+	_, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+originRef+branch)
 	return err
 }
 
@@ -305,7 +305,7 @@ func (g Git) PushSafety(ctx context.Context, base string, paths []string) (bool,
 // ValidateRemote fetches and validates the actual branch used for the pull request.
 func (g Git) ValidateRemote(ctx context.Context, branch, base string, paths []string) error {
 	ref := originRef + branch
-	if _, err := g.run(ctx, "fetch", "--no-tags", "origin", headsRef+branch+":"+ref); err != nil {
+	if _, err := g.run(ctx, "fetch", "--no-tags", "origin", "+"+headsRef+branch+":"+ref); err != nil {
 		return err
 	}
 	remote, err := g.run(ctx, "rev-parse", ref)

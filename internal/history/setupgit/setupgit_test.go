@@ -615,3 +615,45 @@ func TestValidateRangePropagatesGitErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchUpdatesRewrittenRemoteBranch(t *testing.T) {
+	root := t.TempDir()
+	remote := filepath.Join(t.TempDir(), "origin.git")
+	process := toolrun.New()
+	run := func(dir string, args ...string) string {
+		t.Helper()
+		out, err := process.Run(t.Context(), toolrun.ToolCmd{Name: gitBinary, WorkDir: dir, Args: args})
+		if err != nil || out.ExitCode != 0 {
+			t.Fatalf("git %v: %v %s", args, err, out.Stderr)
+		}
+		return strings.TrimSpace(string(out.Stdout))
+	}
+	run(root, "init", "--initial-branch=main")
+	run(root, "config", "user.name", "Setup Author")
+	run(root, "config", "user.email", "author@example.invalid")
+	run(root, "config", "commit.gpgsign", "false")
+	run(root, "commit", "--allow-empty", "-m", "base")
+	run(root, "init", "--bare", remote)
+	run(root, "remote", "add", "origin", remote)
+	run(root, "push", "origin", "HEAD:refs/heads/main")
+	run(root, "update-ref", "refs/remotes/origin/main", "HEAD")
+	run(root, "switch", "-c", "archfit/setup")
+	run(root, "commit", "--allow-empty", "-m", "chore: set up archfit")
+	old := run(root, "rev-parse", "HEAD")
+	run(root, "push", "origin", "HEAD:refs/heads/archfit/setup")
+	run(root, "update-ref", "refs/remotes/origin/archfit/setup", old)
+	run(root, "reset", "--hard", "main")
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("new setup"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	run(root, "add", "AGENTS.md")
+	run(root, "commit", "-m", "chore: set up archfit")
+	run(root, "push", "--force", "origin", "HEAD:refs/heads/archfit/setup")
+	g := Git{Root: root, Runner: process}
+	if err := g.ValidateRemote(t.Context(), "archfit/setup", "main", []string{"AGENTS.md"}); err != nil {
+		t.Fatal(err)
+	}
+	if got := run(root, "rev-parse", "refs/remotes/origin/archfit/setup"); got == old {
+		t.Fatal("tracking ref remained stale")
+	}
+}
