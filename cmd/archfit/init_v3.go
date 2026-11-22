@@ -50,7 +50,7 @@ It adds .archfit-cache/ to .gitignore.
 Init installs Claude Code and Codex hooks unless you use --no-hooks.
 It does not install the git pre-commit hook.
 
-Then read .archfit.yaml and open a pull request with it.
+Then read .archfit.yaml. Run archfit setup to add the workflow and open the setup pull request.
 
 Exit codes:
   0  done, also when nothing was missing
@@ -68,9 +68,22 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 	if err != nil {
 		return noVerdict(err)
 	}
-	data, found, err := co.policyAt("")
+	text, err := runInit(ctx, deps, co, c.NoHooks, false)
 	if err != nil {
 		return noVerdict(err)
+	}
+	if _, err := io.WriteString(deps.Stdout, text); err != nil {
+		return noVerdict(err)
+	}
+	return nil
+}
+
+// runInit shares the file-writing part of init with setup. Setup owns its
+// continuation and prints its exception list after replay.
+func runInit(ctx context.Context, deps *appDeps, co checkout, noHooks, forSetup bool) (string, error) {
+	data, found, err := co.policyAt("")
+	if err != nil {
+		return "", err
 	}
 	var b strings.Builder
 	var draft policy3.Result
@@ -84,27 +97,31 @@ func (c *RepoInitCmd) Run(deps *appDeps) error {
 		err = fmt.Errorf("%s: %w", policy3.PolicyFile, err)
 	}
 	if err != nil {
-		return noVerdict(err)
+		return "", err
 	}
 	if err := ignoreInitCache(ctx, co.runner, co.root); err != nil {
 		fmt.Fprintf(&b, "warning: could not ignore %s/: %v\n", cacheDirName, err)
 	}
-	if initAgentHooksByDefault && !c.NoHooks {
+	if initAgentHooksByDefault && !noHooks {
 		installInitHooks(ctx, deps, co.root, &b)
 	}
 	if !found {
 		writeUnread(&b, draft.Unknown)
-		writeExceptionDecisions(&b, draft.File.Exceptions)
+		if !forSetup {
+			writeExceptionDecisions(&b, draft.File.Exceptions)
+		}
 		if draft.File.Owners[0] == identity.PlaceholderOwner {
-			b.WriteString("no person is named as an owner yet\nnext: put your GitHub login in owners in .archfit.yaml\n")
-		} else {
+			b.WriteString("no person is named as an owner yet\n")
+			if forSetup {
+				b.WriteString("put your GitHub login in owners in .archfit.yaml\n")
+			} else {
+				b.WriteString("next: put your GitHub login in owners in .archfit.yaml\n")
+			}
+		} else if !forSetup {
 			b.WriteString(initNext + "\n")
 		}
 	}
-	if _, err := io.WriteString(deps.Stdout, b.String()); err != nil {
-		return noVerdict(err)
-	}
-	return nil
+	return b.String(), nil
 }
 
 // initFresh writes the first policy of a repository.

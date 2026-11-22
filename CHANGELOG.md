@@ -2,6 +2,10 @@
 
 History before 0.9.0 is in [docs/archived/CHANGELOG-v0-v5.md](docs/archived/CHANGELOG-v0-v5.md).
 
+## Unreleased
+
+- Add `archfit setup` to write the first policy and pin the Action, then open an advisory setup pull request.
+
 ## v0.9.0
 
 ### Summary
