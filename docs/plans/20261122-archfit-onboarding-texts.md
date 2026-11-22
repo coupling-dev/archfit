@@ -492,6 +492,63 @@ Button: **Review the policy** (the current policy on the default branch).
 
 Muted line: `This week: 12 checked · 9 passed · 3 needed an owner.`
 
+### 4.6 The policy pull request on the Policy page (8.17, 8.20)
+
+When an owner answers a request, the App writes the policy change in its own pull request from `archfit/policy`. The
+Policy page shows it above the policy: what changed (a diff against the default branch), its state, and at most one
+action. The App keeps the pull request up to date with the default branch and merges it when its checks pass; the
+owner never updates a branch or merges by hand. Each state has four parts: what is happening, why, the next step (or
+"nothing"), what happens after.
+
+State A, approved, waiting for the checks. Heading: `Policy pull request #44`
+
+```text
+You approved #44: 2 lines. Next: nothing for you. The App merges #44 when its checks pass,
+and brings it up to date with the default branch by itself.
+```
+
+No button.
+
+State B, merged:
+
+```text
+Answered. The policy change merged in #44.
+```
+
+State C, the approval no longer holds (the policy on the default branch changed after the approval; a code-only
+push never does this). Banner title: `Your approval no longer holds`
+
+```text
+The policy on the default branch changed after you approved #44. The change is still in #44.
+Next: you approve it again, or nothing merges.
+```
+
+Button: **Approve and merge #44 (2 lines) with passkey**, under the diff. Folded: **Discard the change instead**,
+which lists the lines that discarding removes before its button **Discard these lines from #44**.
+
+State D, GitHub has not merged #44 yet (shown as a warning, not a success):
+
+```text
+Answered. The policy change is in #44. GitHub has not merged it yet: required checks or reviews have not passed yet.
+The App merges it by itself when GitHub allows; nothing else is needed from you.
+```
+
+Other reasons in the same sentence: `the branch conflicts with the default branch`, `the pull request is a draft`.
+`the branch is behind the default branch` is not an owner's step: the App rebuilds the branch on the tip.
+
+State E, someone changed the branch on GitHub. Banner title: `#44 changed outside Archfit`
+
+```text
+Someone changed the branch of #44 on GitHub. Archfit merges only the change it wrote, so restore #44 first.
+Restoring removes these lines from #44:
+```
+
+Button: **Restore #44**. It approves and merges nothing new; #44 is then in state A.
+
+The policy editor is an advanced tool, not on this path. While a policy pull request needs a decision it shows
+`Decide on policy pull request #44 above before you edit.` Not used on this page: proposal, void, outside the flow,
+YAML edit, reload, behind.
+
 ## 5. Install edge cases (C3)
 
 Each case has one message and one action. Shown on the setup page in place of the install button, and as the install
