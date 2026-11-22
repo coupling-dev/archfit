@@ -1,0 +1,187 @@
+package setupgit
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"reflect"
+	"slices"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/coupling-dev/archfit/internal/toolrun"
+)
+
+const (
+	tag       = "v0.10.0"
+	ref       = "refs/tags/" + tag
+	peeled    = ref + "^{}"
+	tagSHA    = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+	commitSHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	repo      = "o/r"
+)
+
+func TestPinUsesOnlyExactRefs(t *testing.T) {
+	for _, tc := range []struct {
+		name, stdout, want, errorText string
+		exitCode                      int
+		runError                      error
+	}{
+		{name: "annotated", stdout: commitSHA + "\t" + peeled, want: commitSHA},
+		{name: "lightweight", stdout: tagSHA + "\t" + ref, want: tagSHA},
+		{name: "peeled wins", stdout: commitSHA + "\t" + peeled + "\n" + tagSHA + "\t" + ref, want: commitSHA},
+		{name: "suffix ignored", stdout: tagSHA + "\trefs/tags/x/" + tag, errorText: "no Action tag"},
+		{name: "missing", errorText: "no Action tag"},
+		{name: "malformed peeled", stdout: tagSHA + "\t" + ref + "\n123\t" + peeled, errorText: "no valid commit SHA"},
+		{name: "git error", exitCode: 128, errorText: "git ls-remote exited 128: network down"},
+		{name: "timeout", runError: context.DeadlineExceeded, errorText: "context deadline exceeded"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			g := Git{ActionRepository: "coupling-dev/archfit-action", Runner: &toolrun.RunnerMock{
+				RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+					expected := []string{"ls-remote", "https://github.com/coupling-dev/archfit-action", ref, peeled}
+					if cmd.Name != "git" || cmd.Timeout != 15*time.Second || !slices.Contains(cmd.Env, "GIT_TERMINAL_PROMPT=0") || !slices.Equal(cmd.Args, expected) {
+						t.Errorf("pin command: %+v", cmd)
+					}
+					return toolrun.Output{ExitCode: tc.exitCode, Stdout: []byte(tc.stdout), Stderr: []byte("network down\nextra detail\n")}, tc.runError
+				},
+			}}
+			pin, err := g.Pin(t.Context(), tag)
+			if pin != tc.want || (tc.errorText == "" && err != nil) || (tc.errorText != "" && (err == nil || !strings.Contains(err.Error(), tc.errorText))) {
+				t.Errorf("pin %q, error %v; want %q, error %q", pin, err, tc.want, tc.errorText)
+			}
+		})
+	}
+}
+
+func TestAuthChecksWorkflowScope(t *testing.T) {
+	for _, tc := range []struct {
+		name, output    string
+		exit            int
+		ready, workflow bool
+	}{
+		{"valid", "  - Token scopes: 'repo', 'workflow'\n", 0, true, true},
+		{"missing", "  - Token scopes: 'repo', 'not-workflow'\n", 0, true, false},
+		{"account not signed in", "  - Token scopes: 'workflow'\n", 1, false, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := mockGH(t, "auth status --hostname github.com --active", "", tc.output, tc.exit)
+			ready, workflow := gh.Auth(t.Context())
+			if ready != tc.ready || workflow != tc.workflow {
+				t.Errorf("got %t, %t; want %t, %t", ready, workflow, tc.ready, tc.workflow)
+			}
+		})
+	}
+}
+
+func TestPullRequestChoosesOpenSameRepository(t *testing.T) {
+	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", `[
+		{"number":11,"state":"OPEN","isCrossRepository":true},
+		{"number":4,"state":"CLOSED","isCrossRepository":false},
+		{"number":7,"state":"OPEN","isCrossRepository":false,"url":"https://github.com/o/r/pull/7","headRefOid":"abc"}
+	]`, "", 0)
+	got, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+	want := PullRequest{Number: 7, State: "OPEN", URL: "https://github.com/o/r/pull/7", HeadRefOid: "abc"}
+	if err != nil || !reflect.DeepEqual(got, want) {
+		t.Errorf("pull request is %+v, %v; want %+v", got, err, want)
+	}
+}
+
+func TestAppCheckIgnoresOtherApps(t *testing.T) {
+	for _, tc := range []struct {
+		name, second string
+		want         AppCheck
+	}{
+		{"none", "", AppCheck{}},
+		{"matched", `, {"app":{"slug":"archfit-review"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/runs/7","output":{"title":"merge to start"}}`,
+			AppCheck{Status: "completed", Conclusion: "neutral", HTMLURL: "https://github.com/o/r/runs/7", Title: "merge to start"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := mockGH(t, "api --hostname github.com repos/o/r/commits/abc/check-runs?check_name=archfit%2Fgate", `{
+				"check_runs":[{"app":{"slug":"someone-else"},"status":"completed","conclusion":"success"}`+tc.second+`]
+			}`, "", 0)
+			got, err := gh.Check(t.Context(), repo, "abc")
+			if err != nil || got != tc.want {
+				t.Errorf("App check %+v, %v; want %+v", got, err, tc.want)
+			}
+		})
+	}
+}
+
+func mockGH(t *testing.T, args, stdout, stderr string, exit int) GitHub {
+	t.Helper()
+	return GitHub{Runner: &toolrun.RunnerMock{RunFunc: func(_ context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name != "gh" || strings.Join(cmd.Args, " ") != args || !slices.Contains(cmd.Env, "GH_PROMPT_DISABLED=1") {
+			t.Errorf("gh command: %+v", cmd)
+		}
+		return toolrun.Output{ExitCode: exit, Stdout: []byte(stdout), Stderr: []byte(stderr)}, nil
+	}}}
+}
+
+func TestInstallTarget(t *testing.T) {
+	for _, tc := range []struct {
+		name, stdout string
+		status       int
+		owner, repo  uint64
+	}{
+		{"prefill", "123\n456\n", 0, 123, 456},
+		{"not signed in", "", 1, 0, 0},
+		{"malformed", "123\ntext\n", 0, 0, 0},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := mockGH(t, "api --hostname github.com repos/o/r --jq .owner.id, .id", tc.stdout, "", tc.status)
+			owner, repository := gh.InstallTarget(t.Context(), repo)
+			if owner != tc.owner || repository != tc.repo {
+				t.Errorf("got %d/%d, want %d/%d", owner, repository, tc.owner, tc.repo)
+			}
+		})
+	}
+}
+
+func TestCommitKeepsUnrelatedChangesStaged(t *testing.T) {
+	const policy = ".archfit.yaml"
+	root := t.TempDir()
+	runner := toolrun.New()
+	g := Git{Root: root, Runner: runner}
+	run := func(args ...string) string {
+		t.Helper()
+		out, err := g.run(t.Context(), args...)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return out
+	}
+	write := func(path, contents string) {
+		t.Helper()
+		if err := os.WriteFile(filepath.Join(root, path), []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run("init", "--initial-branch=main")
+	run("config", "user.name", "Setup Author")
+	run("config", "user.email", "author@example.invalid")
+	run("config", "commit.gpgsign", "false")
+	run("config", "core.hooksPath", ".git/hooks")
+	run("commit", "--allow-empty", "-m", "base")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	write(policy, "version: 1\n")
+	write("not-setup", "leave staged\n")
+	run("add", "not-setup")
+	paths, err := g.Pending(t.Context(), []string{policy, "AGENTS.md"})
+	if err != nil || !slices.Equal(paths, []string{policy}) {
+		t.Fatalf("pending %q, %v", paths, err)
+	}
+	if err := g.Switch(t.Context(), "archfit/setup", "main"); err != nil {
+		t.Fatal(err)
+	}
+	if err := g.Commit(t.Context(), paths); err != nil {
+		t.Fatal(err)
+	}
+	if got := run("diff-tree", "--no-commit-id", "--name-only", "-r", "HEAD"); got != policy {
+		t.Errorf("commit contains %q", got)
+	}
+	if got := run("diff", "--cached", "--name-only"); got != "not-setup" {
+		t.Errorf("staged paths: %q", got)
+	}
+}
