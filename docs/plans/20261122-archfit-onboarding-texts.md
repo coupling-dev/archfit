@@ -252,12 +252,18 @@ Job conclusion: success, with a notice (GitHub Actions has no neutral job conclu
 what shows neutral. Job summary:
 
 ```text
-archfit: not checked yet
+archfit: the App did not receive this result: it is not installed on this repository.
 Install the App: <install link>
-This job did not check the change: the Archfit App is not installed on this repository.
-After you install it, the App starts the check on this pull request again.
-If it does not start within a minute, re-run this job: <run url>
+After you install it, the App checks this pull request again. If no archfit/gate check appears within a minute, re-run this job: <run url>
 ```
+
+The third line is for a `pull_request` run. For a `push` or `merge_group` run, which has no pull request, it reads:
+
+```text
+After you install it, re-run this job: <run url>
+```
+
+The engine did check the change; only the upload was refused.
 
 Replaces the current `- App: refused the upload: HTTP 403 ...` line for this one refusal only. Every other refusal
 still fails the job.
