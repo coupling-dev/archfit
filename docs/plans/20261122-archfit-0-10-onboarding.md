@@ -175,49 +175,49 @@ Engine:
 - [x] **8.2 `archfit setup`.** The state machine of design section 4.2, built from the approved proposal
       (team report `b10-setup-design-plan.md`, its section 10). Plus C4 (`workflow` scope check before the
       push) and C5 (replay limited to 60 s). The engine re-run of a failed job is dropped: the App re-runs
-      (C1). Its texts follow 8.14. Agent: `pi`.
+      (C1). Its texts follow 8.14. Agent: `pi`. Engine #55 (`d0b3b38c`) and #60 (`b3e409a1`).
 - [x] **8.4 `archfit replay --last N`.** First-parent history of the default branch; `gh` only labels changes.
-      Text output. Accepts a deadline and reports a partial count when it runs out (C5). Agent: `pi`.
+      Text output. Accepts a deadline and reports a partial count when it runs out (C5). Agent: `pi`. Engine #59 (`ea0de577`).
 - [x] **8.5 Open decisions at the end of `init`.** Printed by `init` and written in the report; never on a
-      pull request. After 8.2 (same file). Agent: `pi`.
+      pull request. After 8.2 (same file). Agent: `pi`. Engine #58 (`4986fefa`).
 - [x] **8.6 Ruleset file.** A ruleset JSON for GitHub's import and the `gh api` line, requiring
-      `archfit/gate`. The setup page shows it at "Make it required". Agent: `pi`.
-- [ ] **8.3 `archfit setup --agent`.** Last in the engine lane; may slip past 0.10.0 (C9). Agent: `pi`.
-- [ ] **8.12 `archfit why <a> <b>`.** Last in the engine lane; may slip past 0.10.0 (C9). Agent: `pi`.
+      `archfit/gate`. The setup page shows it at "Make it required". Agent: `pi`. Engine #45 (`fff5a4a7`); App #268 (`84da8d13`).
+- [ ] **8.3 `archfit setup --agent`.** Owner-approved slip past 0.10.0 (C9); not complete. Agent: `pi`.
+- [ ] **8.12 `archfit why <a> <b>`.** Owner-approved slip past 0.10.0 (C9); not complete. Agent: `pi`.
 
 Action:
 
-- [ ] **8.15 Neutral before installation (C1).** When the upload is refused because the App is not installed
+- [x] **8.15 Neutral before installation (C1).** When the upload is refused because the App is not installed
       on the repository, the job ends neutral and its summary says "Install the App: <link>", the link
-      pre-filled as far as 8.8 finds possible. Every other refusal still fails. Agent: `pi`.
+      pre-filled as far as 8.8 finds possible. Every other refusal still fails. Agent: `pi`. Action #5 (`ffcb5088`).
 
 App:
 
-- [ ] **8.7 Advisory first (D2, C2).** Advisory verdicts before the first approval; the setup pull request
+- [x] **8.7 Advisory first (D2, C2).** Advisory verdicts before the first approval; the setup pull request
       gets a neutral "merge to start" check, never `action_required`, never a passkey wait. The existing
       advisory mapping (pass → success, fail → neutral). A display-only record of rung-2 policy changes for
-      8.9. Proposal approved. Agent: `pi`, merged by the manager.
+      8.9. Proposal approved. Agent: `pi`, merged by the manager. App #241 (`5cc3cf40`) and #247 (`41e485d1`).
 - [ ] **8.8 Install and admission (C1, C3).** A partner's account is admitted before the invite is sent. The
       App brings the check on the open setup pull request up to date when it is installed: first a test on a
       scratch repository of the check-suite re-request with the existing permissions; if GitHub refuses it, a
       comment with the direct re-run link (P1; no `actions: write`). One clear message each
       for: account not admitted; installer is not an organization administrator (who to ask, what to send).
       Verify whether GitHub's `installations/new` can pre-select the account and the repository, and use it
-      if so. Owner-side admin steps are `NEED:` items. Agent: `pi`.
-- [ ] **8.14 Mockups and one vocabulary (C7).** Every state of the App setup page, the `archfit setup` output
+      if so. Owner-side admin steps are `NEED:` items. Agent: `pi`. App #243 (`41549a11`) and #244 (`d0fb365f`); live re-request and install preselection remain 8.13 checks.
+- [x] **8.14 Mockups and one vocabulary (C7).** Every state of the App setup page, the `archfit setup` output
       step by step, and every pull-request text (check titles and summaries, comments), in one vocabulary
       and the App's existing style. A private page; `NEED:` to archfit-76 for the owner's review. Gates 8.9
-      and 8.10; 8.2, 8.7 and 8.15 texts are aligned to it before their merge. Agent: `claude` (design).
-- [ ] **8.9 One setup page.** After 8.14 is reviewed. D6 is decided: the App passkey, and the first-passkey
+      and 8.10; 8.2, 8.7 and 8.15 texts are aligned to it before their merge. Agent: `claude` (design). Engine #39 (`ffc5406d`), owner accepted.
+- [x] **8.9 One setup page.** After 8.14 is reviewed. D6 is decided: the App passkey, and the first-passkey
       enrolment gap (G1) is closed here; the proposal picks how. One repository's state and one next
       action; never asks to copy a workflow. The last action "Make it required" carries D6, the first
       approval and the ruleset (8.6), and next to it "this week: N checked, N quiet, N asked" (C9). Before
       the first approval it lists every policy change since the setup pull request, with who merged it and
-      its request (O1 amended). One approval covers the policy and the workflow. Agent: `pi`.
-- [ ] **8.10 Welcome comment.** A comment on the setup pull request: how to ask, what happens next. No digest
-      comment (C9). After 8.14. Agent: `pi`.
+      its request (O1 amended). One approval covers the policy and the workflow. Agent: `pi`. App #267 (`3ccf8dc7`) and #268 (`84da8d13`), with prior slices; see team status for history limitations.
+- [x] **8.10 Welcome comment.** A comment on the setup pull request: how to ask, what happens next. No digest
+      comment (C9). After 8.14. Agent: `pi`. App #246 (`7cc55746`).
 - [x] **8.16 Request duplicates.** A surface request is matched by its module edge and target package, so a
-      question about another package on the same edge is not swallowed (engine request #46). App #242.
+      question about another package on the same edge is not swallowed (engine request #46). App #242 (`ecf7c59a`).
 - [ ] **8.17 Policy editor fixes.** Absorbed by 8.20 (the editor stays an advanced tool off the normal path):
       refuse an edit equal to the open policy pull request, Preview against it, a refused merge shown as a
       warning, a Reload that would drop lines says so first.
@@ -228,7 +228,7 @@ UX (C10; owner decision 2026-11-22):
       four-part message rule; the vocabulary list; a test in the engine, the Action and the App that fails on
       a banned word in user-facing text. Mockups (extends 8.14) for the owner's review. First of the UX tasks.
       Done when the owner accepts the mockups and the vocabulary test runs in all three repositories.
-      Agent: `claude` (design), then `pi` for the three vocabulary tests.
+      Agent: `claude` (design), then `pi` for the three vocabulary tests. Spec: engine #52 (`1189f457`), owner accepted. Completion of all vocabulary coverage is not established here.
 - [ ] **8.19 Answer pages.** One App page per request: the question, the evidence (code line, dependency), three
       or four answers as large buttons (allow, allow until a date, make it public, reject with `instead`), the
       effect of each before the click, one passkey; batch answers ("3 requests waiting"); undo ("Revert this
@@ -238,21 +238,21 @@ UX (C10; owner decision 2026-11-22):
       (rebuilds it on the tip with the same bytes, App commits only) and merges it itself when the required
       checks are green; an approval binds the policy bytes, so a default-branch move does not void it; if it
       must be voided, the page says why and offers one re-approve. Absorbs 8.17. Done when an end-to-end test
-      moves main between the owner's approval and the merge and the owner does nothing extra. Agent: `claude`.
-- [ ] **8.21 `archfit status`.** The story row and the next action (who, link, what happens after) in the
+      moves main between the owner's approval and the merge and the owner does nothing extra. Agent: `claude`. App #245 (`8b9c36ca`); the stated end-to-end completion criterion remains unverified here.
+- [x] **8.21 `archfit status`.** The story row and the next action (who, link, what happens after) in the
       terminal, for people and agents; the hooks and `archfit request` use the same lines. Tests per state;
-      docs. After 8.18. Agent: `pi` (step-by-step brief).
-- [ ] **8.22 Notifications.** The App @-mentions the owner who must act on GitHub; the "Needs you" list shows
-      the story row. Tests; mockup state. After 8.18. Agent: `pi`.
+      docs. After 8.18. Agent: `pi` (step-by-step brief). Engine #53 (`244d9e4a`).
+- [x] **8.22 Notifications.** The App @-mentions the owner who must act on GitHub; the "Needs you" list shows
+      the story row. Tests; mockup state. After 8.18. Agent: `pi`. App #253 (`c828ace3`) and #256 (`05c6e6d2`): primary Home list. Repos story rows are deferred: the owner-actions payload lacks a request id. The moving-on-its-own group is deferred by `briefs/b11-home-story.md`; live GitHub notification behavior remains unverified.
 - [ ] **8.23 Human usability test.** Before the release, the owner (and ideally one person without AI) runs a
       scripted task list: set up, ask, answer, see the pull request pass, with no help; minutes and every
       confusion recorded in section 8. Release gate: no step where the tester had to ask what to do. HUMAN.
 
 Docs:
 
-- [ ] **8.11 One route page.** "Try it on your pull request": the Pumba story, the route of section 3.2, two
+- [x] **8.11 One route page.** "Try it on your pull request": the Pumba story, the route of section 3.2, two
       expected results, the fork limit, and "how to leave" (C6). The engine guide, the Action README and the
-      App guide link to it and do not repeat it. Fixes stumbles 1, 2, 3, 7, 8 in the docs. Agent: `pi`.
+      App guide link to it and do not repeat it. Fixes stumbles 1, 2, 3, 7, 8 in the docs. Agent: `pi`. Engine #67 (`81cde1e5`), App #266 (`6fb209df`), Action #11 (`3cfd9696`).
 
 Release:
 
