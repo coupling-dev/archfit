@@ -197,7 +197,7 @@ App:
       gets a neutral "merge to start" check, never `action_required`, never a passkey wait. The existing
       advisory mapping (pass → success, fail → neutral). A display-only record of rung-2 policy changes for
       8.9. Proposal approved. Agent: `pi`, merged by the manager. App #241 (`5cc3cf40`) and #247 (`41e485d1`).
-- [x] **8.8 Install and admission (C1, C3).** A partner's account is admitted before the invite is sent. The
+- [ ] **8.8 Install and admission (C1, C3).** A partner's account is admitted before the invite is sent. The
       App brings the check on the open setup pull request up to date when it is installed: first a test on a
       scratch repository of the check-suite re-request with the existing permissions; if GitHub refuses it, a
       comment with the direct re-run link (P1; no `actions: write`). One clear message each
