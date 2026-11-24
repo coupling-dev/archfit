@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/coupling-dev/archfit/internal/application/request"
+	"github.com/coupling-dev/archfit/internal/application/setup"
 	requestsend "github.com/coupling-dev/archfit/internal/history/github"
 )
 
@@ -22,7 +23,7 @@ func (c *StatusCmd) Run(deps *appDeps) error {
 			in.Fresh = true
 			in.Verdict = last.Check.Status
 		}
-		in.StoryText, _ = requestsend.StoryText(ctx, co.root, co.runner)
+		in.StoryText, _ = requestsend.StoryText(ctx, co.root, co.runner, setup.AppSlug())
 	}
 	for _, line := range request.Status(in) {
 		_, _ = fmt.Fprintln(deps.Stdout, line)

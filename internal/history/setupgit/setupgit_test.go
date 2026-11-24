@@ -137,19 +137,30 @@ func TestPullRequestLookupErrorOmitsTheURL(t *testing.T) {
 	}
 }
 
+// TestAppCheckIgnoresOtherApps: setup trusts only the App of its build, so a
+// staging build reads the staging App's check and never the production one (N1).
 func TestAppCheckIgnoresOtherApps(t *testing.T) {
+	const production, staging = "archfit-review", "archfit-review-staging"
+	run := func(slug string) string {
+		return `{"app":{"slug":"` + slug + `"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/runs/7","output":{"title":"merge to start"}}`
+	}
+	found := AppCheck{Status: "completed", Conclusion: "neutral", HTMLURL: "https://github.com/o/r/runs/7", Title: "merge to start"}
 	for _, tc := range []struct {
-		name, second string
-		want         AppCheck
+		name, slug, runs string
+		want             AppCheck
 	}{
-		{"none", "", AppCheck{}},
-		{"matched", `, {"app":{"slug":"archfit-review"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/runs/7","output":{"title":"merge to start"}}`,
-			AppCheck{Status: "completed", Conclusion: "neutral", HTMLURL: "https://github.com/o/r/runs/7", Title: "merge to start"}},
+		{"none", production, "", AppCheck{}},
+		{"production", production, ", " + run(production), found},
+		{"staging", staging, ", " + run(staging), found},
+		{"staging ignores production", staging, ", " + run(production), AppCheck{}},
+		{"production ignores staging", production, ", " + run(staging), AppCheck{}},
+		{"no slug trusts nothing", "", ", " + run(""), AppCheck{}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			gh := mockGH(t, "api --hostname github.com repos/o/r/commits/abc/check-runs?check_name=archfit%2Fgate", `{
-				"check_runs":[{"app":{"slug":"someone-else"},"status":"completed","conclusion":"success"}`+tc.second+`]
+				"check_runs":[{"app":{"slug":"someone-else"},"status":"completed","conclusion":"success"}`+tc.runs+`]
 			}`, "", 0)
+			gh.AppSlug = tc.slug
 			got, err := gh.Check(t.Context(), repo, "abc")
 			if err != nil || got != tc.want {
 				t.Errorf("App check %+v, %v; want %+v", got, err, tc.want)

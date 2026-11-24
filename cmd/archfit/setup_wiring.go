@@ -38,7 +38,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 		PolicyPath: defaultConfigPath, WorkflowsDir: workflowsDir,
 		Policy: files.ValidPolicy, UsesAction: setupUsesAction,
 	}
-	gh := setupGH{setupgit.GitHub{Root: co.root, Runner: local.Runner, BodyPath: setup.BodyPath}}
+	gh := setupGH{setupgit.GitHub{Root: co.root, Runner: local.Runner, BodyPath: setup.BodyPath, AppSlug: setup.AppSlug()}}
 	return setup.Dependencies{
 		Files: files, Git: git, GitHub: gh, Version: version,
 		ActionRef: actionRef, ActionRefNote: actionRefNote,

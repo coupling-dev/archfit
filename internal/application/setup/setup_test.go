@@ -107,3 +107,21 @@ func TestShellQuote(t *testing.T) {
 		t.Fatalf("unsafe quoting: %q", got)
 	}
 }
+
+func TestAppSlugComesFromTheInstallURL(t *testing.T) {
+	for _, tc := range []struct{ url, want string }{
+		{"https://github.com/apps/archfit-review/installations/new", "archfit-review"},
+		{"https://github.com/apps/archfit-review-staging/installations/new", "archfit-review-staging"},
+		{"https://github.com/apps/archfit-review-staging", defaultAppSlug},
+		{"https://github.com/apps//installations/new", defaultAppSlug},
+		{"https://example.com/apps/x/installations/new", defaultAppSlug},
+		{"", defaultAppSlug},
+	} {
+		if got := appSlug(tc.url); got != tc.want {
+			t.Errorf("appSlug(%q) = %q, want %q", tc.url, got, tc.want)
+		}
+	}
+	if AppSlug() != "archfit-review" {
+		t.Errorf("default build trusts %q", AppSlug())
+	}
+}

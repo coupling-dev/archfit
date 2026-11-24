@@ -8,8 +8,9 @@ import (
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
-// StoryText reads the latest gate check for the branch's pull request.
-func StoryText(ctx context.Context, dir string, runner toolrun.Runner) (string, string) {
+// StoryText reads the latest gate check of the App appSlug for the branch's
+// pull request. An empty appSlug trusts no App.
+func StoryText(ctx context.Context, dir string, runner toolrun.Runner, appSlug string) (string, string) {
 	const notReady = "gh not ready"
 	run := func(args ...string) ([]byte, bool) {
 		out, err := runner.Run(ctx, toolrun.ToolCmd{Name: "gh", Args: args, WorkDir: dir, Timeout: 10 * time.Second})
@@ -50,7 +51,7 @@ func StoryText(ctx context.Context, dir string, runner toolrun.Runner) (string, 
 	var latest time.Time
 	var text string
 	for _, check := range checks.Runs {
-		if check.App.Slug == "archfit-review" && (latest.IsZero() || check.StartedAt.After(latest)) {
+		if appSlug != "" && check.App.Slug == appSlug && (latest.IsZero() || check.StartedAt.After(latest)) {
 			latest = check.StartedAt
 			text = check.Output.Text
 		}
