@@ -102,6 +102,9 @@ func file(text string) changecheck.PolicyFile {
 // fail holds the error each port method returns, by method name.
 type fail map[string]error
 
+// shallowPort is the name of Repository.Shallow in a fail.
+const shallowPort = "Shallow"
+
 type repo struct {
 	fail       fail
 	origin     string
@@ -135,7 +138,7 @@ func (r *repo) Parent(_ context.Context, commit string) (string, bool, error) {
 }
 
 func (r *repo) Shallow(context.Context) (bool, error) {
-	return r.shallow, r.fail["Shallow"]
+	return r.shallow, r.fail[shallowPort]
 }
 
 func (r *repo) MergeBase(_ context.Context, a, b string) (string, bool, error) {
@@ -881,14 +884,14 @@ func TestPortErrors(t *testing.T) {
 		"OriginHead":  func(w *world) { w.repo.fail = fail{"OriginHead": boom} },
 		"MergeBase":   func(w *world) { w.repo.fail = fail{"MergeBase": boom} },
 		"Parent":      func(w *world) { w.atTip(baseSHA); w.repo.fail = fail{"Parent": boom} },
-		"Shallow":     func(w *world) { w.atTip(""); w.repo.fail = fail{"Shallow": boom} },
+		shallowPort:   func(w *world) { w.atTip(""); w.repo.fail = fail{shallowPort: boom} },
 		"Target at the merge base": func(w *world) {
 			w.policies.target[mainSHA] = file(policyYAML + "# owner\n")
 			w.policies.failAt, w.policies.fail = baseSHA, fail{"TargetAt": boom}
 		},
 		"Shallow without a merge base": func(w *world) {
 			delete(w.repo.mergeBases, mainSHA)
-			w.repo.fail = fail{"Shallow": boom}
+			w.repo.fail = fail{shallowPort: boom}
 		},
 		"Files":      func(w *world) { w.repo.fail = fail{"Files": boom} },
 		"AddedLines": func(w *world) { w.repo.fail = fail{"AddedLines": boom} },
