@@ -43,6 +43,8 @@ $ archfit check
 archfit: unknown, no verdict
 ```
 
+This branch changed `.archfit.yaml`, so `next` restores the file. When the branch's file is still the one at the merge base and an owner changed the policy on the target branch, `next` is `git merge origin/main, then run archfit check again`.
+
 - `next` is `fix the code`, a command to run, `wait for an owner: #n`, or a short instruction such as `git fetch --unshallow`. A note in parentheses can follow it.
 - An error with no file, such as an expired exception, names `.archfit.yaml` and no line.
 - A reason for `unknown` names its cause instead of a rule: `policy`, `base`, `tool`, or `import`.
@@ -107,7 +109,7 @@ The same tree, policy, engine version, and date give the same output.
 | `unknown[]` | The reasons for `unknown`: `path`, `line`, `cause` (`policy`, `base`, `tool`, `import`), `what`, `why`, `next`. |
 | `repository` | The state of the repository, on a push only. See below. |
 | `policy` | `path`, `digest`, `protected`, `differs` (the local file differs from the target's), and `target` (the branch it was compared with). |
-| `base`, `head` | The commits compared. |
+| `base`, `head` | The commits compared. For the first commit of a repository, `base` is git's empty tree, a tree id, not a commit. |
 | `date` | The date the exceptions were judged on, `YYYY-MM-DD`. |
 | `engine` | The archfit version. |
 

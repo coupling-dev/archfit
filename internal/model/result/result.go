@@ -133,7 +133,10 @@ type Result struct {
 	Repository *Repository `json:"repository,omitempty"`
 	// Policy names the policy that judged the change.
 	Policy Policy `json:"policy"`
-	// Base is the merge-base commit. Absent when there is no merge base.
+	// Base is what the change is compared with: the merge-base commit, or
+	// HEAD's first parent when HEAD is the tip of the target branch. For the
+	// first commit of a repository it is git's empty tree, which is a tree,
+	// not a commit. Absent when there is no base.
 	Base string `json:"base,omitempty"`
 	// Head is the HEAD commit of the checked tree.
 	Head string `json:"head,omitempty"`

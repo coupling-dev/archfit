@@ -98,7 +98,7 @@ func TestInitAFreshRepository(t *testing.T) {
 
 	commitAll(t, dir)
 	check := runCLI(t, fixtureDate, cmdCheck, "-C", dir)
-	if check.code != 0 || check.stdout != "archfit: pass\n" {
+	if check.code != 0 || check.stdout != cleanRecord {
 		t.Errorf("check after init: exit %d\n%s%s", check.code, check.stdout, check.stderr)
 	}
 }

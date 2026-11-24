@@ -8,16 +8,20 @@
 //     result is unknown and says to pass --base.
 //  2. The merge base of HEAD and the target. When HEAD is the tip of the
 //     target branch, the base is HEAD's first parent: the change is the last
-//     commit. No merge base, as in a shallow clone, is unknown and names the
-//     fetch.
+//     commit. The first commit of a repository has no parent: its base is
+//     git's empty tree, so the change is every file. No base is unknown: a
+//     shallow clone names the fetch, a full clone names --base.
 //  3. The policy (design 9.1). The policy on the target branch is the approved
-//     one: when the local file differs from it, the result is unknown, names
-//     the command that restores the file, and no facts are read. A target with
-//     no policy file, or with a version 2 file (the conversion pull request of
-//     design 14), is not compared: the check judges with the local policy and
-//     adds one note. A target file that is not a valid policy is unknown. With
-//     Options.Policy the check judges with that file and compares nothing: a
-//     preview, which is not stored.
+//     one: when the local file differs from it, the result is unknown and no
+//     facts are read. When the branch's file is still the one at the merge
+//     base, the target moved: the record says to merge the target. Otherwise
+//     the branch changed the file: the record names the command that restores
+//     it. A target
+//     with no policy file, or with a version 2 file (the conversion pull
+//     request of design 14), is not compared: the check judges with the local
+//     policy and adds one note. A target file that is not a valid policy is
+//     unknown. With Options.Policy the check judges with that file and
+//     compares nothing: a preview, which is not stored.
 //  4. The policy against the tree: resolved.Policy.CheckTree on every file of
 //     the working tree, not only the files the extractors read, so a language
 //     that is off or a missing tool never makes a path look empty. A path glob
@@ -94,6 +98,10 @@ type Repository interface {
 	// Parent returns the first parent of a commit; ok is false for a root
 	// commit, or a parent this clone does not hold.
 	Parent(ctx context.Context, commit string) (sha string, ok bool, err error)
+	// Shallow reports whether the clone is shallow: its history is cut, so a
+	// commit can look like a root, or share no history with another, when it
+	// does not.
+	Shallow(ctx context.Context) (bool, error)
 	// MergeBase returns the best common ancestor of two commits; ok is false
 	// when they share no history this clone holds.
 	MergeBase(ctx context.Context, a, b string) (sha string, ok bool, err error)
@@ -193,6 +201,7 @@ const (
 	nextUnshallow  = "git fetch --unshallow"
 	nextCommit     = "make a first commit"
 	nextRestore    = "git checkout %s -- " + PolicyPath
+	nextMerge      = "git merge %s, then run archfit check again"
 	nextInit       = "archfit init"
 	nextPolicyFlag = "pass --policy <policy file>"
 	nextFix        = "fix %s"
@@ -377,9 +386,15 @@ type Target struct {
 	What, Next string
 }
 
+// emptyTree is git's empty tree: the base of the first commit of a
+// repository. It is the SHA-1 id; a SHA-256 repository names its empty tree
+// otherwise, which matters once archfit reads such repositories.
+const emptyTree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
 // Base finds the target branch and the base of a change (steps 1 and 2 of
 // the package doc): ref, else origin/HEAD; then the merge base of head and
-// the target, or head's first parent when head is the tip of the target.
+// the target, or head's first parent when head is the tip of the target, or
+// emptyTree when that head is the first commit of a full clone.
 // head is the HEAD commit, empty when HEAD names none. `archfit rules` with no
 // argument lists the files changed against the same base. An error is a
 // failure of the repository port.
@@ -416,7 +431,16 @@ func Base(ctx context.Context, repo Repository, ref, head string) (Target, error
 			return Target{}, fmt.Errorf("read the parent of HEAD: %w", err)
 		}
 		if !ok {
-			return missing(fmt.Sprintf(whatNoParent, ref), nextUnshallow)
+			// A full clone holds every parent: HEAD is the first commit and
+			// adds every file. A shallow clone only cut the parent.
+			shallow, err := repo.Shallow(ctx)
+			if err != nil {
+				return Target{}, fmt.Errorf("read whether the clone is shallow: %w", err)
+			}
+			if shallow {
+				return missing(fmt.Sprintf(whatNoParent, ref), nextUnshallow)
+			}
+			base = emptyTree
 		}
 	} else {
 		base, ok, err = repo.MergeBase(ctx, head, commit)
@@ -424,7 +448,16 @@ func Base(ctx context.Context, repo Repository, ref, head string) (Target, error
 			return Target{}, fmt.Errorf("find the merge base with %s: %w", ref, err)
 		}
 		if !ok {
-			return missing(fmt.Sprintf(whatNoBase, ref), nextUnshallow)
+			// A full clone holds all the history: the two share none, so
+			// fetching more cannot help, and the target may be the wrong one.
+			shallow, err := repo.Shallow(ctx)
+			if err != nil {
+				return Target{}, fmt.Errorf("read whether the clone is shallow: %w", err)
+			}
+			if shallow {
+				return missing(fmt.Sprintf(whatNoBase, ref), nextUnshallow)
+			}
+			return missing(fmt.Sprintf(whatNoBase, ref), nextBaseFlag)
 		}
 	}
 	return Target{Ref: ref, Commit: commit, Base: base}, nil
@@ -446,12 +479,40 @@ func (s Service) compare(ctx context.Context, r *run, ref, commit string) (compa
 	case t.Err != nil:
 		r.stopLines(t.Err, fmt.Sprintf(whyTargetBad, ref), result.NextRestore, fmt.Sprintf(nextAskOwner, ref))
 	case r.differs:
+		next := fmt.Sprintf(nextRestore, ref)
+		moved, err := s.targetMoved(ctx, r, commit)
+		if err != nil {
+			return false, err
+		}
+		if moved {
+			next = fmt.Sprintf(nextMerge, ref)
+		}
 		r.stop(reason{
 			path: PolicyPath, cause: result.CausePolicy, what: fmt.Sprintf(whatDiffers, ref), why: whyDiffers,
-			kind: result.NextRestore, next: fmt.Sprintf(nextRestore, ref),
+			kind: result.NextRestore, next: next,
 		})
 	}
 	return true, nil
+}
+
+// targetMoved reports whether a local policy differs from the target's only
+// because the target changed it: HEAD is not the tip of the target, and the
+// local file is the one at the merge base, absent there too or not. Merging
+// the target brings the approved policy in. A branch or working tree that
+// changed the file itself must restore it: a merge keeps that change.
+func (s Service) targetMoved(ctx context.Context, r *run, commit string) (bool, error) {
+	if r.head == commit {
+		return false, nil
+	}
+	b, err := s.Policies.Target(ctx, r.base)
+	if err != nil {
+		return false, fmt.Errorf("read %s at the merge base: %w", PolicyPath, err)
+	}
+	digest := b.Digest
+	if !b.Found {
+		digest = resolved.Digest(nil)
+	}
+	return digest == r.digest, nil
 }
 
 func (r *run) stop(why reason) {
