@@ -82,6 +82,8 @@ const (
 	version3    = "version: 3\n"
 	statusPass  = string(result.StatusPass)
 	statusFail  = string(result.StatusFail)
+	// cleanRecord is the whole record of a pass on a protected policy.
+	cleanRecord = "archfit: pass\n"
 )
 
 // copiedLiteral is the literal the copy example repeats.
@@ -312,8 +314,8 @@ func TestCheckNotesGoToStderr(t *testing.T) {
 	delete(base, defaultConfigPath)
 	dir := fixtureRepo(t, base, map[string]string{defaultConfigPath: fixturePolicy})
 	got := runCLI(t, fixtureDate, cmdCheck, "-C", dir)
-	if got.stdout != "archfit: pass\n" || got.code != 0 {
-		t.Errorf("check = %d %q, want 0 %q", got.code, got.stdout, "archfit: pass\n")
+	if got.stdout != cleanRecord || got.code != 0 {
+		t.Errorf("check = %d %q, want 0 %q", got.code, got.stdout, cleanRecord)
 	}
 	if want := "archfit: origin/main has no .archfit.yaml: judged with the local policy\n"; got.stderr != want {
 		t.Errorf("stderr = %q, want %q", got.stderr, want)
@@ -461,5 +463,84 @@ func TestRulesWithoutATargetBranch(t *testing.T) {
 	got := runCLI(t, fixtureDate, cmdRules, "-C", dir)
 	if got.code != exitUnknown || !strings.Contains(got.stderr, "origin/HEAD is not set: name a path or a rule id") || strings.Contains(got.stderr, "--base") {
 		t.Errorf("= %d, stderr %q", got.code, got.stderr)
+	}
+}
+
+// firstCommitRepo commits files as the first and only commit of main and
+// points origin/main and origin/HEAD at it: a repository pushed once.
+func firstCommitRepo(t *testing.T, files map[string]string) string {
+	t.Helper()
+	requireGitBinary(t)
+	dir := t.TempDir()
+	gitRun(t, dir, "init", "-q", "-b", "main")
+	writeFiles(t, dir, files)
+	gitRun(t, dir, "add", "-A")
+	gitRun(t, dir, "commit", "-qm", "first", "--no-gpg-sign")
+	gitRun(t, dir, "update-ref", "refs/remotes/origin/main", "HEAD")
+	gitRun(t, dir, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
+	return dir
+}
+
+// TestCheckTheFirstCommit: the first commit has no parent by design, so a
+// full clone compares it with the empty tree and gives a verdict.
+func TestCheckTheFirstCommit(t *testing.T) {
+	t.Parallel()
+	for _, tc := range []struct {
+		name   string
+		edit   map[string]string
+		code   int
+		stdout string
+	}{
+		{name: "as pushed", code: 0, stdout: cleanRecord},
+		{name: "with an edit", edit: map[string]string{tcNetem: tcImportsUtil}, code: exitNo, stdout: "pkg_tc -> pkg_util is not an allowed dependency"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			dir := firstCommitRepo(t, fixtureFiles())
+			writeFiles(t, dir, tc.edit)
+			got := runCLI(t, fixtureDate, cmdCheck, "-C", dir, "--base", "origin/main")
+			if got.code != tc.code || !strings.Contains(got.stdout, tc.stdout) || strings.Contains(got.stdout, "unshallow") {
+				t.Errorf("check = %d\n%s%s\nwant %d with %q", got.code, got.stdout, got.stderr, tc.code, tc.stdout)
+			}
+		})
+	}
+}
+
+// TestCheckAFirstCommitSetUpByInit: init on a repository with one commit
+// writes the errors that exist as exceptions, so its first check passes.
+func TestCheckAFirstCommitSetUpByInit(t *testing.T) {
+	t.Parallel()
+	dir := firstCommitRepo(t, initFixture())
+	gitRun(t, dir, "remote", "add", "origin", originRemote)
+	runner := &toolrun.RunnerMock{DetectFunc: toolrun.New().Detect, StreamFunc: toolrun.New().Stream, RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == "gh" {
+			return toolrun.Output{Stdout: []byte("alice User")}, nil
+		}
+		return toolrun.New().Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	if code := runDeps([]string{cmdInit, "-C", dir}, &appDeps{Runner: runner, Stdout: &stdout, Stderr: &stderr, now: day(fixtureDate)}); code != 0 {
+		t.Fatalf("init: exit %d\n%s%s", code, stdout.String(), stderr.String())
+	}
+	got := runCLI(t, fixtureDate, cmdCheck, "-C", dir)
+	if got.code != 0 || got.stdout != cleanRecord {
+		t.Errorf("check after init: exit %d\n%s%s", got.code, got.stdout, got.stderr)
+	}
+}
+
+// TestCheckAShallowCloneAtTheTip: in a shallow clone the parent of HEAD is
+// cut, not absent, so the check names the fetch.
+func TestCheckAShallowCloneAtTheTip(t *testing.T) {
+	t.Parallel()
+	src := firstCommitRepo(t, fixtureFiles())
+	writeFiles(t, src, map[string]string{"README.md": "# pumba\n"})
+	gitRun(t, src, "add", "-A")
+	gitRun(t, src, "commit", "-qm", "second", "--no-gpg-sign")
+	dir := filepath.Join(t.TempDir(), "clone")
+	gitRun(t, src, "clone", "-q", "--depth", "1", "--branch", "main", "file://"+src, dir)
+	got := runCLI(t, fixtureDate, cmdCheck, "-C", dir, "--base", "origin/main")
+	want := "base: HEAD is the tip of origin/main and its parent is not in this clone\n"
+	if got.code != exitUnknown || !strings.HasPrefix(got.stdout, want) || !strings.Contains(got.stdout, "next: git fetch --unshallow\n") {
+		t.Errorf("check = %d\n%s%s\nwant unknown with %q", got.code, got.stdout, got.stderr, want)
 	}
 }

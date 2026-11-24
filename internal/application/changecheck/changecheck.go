@@ -8,8 +8,9 @@
 //     result is unknown and says to pass --base.
 //  2. The merge base of HEAD and the target. When HEAD is the tip of the
 //     target branch, the base is HEAD's first parent: the change is the last
-//     commit. No merge base, as in a shallow clone, is unknown and names the
-//     fetch.
+//     commit. The first commit of a repository has no parent: its base is
+//     git's empty tree, so the change is every file. No base is unknown: a
+//     shallow clone names the fetch, a full clone names --base.
 //  3. The policy (design 9.1). The policy on the target branch is the approved
 //     one: when the local file differs from it, the result is unknown, names
 //     the command that restores the file, and no facts are read. A target with
@@ -94,6 +95,10 @@ type Repository interface {
 	// Parent returns the first parent of a commit; ok is false for a root
 	// commit, or a parent this clone does not hold.
 	Parent(ctx context.Context, commit string) (sha string, ok bool, err error)
+	// Shallow reports whether the clone is shallow: its history is cut, so a
+	// commit can look like a root, or share no history with another, when it
+	// does not.
+	Shallow(ctx context.Context) (bool, error)
 	// MergeBase returns the best common ancestor of two commits; ok is false
 	// when they share no history this clone holds.
 	MergeBase(ctx context.Context, a, b string) (sha string, ok bool, err error)
@@ -377,9 +382,15 @@ type Target struct {
 	What, Next string
 }
 
+// emptyTree is git's empty tree: the base of the first commit of a
+// repository. It is the SHA-1 id; a SHA-256 repository names its empty tree
+// otherwise, which matters once archfit reads such repositories.
+const emptyTree = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
 // Base finds the target branch and the base of a change (steps 1 and 2 of
 // the package doc): ref, else origin/HEAD; then the merge base of head and
-// the target, or head's first parent when head is the tip of the target.
+// the target, or head's first parent when head is the tip of the target, or
+// emptyTree when that head is the first commit of a full clone.
 // head is the HEAD commit, empty when HEAD names none. `archfit rules` with no
 // argument lists the files changed against the same base. An error is a
 // failure of the repository port.
@@ -416,7 +427,16 @@ func Base(ctx context.Context, repo Repository, ref, head string) (Target, error
 			return Target{}, fmt.Errorf("read the parent of HEAD: %w", err)
 		}
 		if !ok {
-			return missing(fmt.Sprintf(whatNoParent, ref), nextUnshallow)
+			// A full clone holds every parent: HEAD is the first commit and
+			// adds every file. A shallow clone only cut the parent.
+			shallow, err := repo.Shallow(ctx)
+			if err != nil {
+				return Target{}, fmt.Errorf("read whether the clone is shallow: %w", err)
+			}
+			if shallow {
+				return missing(fmt.Sprintf(whatNoParent, ref), nextUnshallow)
+			}
+			base = emptyTree
 		}
 	} else {
 		base, ok, err = repo.MergeBase(ctx, head, commit)
@@ -424,7 +444,16 @@ func Base(ctx context.Context, repo Repository, ref, head string) (Target, error
 			return Target{}, fmt.Errorf("find the merge base with %s: %w", ref, err)
 		}
 		if !ok {
-			return missing(fmt.Sprintf(whatNoBase, ref), nextUnshallow)
+			// A full clone holds all the history: the two share none, so
+			// fetching more cannot help, and the target may be the wrong one.
+			shallow, err := repo.Shallow(ctx)
+			if err != nil {
+				return Target{}, fmt.Errorf("read whether the clone is shallow: %w", err)
+			}
+			if shallow {
+				return missing(fmt.Sprintf(whatNoBase, ref), nextUnshallow)
+			}
+			return missing(fmt.Sprintf(whatNoBase, ref), nextBaseFlag)
 		}
 	}
 	return Target{Ref: ref, Commit: commit, Base: base}, nil

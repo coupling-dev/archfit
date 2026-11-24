@@ -35,6 +35,7 @@ const (
 	mainSHA      = "9d5ed678fe57bcca610140957afab571f0bf8d76"
 	releaseSHA   = "c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00"
 	forkSHA      = "5eed5eed5eed5eed5eed5eed5eed5eed5eed5eed"
+	emptyTree    = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 	treeID       = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 	candidate    = "candidate.yaml"
 	engine       = "4.0.0"
@@ -104,6 +105,7 @@ type fail map[string]error
 type repo struct {
 	fail       fail
 	origin     string
+	shallow    bool
 	commits    map[string]string
 	parents    map[string]string
 	mergeBases map[string]string // by the target commit
@@ -130,6 +132,10 @@ func (r *repo) Commit(_ context.Context, ref string) (string, bool, error) {
 func (r *repo) Parent(_ context.Context, commit string) (string, bool, error) {
 	sha, ok := r.parents[commit]
 	return sha, ok, r.fail["Parent"]
+}
+
+func (r *repo) Shallow(context.Context) (bool, error) {
+	return r.shallow, r.fail["Shallow"]
 }
 
 func (r *repo) MergeBase(_ context.Context, a, b string) (string, bool, error) {
@@ -445,11 +451,23 @@ func TestCheck(t *testing.T) {
 			},
 		},
 		{
-			name:  "a shallow clone has no merge base",
-			setup: func(w *world) { delete(w.repo.mergeBases, mainSHA) },
+			name: "a shallow clone has no merge base",
+			setup: func(w *world) {
+				delete(w.repo.mergeBases, mainSHA)
+				w.repo.shallow = true
+			},
 			want: want{
 				record: "base: HEAD and origin/main have no merge base in this clone\n" + whyCompare +
 					"  next: git fetch --unshallow\n" + noVerdict,
+				stored: true,
+			},
+		},
+		{
+			name:  "a full clone whose HEAD shares no history with the target names the target flag",
+			setup: func(w *world) { delete(w.repo.mergeBases, mainSHA) },
+			want: want{
+				record: "base: HEAD and origin/main have no merge base in this clone\n" + whyCompare +
+					"  next: pass --base <target branch>\n" + noVerdict,
 				stored: true,
 			},
 		},
@@ -459,8 +477,18 @@ func TestCheck(t *testing.T) {
 			want:  want{record: graphRecord, target: mainRef, base: baseSHA, facts: true, stored: true},
 		},
 		{
-			name:  "HEAD at the tip of the target branch without its parent in the clone",
+			// The first commit of a repository adds every file: the change is
+			// the whole tree, against git's empty tree.
+			name:  "the first commit at the tip of the target branch is compared with the empty tree",
 			setup: func(w *world) { w.atTip("") },
+			want:  want{record: graphRecord, target: mainRef, base: emptyTree, facts: true, stored: true},
+		},
+		{
+			name: "HEAD at the tip of the target branch without its parent in a shallow clone",
+			setup: func(w *world) {
+				w.atTip("")
+				w.repo.shallow = true
+			},
 			want: want{
 				record: "base: HEAD is the tip of origin/main and its parent is not in this clone\n" + whyCompare +
 					"  next: git fetch --unshallow\n" + noVerdict,
@@ -799,6 +827,7 @@ func TestPortErrors(t *testing.T) {
 		"OriginHead":  func(w *world) { w.repo.fail = fail{"OriginHead": boom} },
 		"MergeBase":   func(w *world) { w.repo.fail = fail{"MergeBase": boom} },
 		"Parent":      func(w *world) { w.atTip(baseSHA); w.repo.fail = fail{"Parent": boom} },
+		"Shallow":     func(w *world) { w.atTip(""); w.repo.fail = fail{"Shallow": boom} },
 		"Files":       func(w *world) { w.repo.fail = fail{"Files": boom} },
 		"AddedLines":  func(w *world) { w.repo.fail = fail{"AddedLines": boom} },
 		"Local":       func(w *world) { w.policies.fail = fail{"Local": boom} },
@@ -958,7 +987,13 @@ func TestNoRepositoryState(t *testing.T) {
 			},
 			status: result.StatusUnknown,
 		},
-		{name: "a shallow push without the parent of HEAD", setup: func(w *world) { w.atTip("") }, status: result.StatusUnknown},
+		{
+			name: "a shallow push without the parent of HEAD", setup: func(w *world) {
+				w.atTip("")
+				w.repo.shallow = true
+			},
+			status: result.StatusUnknown,
+		},
 		{
 			name: "a shallow push without the target branch", setup: func(w *world) {
 				w.atTip(baseSHA)
