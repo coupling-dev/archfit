@@ -26,7 +26,9 @@ func (c *StatusCmd) Run(deps *appDeps) error {
 		in.StoryText, _ = requestsend.StoryText(ctx, co.root, co.runner, setup.AppSlug())
 	}
 	for _, line := range request.Status(in) {
-		_, _ = fmt.Fprintln(deps.Stdout, line)
+		if _, err := fmt.Fprintln(deps.Stdout, line); err != nil {
+			return err
+		}
 	}
 	return nil
 }

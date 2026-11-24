@@ -69,12 +69,8 @@ func TestRequestSendsFromCLI(t *testing.T) {
 				if r.Header.Get("Authorization") != "Bearer "+token {
 					t.Error("missing credential")
 				}
-				if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/branches/") {
-					w.WriteHeader(http.StatusNotFound)
-					return
-				}
 				if r.Method == http.MethodGet {
-					_, _ = fmt.Fprint(w, tc.pulls)
+					answerLookup(w, r, tc.pulls)
 					return
 				}
 				posts++
@@ -153,6 +149,16 @@ func TestRequestSendsFromCLI(t *testing.T) {
 type requestTransport func(*http.Request) (*http.Response, error)
 
 func (f requestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// answerLookup answers the pull request lookup with pulls. The branch is not
+// on GitHub, so a branch lookup is 404.
+func answerLookup(w http.ResponseWriter, r *http.Request, pulls string) {
+	if strings.Contains(r.URL.Path, "/branches/") {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	_, _ = fmt.Fprint(w, pulls)
+}
 
 // TestRequestFindsThePullRequestWithoutATrackingRef: a single-branch clone
 // pushed with -u records the upstream but keeps no remote-tracking ref. The

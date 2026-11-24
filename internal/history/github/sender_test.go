@@ -35,6 +35,10 @@ const (
 	branchMerge       = "git config --get branch.feature.merge"
 	headCommand       = "git rev-parse HEAD"
 	localSHA          = "2222222222222222222222222222222222222222"
+	forkPushURL       = "git remote get-url --push fork"
+	originHead        = "acme:feature"
+	commentsPath      = "/repos/acme/shop/issues/431/comments"
+	issuesPath        = "/repos/acme/shop/issues"
 )
 
 const testToken = "secret-test-token"
@@ -50,9 +54,9 @@ func TestSendPaths(t *testing.T) {
 		wantPath, wantURL string
 		wantError         string
 	}{
-		{"check comment", false, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
-		{"can comment", true, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
-		{"can issue", true, "[]", "/repos/acme/shop/issues", issueURL, ""},
+		{"check comment", false, onePull, commentsPath, commentURL, ""},
+		{"can comment", true, onePull, commentsPath, commentURL, ""},
+		{"can issue", true, "[]", issuesPath, issueURL, ""},
 		{"check without pull", false, "[]", "", "", "no open pull request for acme:feature; nothing sent\nnext: open a pull request first"},
 		{"ambiguous", false, "[{\"number\":431},{\"number\":432}]", "", "", "#431, #432"},
 	} {
@@ -68,7 +72,7 @@ func TestSendPaths(t *testing.T) {
 					t.Error("missing credential")
 				}
 				if req.Method == http.MethodGet {
-					if req.URL.Path != "/repos/acme/shop/pulls" || req.URL.Query().Get("state") != "open" || req.URL.Query().Get("head") != "acme:feature" {
+					if req.URL.Path != "/repos/acme/shop/pulls" || req.URL.Query().Get("state") != "open" || req.URL.Query().Get("head") != originHead {
 						t.Errorf("lookup: %s", req.URL)
 					}
 					_, _ = fmt.Fprint(w, tc.pulls)
@@ -82,15 +86,14 @@ func TestSendPaths(t *testing.T) {
 				if err := json.NewDecoder(req.Body).Decode(&payload); err != nil {
 					t.Error(err)
 				}
-				if tc.wantPath == "/repos/acme/shop/issues" {
+				if tc.wantPath == issuesPath {
 					if payload.Title != "archfit request: a -> b" || payload.Body != issueBody(r) {
 						t.Errorf("issue: %+v", payload)
 					}
 				} else if payload.Body != Line(r) || payload.Title != "" {
 					t.Errorf("comment: %+v", payload)
 				}
-				w.WriteHeader(http.StatusCreated)
-				_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 9, "html_url": tc.wantURL})
+				created(w, tc.wantURL)
 			})
 			got, err := s.Send(t.Context(), r)
 			if tc.wantError != "" {
@@ -223,26 +226,26 @@ func TestRepositoryRouting(t *testing.T) {
 		override   map[string]toolrun.Output
 		repo, head string
 	}{
-		{"origin", nil, testRepo, "acme:feature"},
+		{"origin", nil, testRepo, originHead},
 		{"fork push", map[string]toolrun.Output{
-			pushRemoteCommand:                {Stdout: []byte("fork\n")},
-			"git remote get-url --push fork": {Stdout: []byte("git@github.com:worker/shop.git\n")},
+			pushRemoteCommand: {Stdout: []byte("fork\n")},
+			forkPushURL:       {Stdout: []byte("git@github.com:worker/shop.git\n")},
 		}, testRepo, forkHead},
 		{"origin fork upstream", map[string]toolrun.Output{
 			originCommand:                          {Stdout: []byte("https://github.com/worker/shop.git")},
 			"git config --get remote.upstream.url": {Stdout: []byte("https://github.com/acme/shop.git")},
 		}, testRepo, forkHead},
-		{"no upstream: the local name", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}, testRepo, "acme:feature"},
+		{"no upstream: the local name", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}, testRepo, originHead},
 		{"no tracking ref: the merge ref of the push remote", map[string]toolrun.Output{
 			upstreamCommand: {ExitCode: 128},
 			branchRemote:    {Stdout: []byte("origin\n")},
 			branchMerge:     {Stdout: []byte("refs/heads/work/part\n")},
 		}, testRepo, "acme:work/part"},
 		{"no tracking ref: a merge ref of another remote is not paired with the push owner", map[string]toolrun.Output{
-			upstreamCommand:                  {ExitCode: 128},
-			pushRemoteCommand:                {Stdout: []byte("fork\n")},
-			"git remote get-url --push fork": {Stdout: []byte("git@github.com:worker/shop.git\n")},
-			branchRemote:                     {Stdout: []byte("origin\n")},
+			upstreamCommand:   {ExitCode: 128},
+			pushRemoteCommand: {Stdout: []byte("fork\n")},
+			forkPushURL:       {Stdout: []byte("git@github.com:worker/shop.git\n")},
+			branchRemote:      {Stdout: []byte("origin\n")},
 		}, testRepo, forkHead},
 		{"no upstream, push remote not on GitHub", map[string]toolrun.Output{
 			upstreamCommand: {ExitCode: 128},
@@ -298,9 +301,9 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 	const noUpstream = "this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u "
 	untracked := map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}
 	forkPush := map[string]toolrun.Output{
-		upstreamCommand:                  {ExitCode: 128},
-		pushRemoteCommand:                {Stdout: []byte("fork\n")},
-		"git remote get-url --push fork": {Stdout: []byte("git@github.com:worker/shop.git\n")},
+		upstreamCommand:   {ExitCode: 128},
+		pushRemoteCommand: {Stdout: []byte("fork\n")},
+		forkPushURL:       {Stdout: []byte("git@github.com:worker/shop.git\n")},
 	}
 	for _, tc := range []struct {
 		name         string
@@ -312,14 +315,14 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 		wantPost     string
 		wantError    string
 	}{
-		{"its pull request at HEAD gets the comment", untracked, false, "acme:feature",
-			`[{"number":431,"head":{"sha":"` + localSHA + `"}}]`, 0, "", "/repos/acme/shop/issues/431/comments", ""},
-		{"a pull request at another commit gets nothing", untracked, false, "acme:feature",
+		{"its pull request at HEAD gets the comment", untracked, false, originHead,
+			`[{"number":431,"head":{"sha":"` + localSHA + `"}}]`, 0, "", commentsPath, ""},
+		{"a pull request at another commit gets nothing", untracked, false, originHead,
 			`[{"number":431,"head":{"sha":"1111111111111111111111111111111111111111"}}]`, 0, "", "",
 			"pull request #431 is at 1111111, this checkout is at 2222222; nothing sent\nnext: git push"},
-		{"a can answer also needs HEAD", untracked, true, "acme:feature",
+		{"a can answer also needs HEAD", untracked, true, originHead,
 			`[{"number":431,"head":{"sha":"1111111111111111111111111111111111111111"}}]`, 0, "", "", "pull request #431 is at 1111111"},
-		{"not on GitHub: no upstream", untracked, false, "acme:feature", "[]",
+		{"not on GitHub: no upstream", untracked, false, originHead, "[]",
 			http.StatusNotFound, "/repos/acme/shop/branches/feature", "", noUpstream + "origin HEAD"},
 		{"not on the fork: no upstream", forkPush, false, forkHead, "[]",
 			http.StatusNotFound, "/repos/worker/shop/branches/feature", "", noUpstream + "fork HEAD"},
@@ -329,9 +332,9 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 			branchMerge:     {Stdout: []byte("refs/heads/feature/part\n")},
 		}, false, "acme:feature/part", "[]", http.StatusOK, "/repos/acme/shop/branches/feature/part", "",
 			"no open pull request for acme:feature/part; nothing sent\nnext: open a pull request first"},
-		{"a failed branch lookup says so", untracked, false, "acme:feature", "[]",
+		{"a failed branch lookup says so", untracked, false, originHead, "[]",
 			http.StatusBadGateway, "/repos/acme/shop/branches/feature", "", "GitHub returned HTTP 502; nothing sent"},
-		{"a can answer without a pull request opens an issue", untracked, true, "acme:feature", "[]", 0, "", "/repos/acme/shop/issues", ""},
+		{"a can answer without a pull request opens an issue", untracked, true, originHead, "[]", 0, "", issuesPath, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("GH_TOKEN", testToken)
@@ -353,8 +356,7 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 					_, _ = fmt.Fprint(w, `{"name":"feature"}`)
 				default:
 					posts = append(posts, req.URL.Path)
-					w.WriteHeader(http.StatusCreated)
-					_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 9, "html_url": commentURL})
+					created(w, commentURL)
 				}
 			})
 			_, err := s.Send(t.Context(), r)
@@ -476,6 +478,12 @@ func canAnswer() *CanRecord {
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// created answers a POST with the receipt of comment 9 on pull request 431.
+func created(w http.ResponseWriter, receipt string) {
+	w.WriteHeader(http.StatusCreated)
+	_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 9, "html_url": receipt})
+}
 
 func fakeSender(t *testing.T, override map[string]toolrun.Output, handler http.HandlerFunc) *Sender {
 	t.Helper()

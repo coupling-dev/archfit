@@ -1,7 +1,6 @@
 package requestsend
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -53,8 +52,7 @@ func TestCanonicalReceiptCasing(t *testing.T) {
 				if can {
 					receipt = issueURL
 				}
-				w.WriteHeader(http.StatusCreated)
-				_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 9, "html_url": receipt})
+				created(w, receipt)
 			})
 			in := Input{Reason: testReason}
 			if can {
