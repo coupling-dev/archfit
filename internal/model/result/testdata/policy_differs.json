@@ -11,7 +11,7 @@
       "why": "only owners change the policy",
       "next": {
         "kind": "restore",
-        "text": "git merge origin/main, then archfit check"
+        "text": "git checkout origin/main -- .archfit.yaml"
       }
     }
   ],

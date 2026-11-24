@@ -163,7 +163,9 @@ func (r *repo) Files(_ context.Context, tree string) ([]string, error) {
 }
 
 type policies struct {
-	fail   fail
+	fail fail
+	// failAt is the commit whose read returns fail["TargetAt"].
+	failAt string
 	local  map[string]changecheck.PolicyFile // by path
 	target map[string]changecheck.PolicyFile // by commit
 }
@@ -173,6 +175,9 @@ func (p *policies) Local(_ context.Context, path string) (changecheck.PolicyFile
 }
 
 func (p *policies) Target(_ context.Context, commit string) (changecheck.PolicyFile, error) {
+	if commit == p.failAt {
+		return changecheck.PolicyFile{}, p.fail["TargetAt"]
+	}
 	return p.target[commit], p.fail["Target"]
 }
 
@@ -247,7 +252,7 @@ func newWorld() *world {
 		},
 		policies: &policies{
 			local:  map[string]changecheck.PolicyFile{changecheck.PolicyPath: file(policyYAML)},
-			target: map[string]changecheck.PolicyFile{mainSHA: file(policyYAML)},
+			target: map[string]changecheck.PolicyFile{mainSHA: file(policyYAML), baseSHA: file(policyYAML)},
 		},
 		facts:      &facts{head: tree([]evidence.ImportFact{tcToUtil}), base: tree(nil)},
 		protection: protection{on: true},
@@ -527,7 +532,56 @@ func TestCheck(t *testing.T) {
 			},
 			want: want{
 				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
-					"  next: git merge origin/main, then archfit check\n" + noVerdict,
+					"  next: git checkout origin/main -- .archfit.yaml\n" + noVerdict,
+				target: mainRef, differs: true, base: baseSHA, stored: true,
+			},
+		},
+		{
+			name:  "a policy the target changed after the merge base names the merge",
+			setup: func(w *world) { w.policies.target[mainSHA] = file(policyYAML + "# owner\n") },
+			want: want{
+				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
+				target: mainRef, differs: true, base: baseSHA, stored: true,
+			},
+		},
+		{
+			name: "a HEAD behind a tip that changed the policy names the merge",
+			setup: func(w *world) {
+				w.repo.mergeBases[mainSHA] = headSHA
+				w.policies.target[headSHA] = file(policyYAML)
+				w.policies.target[mainSHA] = file(policyYAML + "# owner\n")
+			},
+			want: want{
+				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
+				target: mainRef, differs: true, base: headSHA, stored: true,
+			},
+		},
+		{
+			name: "a branch made before the target had a policy names the merge",
+			setup: func(w *world) {
+				delete(w.policies.local, changecheck.PolicyPath)
+				delete(w.policies.target, baseSHA)
+			},
+			want: want{
+				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
+				target: mainRef, differs: true, base: baseSHA, stored: true,
+			},
+		},
+		{
+			// At the tip there is nothing to merge: the working tree holds an
+			// older policy, so it must restore the file.
+			name: "an older policy in the working tree at the tip names the restore",
+			setup: func(w *world) {
+				w.atTip(baseSHA)
+				w.policies.target[headSHA] = file(policyYAML + "# owner\n")
+				w.policies.target[baseSHA] = file(policyYAML)
+			},
+			want: want{
+				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+					"  next: git checkout origin/main -- .archfit.yaml\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},
@@ -536,7 +590,7 @@ func TestCheck(t *testing.T) {
 			setup: func(w *world) { delete(w.policies.local, changecheck.PolicyPath) },
 			want: want{
 				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
-					"  next: git merge origin/main, then archfit check\n" + noVerdict,
+					"  next: git checkout origin/main -- .archfit.yaml\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},
@@ -828,14 +882,22 @@ func TestPortErrors(t *testing.T) {
 		"MergeBase":   func(w *world) { w.repo.fail = fail{"MergeBase": boom} },
 		"Parent":      func(w *world) { w.atTip(baseSHA); w.repo.fail = fail{"Parent": boom} },
 		"Shallow":     func(w *world) { w.atTip(""); w.repo.fail = fail{"Shallow": boom} },
-		"Files":       func(w *world) { w.repo.fail = fail{"Files": boom} },
-		"AddedLines":  func(w *world) { w.repo.fail = fail{"AddedLines": boom} },
-		"Local":       func(w *world) { w.policies.fail = fail{"Local": boom} },
-		"Target":      func(w *world) { w.policies.fail = fail{"Target": boom} },
-		"Head":        func(w *world) { w.facts.fail = fail{"Head": boom} },
-		"Base":        func(w *world) { w.facts.fail = fail{"Base": boom} },
-		"Protected":   func(w *world) { w.protection.err = boom },
-		"Save":        func(w *world) { w.store.err = boom },
+		"Target at the merge base": func(w *world) {
+			w.policies.target[mainSHA] = file(policyYAML + "# owner\n")
+			w.policies.failAt, w.policies.fail = baseSHA, fail{"TargetAt": boom}
+		},
+		"Shallow without a merge base": func(w *world) {
+			delete(w.repo.mergeBases, mainSHA)
+			w.repo.fail = fail{"Shallow": boom}
+		},
+		"Files":      func(w *world) { w.repo.fail = fail{"Files": boom} },
+		"AddedLines": func(w *world) { w.repo.fail = fail{"AddedLines": boom} },
+		"Local":      func(w *world) { w.policies.fail = fail{"Local": boom} },
+		"Target":     func(w *world) { w.policies.fail = fail{"Target": boom} },
+		"Head":       func(w *world) { w.facts.fail = fail{"Head": boom} },
+		"Base":       func(w *world) { w.facts.fail = fail{"Base": boom} },
+		"Protected":  func(w *world) { w.protection.err = boom },
+		"Save":       func(w *world) { w.store.err = boom },
 	}
 	for name, setup := range tests {
 		t.Run(name, func(t *testing.T) {

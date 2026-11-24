@@ -12,8 +12,11 @@
 //     git's empty tree, so the change is every file. No base is unknown: a
 //     shallow clone names the fetch, a full clone names --base.
 //  3. The policy (design 9.1). The policy on the target branch is the approved
-//     one: when the local file differs from it, the result is unknown, says to
-//     merge the target branch into the branch, and no facts are read. A target
+//     one: when the local file differs from it, the result is unknown and no
+//     facts are read. When the branch's file is still the one at the merge
+//     base, the target moved: the record says to merge the target. Otherwise
+//     the branch changed the file: the record names the command that restores
+//     it. A target
 //     with no policy file, or with a version 2 file (the conversion pull
 //     request of design 14), is not compared: the check judges with the local
 //     policy and adds one note. A target file that is not a valid policy is
@@ -197,7 +200,8 @@ const (
 	nextFetch      = "git fetch"
 	nextUnshallow  = "git fetch --unshallow"
 	nextCommit     = "make a first commit"
-	nextMerge      = "git merge %s, then archfit check"
+	nextRestore    = "git checkout %s -- " + PolicyPath
+	nextMerge      = "git merge %s, then run archfit check again"
 	nextInit       = "archfit init"
 	nextPolicyFlag = "pass --policy <policy file>"
 	nextFix        = "fix %s"
@@ -475,12 +479,40 @@ func (s Service) compare(ctx context.Context, r *run, ref, commit string) (compa
 	case t.Err != nil:
 		r.stopLines(t.Err, fmt.Sprintf(whyTargetBad, ref), result.NextRestore, fmt.Sprintf(nextAskOwner, ref))
 	case r.differs:
+		next := fmt.Sprintf(nextRestore, ref)
+		moved, err := s.targetMoved(ctx, r, commit)
+		if err != nil {
+			return false, err
+		}
+		if moved {
+			next = fmt.Sprintf(nextMerge, ref)
+		}
 		r.stop(reason{
 			path: PolicyPath, cause: result.CausePolicy, what: fmt.Sprintf(whatDiffers, ref), why: whyDiffers,
-			kind: result.NextRestore, next: fmt.Sprintf(nextMerge, ref),
+			kind: result.NextRestore, next: next,
 		})
 	}
 	return true, nil
+}
+
+// targetMoved reports whether a local policy differs from the target's only
+// because the target changed it: HEAD is not the tip of the target, and the
+// local file is the one at the merge base, absent there too or not. Merging
+// the target brings the approved policy in. A branch or working tree that
+// changed the file itself must restore it: a merge keeps that change.
+func (s Service) targetMoved(ctx context.Context, r *run, commit string) (bool, error) {
+	if r.head == commit {
+		return false, nil
+	}
+	b, err := s.Policies.Target(ctx, r.base)
+	if err != nil {
+		return false, fmt.Errorf("read %s at the merge base: %w", PolicyPath, err)
+	}
+	digest := b.Digest
+	if !b.Found {
+		digest = resolved.Digest(nil)
+	}
+	return digest == r.digest, nil
 }
 
 func (r *run) stop(why reason) {

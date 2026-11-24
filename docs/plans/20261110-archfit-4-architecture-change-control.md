@@ -476,7 +476,7 @@ No verdict:
 $ archfit check
 .archfit.yaml: policy: differs from origin/main
   why: only owners change the policy
-  next: git merge origin/main, then archfit check
+  next: git checkout origin/main -- .archfit.yaml
 archfit: unknown, no verdict
 ```
 

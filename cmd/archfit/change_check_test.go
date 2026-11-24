@@ -485,18 +485,22 @@ func firstCommitRepo(t *testing.T, files map[string]string) string {
 // full clone compares it with the empty tree and gives a verdict.
 func TestCheckTheFirstCommit(t *testing.T) {
 	t.Parallel()
+	const graphError = "pkg_tc -> pkg_util is not an allowed dependency"
 	for _, tc := range []struct {
-		name   string
-		edit   map[string]string
-		code   int
-		stdout string
+		name        string
+		first, edit map[string]string
+		code        int
+		stdout      string
 	}{
 		{name: "as pushed", code: 0, stdout: cleanRecord},
-		{name: "with an edit", edit: map[string]string{tcNetem: tcImportsUtil}, code: exitNo, stdout: "pkg_tc -> pkg_util is not an allowed dependency"},
+		{name: "with an edit", edit: map[string]string{tcNetem: tcImportsUtil}, code: exitNo, stdout: graphError},
+		// The error is in the first commit itself: only a base of the
+		// empty tree judges it as added by the change.
+		{name: "with an error in the first commit", first: map[string]string{tcNetem: tcImportsUtil}, code: exitNo, stdout: graphError},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			dir := firstCommitRepo(t, fixtureFiles())
+			dir := firstCommitRepo(t, with(fixtureFiles(), tc.first))
 			writeFiles(t, dir, tc.edit)
 			got := runCLI(t, fixtureDate, cmdCheck, "-C", dir, "--base", "origin/main")
 			if got.code != tc.code || !strings.Contains(got.stdout, tc.stdout) || strings.Contains(got.stdout, "unshallow") {
