@@ -76,6 +76,9 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 		{"network failure", failed + `  - Error: Get "https://api.github.com/": ` + tls + "\n", 1, Login{Unreachable: tls}},
 		{"port with 401 in it", failed + `  - Error: Get "https://api.github.com/": proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused` + "\n", 1,
 			Login{Unreachable: "proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused"}},
+		{"token refused, API client form", failed + "  - Error: HTTP 401: Bad credentials (https://api.github.com/)\n", 1, Login{}},
+		{"GitHub answered, API client form", failed + "  - Error: HTTP 403: Resource protected by IP allow list (https://api.github.com/)\n", 1,
+			Login{Unreachable: "GitHub answered HTTP 403"}},
 		{"GitHub answered", failed + `  - Error: non-200 OK status code: 403 Forbidden body: "{\"message\":\"echo Bearer secret\"}"` + "\n", 1,
 			Login{Unreachable: "GitHub answered HTTP 403"}},
 	} {
@@ -122,11 +125,15 @@ func TestPullRequestChoosesOpenSameRepository(t *testing.T) {
 }
 
 func TestPullRequestLookupErrorOmitsTheURL(t *testing.T) {
-	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", "",
-		`Post "https://api.github.com/graphql": tls: failed to verify certificate`+"\n", 1)
-	_, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
-	if err == nil || err.Error() != "gh pr exited 1: tls: failed to verify certificate" {
-		t.Errorf("error %v", err)
+	for _, tc := range []struct{ stderr, want string }{
+		{`Post "https://api.github.com/graphql": tls: failed to verify certificate`, "gh pr exited 1: tls: failed to verify certificate"},
+		{"HTTP 502: Bad gateway from proxy echo (https://api.github.com/graphql)", "gh pr exited 1: GitHub answered HTTP 502"},
+	} {
+		gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", "", tc.stderr+"\n", 1)
+		_, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+		if err == nil || err.Error() != tc.want {
+			t.Errorf("error %v, want %q", err, tc.want)
+		}
 	}
 }
 

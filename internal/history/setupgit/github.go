@@ -87,19 +87,31 @@ func unreachable(output string) string {
 	return ""
 }
 
-// requestPrefix is the method and URL that Go puts before a transport error.
-var requestPrefix = regexp.MustCompile(`^[A-Za-z]+ "[^"]*": `)
+var (
+	// requestPrefix is the method and URL that Go puts before a transport error.
+	requestPrefix = regexp.MustCompile(`^[A-Za-z]+ "[^"]*": `)
+	// httpAnswer matches gh's two forms of an HTTP error: the scope check's
+	// "non-200 OK status code: 403 Forbidden body: ..." and the API
+	// client's "HTTP 403: <message> (<url>)".
+	httpAnswer = regexp.MustCompile(`^(?:non-200 OK status code: |HTTP )([0-9]{3})\b`)
+)
 
 // errorCause keeps what gh's error says went wrong, never the request URL or
-// a response body: a proxy may echo request headers into either. An HTTP
+// a response message: a proxy may echo request headers into either. An HTTP
 // answer keeps only its status, and a 401 is a refused login, not a cause.
 func errorCause(detail string) string {
-	if status, ok := strings.CutPrefix(detail, "non-200 OK status code: "); ok {
-		code, _, _ := strings.Cut(status, " ")
-		if code == "401" {
-			return ""
-		}
-		return "GitHub answered HTTP " + code
+	cause := ghDetail(detail)
+	if cause == "GitHub answered HTTP 401" {
+		return ""
+	}
+	return cause
+}
+
+// ghDetail is one line of gh's error without the request URL or the text of
+// an HTTP answer.
+func ghDetail(detail string) string {
+	if m := httpAnswer.FindStringSubmatch(detail); m != nil {
+		return "GitHub answered HTTP " + m[1]
 	}
 	return requestPrefix.ReplaceAllString(detail, "")
 }
@@ -249,7 +261,7 @@ func (g GitHub) run(ctx context.Context, args ...string) (string, error) {
 	}
 	if out.ExitCode != 0 {
 		detail, _, _ := strings.Cut(strings.TrimSpace(string(out.Stderr)), "\n")
-		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, requestPrefix.ReplaceAllString(detail, ""))
+		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, ghDetail(detail))
 	}
 	return string(out.Stdout), nil
 }
