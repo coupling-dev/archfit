@@ -30,26 +30,65 @@ type AppCheck struct {
 	Status, Conclusion, HTMLURL, Title string
 }
 
+// Login is what gh reports about its login. Unreachable holds gh's error when
+// it could not ask GitHub.
+type Login struct {
+	Ready, Workflow bool
+	Unreachable     string
+}
+
 // Auth reports whether the active login works and whether a known scope permits workflows.
 // Missing scope information is not evidence of a missing permission.
-func (g GitHub) Auth(ctx context.Context) (bool, bool) {
+//
+// gh reports a network failure as an invalid token, followed by an "Error:"
+// line with the cause. Only "not logged into any" hosts and an HTTP 401 mean
+// the login itself is missing or refused; any other failure is reported as
+// unreachable with gh's own line, so the user does not sign in again for a
+// network fault.
+func (g GitHub) Auth(ctx context.Context) Login {
 	out, err := g.command(ctx, "auth", "status", "--hostname", "github.com", "--active")
-	if err != nil || out.ExitCode != 0 {
-		return false, false
+	if err != nil {
+		return Login{}
+	}
+	if out.ExitCode != 0 {
+		return Login{Unreachable: unreachable(string(out.Stdout) + "\n" + string(out.Stderr))}
 	}
 	for _, data := range [][]byte{out.Stdout, out.Stderr} {
 		for line := range strings.SplitSeq(string(data), "\n") {
-			if scopes, ok := strings.CutPrefix(strings.TrimSpace(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "-"))), "Token scopes:"); ok {
+			if scopes, ok := strings.CutPrefix(statusLine(line), "Token scopes:"); ok {
 				for scope := range strings.SplitSeq(scopes, ",") {
 					if strings.Trim(strings.TrimSpace(scope), "'\"") == "workflow" {
-						return true, true
+						return Login{Ready: true, Workflow: true}
 					}
 				}
-				return true, false
+				return Login{Ready: true}
 			}
 		}
 	}
-	return true, true
+	return Login{Ready: true, Workflow: true}
+}
+
+// unreachable returns gh's error line when a failed auth status was not about
+// the login, and "" when gh is not signed in, GitHub refused the token, or gh
+// gave no cause.
+func unreachable(output string) string {
+	if strings.Contains(output, "not logged into any") {
+		return ""
+	}
+	for line := range strings.SplitSeq(output, "\n") {
+		if detail, ok := strings.CutPrefix(statusLine(line), "Error:"); ok {
+			if detail = strings.TrimSpace(detail); detail != "" && !strings.Contains(detail, "401") {
+				return detail
+			}
+			return ""
+		}
+	}
+	return ""
+}
+
+// statusLine trims the indentation and list marker of a gh auth status line.
+func statusLine(line string) string {
+	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "-"))
 }
 
 // PullRequest finds an open setup pull request from the same repository.

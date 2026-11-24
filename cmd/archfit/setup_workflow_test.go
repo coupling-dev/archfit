@@ -124,7 +124,7 @@ func TestSetupIgnoresUncommittedAlternateWorkflow(t *testing.T) {
 
 func TestSetupRejectsInvalidMergedPolicy(t *testing.T) {
 	f := setupFiles{}
-	if f.ValidPolicy([]byte("version: 1\ninvalid_key: true\n")) {
+	if valid, _ := f.ValidPolicy([]byte("version: 1\ninvalid_key: true\n")); valid {
 		t.Fatal("invalid version 1 policy accepted")
 	}
 }

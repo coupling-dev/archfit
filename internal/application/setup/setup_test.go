@@ -19,10 +19,12 @@ func TestNext(t *testing.T) {
 		{Unpublished, "install the App: " + InstallURL},
 		{NeedsScope, "gh auth refresh -s workflow"},
 		{ManualPR, "open the pull request: https://github.com/o/r/compare/release%2Fmain...archfit/setup?expand=1"},
+		{OfflinePR, "open the pull request: https://github.com/o/r/compare/release%2Fmain...archfit/setup?expand=1"},
 		{NoCheck, "install the App: " + InstallURL},
 		{CheckPresent, "merge #7: https://github.com/o/r/pull/7"},
 		{Closed, "pull request #7 was closed; reopen it, or delete the branch archfit/setup, then archfit setup"},
-		{Merged, ""},
+		{Advisory, "open the setup page: " + AppURL},
+		{Required, "check that a branch ruleset requires archfit/gate: https://github.com/o/r/settings/rules"},
 		{Blocked, ""},
 	} {
 		t.Run(string(tc.state), func(t *testing.T) {
@@ -31,6 +33,17 @@ func TestNext(t *testing.T) {
 				t.Errorf("next: %q, want %q", got, tc.want)
 			}
 		})
+	}
+}
+
+// TestNextUsesTheInjectedAppURL: a candidate build sets AppURL with -X, and
+// the setup page it names must be that App, not the production one.
+func TestNextUsesTheInjectedAppURL(t *testing.T) {
+	old := AppURL
+	AppURL = "https://candidate.example.test"
+	t.Cleanup(func() { AppURL = old })
+	if got := Next(Progress{State: Advisory}); got != "open the setup page: https://candidate.example.test" {
+		t.Errorf("next: %q", got)
 	}
 }
 

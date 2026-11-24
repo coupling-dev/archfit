@@ -26,17 +26,19 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		ready, scope bool
+		unreachable  string
 		createErr    error
 		wantState    State
 		wantActions  []string
 	}{
-		{"signed in", true, true, nil, Unpublished, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction, createAction}},
-		{"no gh", false, false, nil, ManualPR, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction}},
-		{"missing scope", true, false, nil, NeedsScope, []string{workflowAction, checkAction, switchAction, commitAction}},
-		{"cannot create pull request", true, true, errors.New("no access"), ComparePR, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction, createAction}},
+		{"signed in", true, true, "", nil, Unpublished, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction, createAction}},
+		{"no gh", false, false, "", nil, ManualPR, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction}},
+		{"gh cannot reach GitHub", false, false, tlsFailure, nil, OfflinePR, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction}},
+		{"missing scope", true, false, "", nil, NeedsScope, []string{workflowAction, checkAction, switchAction, commitAction}},
+		{"cannot create pull request", true, true, "", errors.New("no access"), ComparePR, []string{workflowAction, checkAction, switchAction, commitAction, pushAction, writeBodyAction, createAction}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			f := setupFixture{branch: fixtureBranch, ready: tc.ready, scope: tc.scope, createErr: tc.createErr}
+			f := setupFixture{branch: fixtureBranch, ready: tc.ready, scope: tc.scope, unreachable: tc.unreachable, createErr: tc.createErr}
 			deps := f.deps(t)
 			init := Run(t.Context(), deps)
 			assertOutcome(t, init, NoPolicy, 0, "archfit setup", "for the owner to decide:")
@@ -45,6 +47,9 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 			second := Run(t.Context(), deps)
 			assertOutcome(t, second, tc.wantState, 0, Next(second.Progress), "kept .archfit.yaml", "check: fail against origin/main")
 			assertActions(t, f.actions, tc.wantActions...)
+			if tc.wantState == OfflinePR {
+				assertOutcome(t, second, OfflinePR, 0, Next(second.Progress), "could not reach GitHub: "+tlsFailure)
+			}
 			if tc.wantState == NeedsScope {
 				assertOutcome(t, second, NeedsScope, 0, refreshNext)
 				f.scope = true
@@ -59,8 +64,8 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 			case ComparePR:
 				assertOutcome(t, third, Unpublished, 0, Next(third.Progress))
 				assertActions(t, f.actions, createAction)
-			case ManualPR:
-				assertOutcome(t, third, ManualPR, 0, Next(third.Progress))
+			case ManualPR, OfflinePR:
+				assertOutcome(t, third, tc.wantState, 0, Next(third.Progress))
 				assertActions(t, f.actions)
 				if !strings.Contains(f.body, InstallURL) || strings.Contains(f.body, "suggested_target_id") {
 					t.Errorf("body should contain the plain install link: %s", f.body)
@@ -88,13 +93,46 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 			}
 			f.merged, f.ready = true, false
 			merged := Run(t.Context(), deps)
-			assertOutcome(t, merged, Merged, 0, "", "advisory:", "setup page:")
+			assertOutcome(t, merged, Advisory, 0, "open the setup page: "+AppURL, "advisory:")
 			assertActions(t, f.actions)
 			mergedAgain := Run(t.Context(), deps)
-			assertOutcome(t, mergedAgain, Merged, 0, "", "advisory:", "setup page:")
+			assertOutcome(t, mergedAgain, Advisory, 0, "open the setup page: "+AppURL, "advisory:")
 			assertActions(t, f.actions)
 		})
 	}
+}
+
+const tlsFailure = `Get "https://api.github.com/": tls: failed to verify certificate: x509: OSStatus -26276`
+
+// TestSetupAfterTheMerge: the setup branch stays behind after its pull
+// request is merged; setup reports the checks that run, not the branch.
+func TestSetupAfterTheMerge(t *testing.T) {
+	for _, tc := range []struct {
+		name, branch string
+		required     bool
+		want         State
+		next, line   string
+	}{
+		{"advisory on the default branch", fixtureBranch, false, Advisory, "open the setup page: " + AppURL, "advisory: checks report on each pull request and do not block a merge"},
+		{"advisory on the setup branch", Branch, false, Advisory, "open the setup page: " + AppURL, "advisory:"},
+		{"required", fixtureBranch, true, Required, "check that a branch ruleset requires archfit/gate: https://github.com/o/r/settings/rules", "required: a fail blocks a merge when a branch ruleset requires archfit/gate"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setupFixture{branch: tc.branch, policy: true, workflow: true, merged: true, required: tc.required, setupBranch: true}
+			out := Run(t.Context(), f.deps(t))
+			assertOutcome(t, out, tc.want, 0, tc.next, tc.line)
+			assertActions(t, f.actions)
+		})
+	}
+}
+
+// TestSetupBranchBeforeTheMerge: before the merge, the work is on the setup
+// branch, so setup on the default branch sends the user there.
+func TestSetupBranchBeforeTheMerge(t *testing.T) {
+	f := setupFixture{branch: fixtureBranch, policy: true, workflow: true, setupBranch: true}
+	out := Run(t.Context(), f.deps(t))
+	assertOutcome(t, out, Blocked, 2, "git switch archfit/setup, then archfit setup", "the setup branch already exists")
+	assertActions(t, f.actions)
 }
 
 func TestSetupStopsWithoutPublishing(t *testing.T) {
@@ -157,6 +195,8 @@ func assertActions(t *testing.T, got []string, want ...string) {
 type setupFixture struct {
 	branch, body                                                             string
 	policy, workflow, pending, merged, ahead, noAuthor, ready, scope, pushed bool
+	required, setupBranch                                                    bool
+	unreachable                                                              string
 	createErr, policyErr, workflowErr, pushSafetyErr, pushErr, remoteErr     error
 	pr                                                                       PullRequest
 	check                                                                    AppCheck
@@ -209,13 +249,17 @@ func (f *setupFixture) Paths() []string           { return []string{".archfit.ya
 
 type fixtureGit struct{ *setupFixture }
 
-func (g fixtureGit) Repository(context.Context) (string, error)              { return "o/r", nil }
-func (g fixtureGit) Default(context.Context) (string, string, error)         { return fixtureBranch, "", nil }
-func (g fixtureGit) SetupBranchExists(context.Context, string) (bool, error) { return false, nil }
-func (g fixtureGit) Branch(context.Context) (string, error)                  { return g.branch, nil }
-func (g fixtureGit) Fetch(context.Context, string) error                     { return nil }
-func (g fixtureGit) Aligned(context.Context, string) (bool, error)           { return !g.ahead, nil }
-func (g fixtureGit) Merged(context.Context, string) (bool, error)            { return g.merged, nil }
+func (g fixtureGit) Repository(context.Context) (string, error)      { return "o/r", nil }
+func (g fixtureGit) Default(context.Context) (string, string, error) { return fixtureBranch, "", nil }
+func (g fixtureGit) SetupBranchExists(context.Context, string) (bool, error) {
+	return g.setupBranch, nil
+}
+func (g fixtureGit) Branch(context.Context) (string, error)        { return g.branch, nil }
+func (g fixtureGit) Fetch(context.Context, string) error           { return nil }
+func (g fixtureGit) Aligned(context.Context, string) (bool, error) { return !g.ahead, nil }
+func (g fixtureGit) Merged(context.Context, string) (bool, bool, error) {
+	return g.merged, g.required, nil
+}
 func (g fixtureGit) Pending(_ context.Context, paths []string) ([]string, error) {
 	if g.pending {
 		return paths, nil
@@ -259,7 +303,9 @@ func (g fixtureGit) Push(context.Context, string) error {
 
 type fixtureGH struct{ *setupFixture }
 
-func (h fixtureGH) Auth(context.Context) (bool, bool) { return h.ready, h.scope }
+func (h fixtureGH) Auth(context.Context) Login {
+	return Login{Ready: h.ready, Workflow: h.scope, Unreachable: h.unreachable}
+}
 func (h fixtureGH) PullRequest(context.Context, string, string, string) (PullRequest, error) {
 	return h.pr, nil
 }
