@@ -58,21 +58,54 @@ func TestPinUsesOnlyExactRefs(t *testing.T) {
 }
 
 func TestAuthChecksWorkflowScope(t *testing.T) {
+	// The failure texts are what gh 2.105 prints.
+	const failed = "github.com\n  X Failed to log in to github.com account someone (keyring)\n  - Active account: true\n" +
+		"  - The token in keyring is invalid.\n  - To re-authenticate, run: gh auth login -h github.com\n"
+	const tls = "tls: failed to verify certificate: x509: OSStatus -26276"
 	for _, tc := range []struct {
-		name, output    string
-		exit            int
-		ready, workflow bool
+		name, output string
+		exit         int
+		want         Login
 	}{
-		{"valid", "  - Token scopes: 'repo', 'workflow'\n", 0, true, true},
-		{"unknown scopes", "  - Token: fine-grained\n", 0, true, true},
-		{"missing", "  - Token scopes: 'repo', 'not-workflow'\n", 0, true, false},
-		{"account not signed in", "  - Token scopes: 'workflow'\n", 1, false, false},
+		{"valid", "  - Token scopes: 'repo', 'workflow'\n", 0, Login{Ready: true, Workflow: true}},
+		{"unknown scopes", "  - Token: fine-grained\n", 0, Login{Ready: true, Workflow: true}},
+		{"missing", "  - Token scopes: 'repo', 'not-workflow'\n", 0, Login{Ready: true}},
+		{"account not signed in", "  - Token scopes: 'workflow'\n", 1, Login{}},
+		{"no login", "You are not logged into any GitHub hosts. To log in, run: gh auth login\n", 1, Login{}},
+		{"token refused", failed + `  - Error: non-200 OK status code: 401 Unauthorized body: "{}"` + "\n", 1, Login{}},
+		{"network failure", failed + `  - Error: Get "https://api.github.com/": ` + tls + "\n", 1, Login{Unreachable: tls}},
+		{"port with 401 in it", failed + `  - Error: Get "https://api.github.com/": proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused` + "\n", 1,
+			Login{Unreachable: "proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused"}},
+		{"token refused, API client form", failed + "  - Error: HTTP 401: Bad credentials (https://api.github.com/)\n", 1, Login{}},
+		{"GitHub answered, API client form", failed + "  - Error: HTTP 403: Resource protected by IP allow list (https://api.github.com/)\n", 1,
+			Login{Unreachable: "GitHub answered HTTP 403"}},
+		{"GitHub answered", failed + `  - Error: non-200 OK status code: 403 Forbidden body: "{\"message\":\"echo Bearer secret\"}"` + "\n", 1,
+			Login{Unreachable: "GitHub answered HTTP 403"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			gh := mockGH(t, "auth status --hostname github.com --active", "", tc.output, tc.exit)
-			ready, workflow := gh.Auth(t.Context())
-			if ready != tc.ready || workflow != tc.workflow {
-				t.Errorf("got %t, %t; want %t, %t", ready, workflow, tc.ready, tc.workflow)
+			if got := gh.Auth(t.Context()); got != tc.want {
+				t.Errorf("got %+v; want %+v", got, tc.want)
+			}
+		})
+	}
+}
+
+func TestAuthWithoutAnAnswer(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want Login
+	}{
+		{"no gh", errors.New(`exec: "gh": executable file not found in $PATH`), Login{}},
+		{"gh hangs", context.DeadlineExceeded, Login{Unreachable: "gh did not answer within 30s"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := GitHub{Runner: &toolrun.RunnerMock{RunFunc: func(context.Context, toolrun.ToolCmd) (toolrun.Output, error) {
+				return toolrun.Output{}, tc.err
+			}}}
+			if got := gh.Auth(t.Context()); got != tc.want {
+				t.Errorf("got %+v; want %+v", got, tc.want)
 			}
 		})
 	}
@@ -88,6 +121,19 @@ func TestPullRequestChoosesOpenSameRepository(t *testing.T) {
 	want := PullRequest{Number: 7, State: "OPEN", URL: "https://github.com/o/r/pull/7", HeadRefOid: "abc"}
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("pull request is %+v, %v; want %+v", got, err, want)
+	}
+}
+
+func TestPullRequestLookupErrorOmitsTheURL(t *testing.T) {
+	for _, tc := range []struct{ stderr, want string }{
+		{`Post "https://api.github.com/graphql": tls: failed to verify certificate`, "gh pr exited 1: tls: failed to verify certificate"},
+		{"HTTP 502: Bad gateway from proxy echo (https://api.github.com/graphql)", "gh pr exited 1: GitHub answered HTTP 502"},
+	} {
+		gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", "", tc.stderr+"\n", 1)
+		_, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+		if err == nil || err.Error() != tc.want {
+			t.Errorf("error %v, want %q", err, tc.want)
+		}
 	}
 }
 
@@ -260,8 +306,11 @@ func TestMergedReadsDefaultBranchContent(t *testing.T) {
 	g := Git{
 		Root: root, Runner: toolrun.New(), PolicyPath: ".archfit.yaml",
 		WorkflowsDir: ".github/workflows",
-		Version1:     func(data []byte) bool { return strings.TrimSpace(string(data)) == "version: 1" },
-		UsesAction:   func(data []byte) bool { return strings.Contains(string(data), "coupling-dev/archfit-action@") },
+		Policy: func(data []byte) (bool, bool) {
+			version, rest, _ := strings.Cut(string(data), "\n")
+			return version == "version: 1", rest == "gate: required"
+		},
+		UsesAction: func(data []byte) bool { return strings.Contains(string(data), "coupling-dev/archfit-action@") },
 	}
 	run := func(args ...string) {
 		t.Helper()
@@ -285,11 +334,11 @@ func TestMergedReadsDefaultBranchContent(t *testing.T) {
 	run("config", "commit.gpgsign", "false")
 	run("commit", "--allow-empty", "-m", "initial")
 	run("update-ref", "refs/remotes/origin/main", "HEAD")
-	assertMerged := func(want bool) {
+	assertMerged := func(want bool, wantRequired ...bool) {
 		t.Helper()
-		got, err := g.Merged(t.Context(), "main")
-		if err != nil || got != want {
-			t.Fatalf("merged %t, error %v; want %t", got, err, want)
+		got, required, err := g.Merged(t.Context(), "main")
+		if err != nil || got != want || required != (len(wantRequired) > 0 && wantRequired[0]) {
+			t.Fatalf("merged %t, required %t, error %v; want %t, %v", got, required, err, want, wantRequired)
 		}
 	}
 	assertMerged(false)
@@ -300,6 +349,11 @@ func TestMergedReadsDefaultBranchContent(t *testing.T) {
 	assertMerged(false)
 	run("update-ref", "refs/remotes/origin/main", "HEAD")
 	assertMerged(true)
+	write(".archfit.yaml", "version: 1\ngate: required\n")
+	run("add", "-A")
+	run("commit", "-m", "required")
+	run("update-ref", "refs/remotes/origin/main", "HEAD")
+	assertMerged(true, true)
 	write(".archfit.yaml", "version: 2\n")
 	run("add", "-A")
 	run("commit", "-m", "invalid policy")

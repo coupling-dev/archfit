@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -37,7 +38,7 @@ func New(dir string, runner toolrun.Runner) *Sender {
 // Send finds exactly one open pull request and posts one comment. Without a
 // pull request, only a can answer may open an issue. POST is never retried.
 func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
-	repo, head, err := s.repository(ctx)
+	repo, head, noHead, err := s.repository(ctx)
 	if err != nil {
 		return Outcome{}, err
 	}
@@ -45,7 +46,7 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 		return Outcome{}, nil
 	}
 	if head == "" && r.Can == nil {
-		return Outcome{}, openPull()
+		return Outcome{}, noHead
 	}
 	token, err := s.credentials(ctx)
 	if err != nil {
@@ -62,20 +63,20 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 			return Outcome{}, err
 		}
 		if pulls == nil {
-			return Outcome{}, errors.New("GitHub lookup returned no list; nothing sent")
+			return Outcome{}, notSent("GitHub lookup returned no list; nothing sent")
 		}
 		if len(pulls) > 1 || more {
 			numbers := make([]string, 0, len(pulls))
 			for _, p := range pulls {
 				numbers = append(numbers, "#"+strconv.Itoa(p.Number))
 			}
-			return Outcome{}, fmt.Errorf("several open pull requests match: %s; nothing sent", strings.Join(numbers, ", "))
+			return Outcome{}, notSent(fmt.Sprintf("several open pull requests match: %s; nothing sent", strings.Join(numbers, ", ")))
 		}
 	}
 	var payload any
 	if len(pulls) == 1 {
 		if pulls[0].Number < 1 {
-			return Outcome{}, errors.New("GitHub returned an invalid pull request; nothing sent")
+			return Outcome{}, notSent("GitHub returned an invalid pull request; nothing sent")
 		}
 		path += "/issues/" + strconv.Itoa(pulls[0].Number) + "/comments"
 		payload = struct {
@@ -83,7 +84,7 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 		}{Line(r)}
 	} else {
 		if r.Can == nil {
-			return Outcome{}, openPull()
+			return Outcome{}, notSent("no open pull request for " + head + "; nothing sent\nnext: open a pull request first")
 		}
 		path += "/issues"
 		payload = struct {
@@ -114,8 +115,45 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 	return Outcome{Number: number, URL: sent.URL}, nil
 }
 
-func openPull() error {
-	return errors.New("no open pull request for this branch; nothing sent\nnext: open a pull request first")
+// NothingSent marks an error after which nothing reached GitHub, so the
+// request may be posted another way without a duplicate.
+type nothingSent string
+
+func (e nothingSent) Error() string { return string(e) }
+
+// NothingSent marks the error.
+func (nothingSent) NothingSent() {}
+
+func notSent(message string) error { return nothingSent(message) }
+
+// Why the current checkout names no pull request head.
+var (
+	errDetached = notSent("HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request")
+	remoteName  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
+)
+
+// noUpstream names the push remote in the command only when the name is safe
+// to paste into a shell.
+func noUpstream(remote string) error {
+	next := "push the branch with -u to its remote"
+	if remoteName.MatchString(remote) {
+		next = "git push -u " + remote + " HEAD"
+	}
+	return notSent("this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: " + next)
+}
+
+// transportCause is the first line of the network error under err, never the
+// URL or a response, and nothing that contains the token.
+func transportCause(err error, token string) string {
+	var u *url.Error
+	if !errors.As(err, &u) {
+		return ""
+	}
+	cause, _, _ := strings.Cut(u.Err.Error(), "\n")
+	if cause == "" || strings.Contains(cause, token) {
+		return ""
+	}
+	return ": " + cause
 }
 
 // credentials never returns the output or error of gh: either can contain a
@@ -132,17 +170,18 @@ func (s *Sender) credentials(ctx context.Context) (string, error) {
 			return token, nil
 		}
 	}
-	return "", errors.New("no GitHub credentials; nothing sent\nnext: gh auth login")
+	return "", notSent("no GitHub credentials; nothing sent\nnext: gh auth login")
 }
 
-// call deliberately omits response bodies, URLs and transport errors from
-// diagnostics: an upstream or proxy error may echo the Authorization header.
+// call deliberately omits response bodies and URLs from diagnostics: an
+// upstream or proxy error may echo the Authorization header. A transport
+// error shows only its cause, and none that contains the token.
 func (s *Sender) call(ctx context.Context, token, method, path string, payload, result any) (bool, error) {
 	var body io.Reader
 	if payload != nil {
 		data, err := json.Marshal(payload)
 		if err != nil {
-			return false, errors.New("cannot encode the request; nothing sent")
+			return false, notSent("cannot encode the request; nothing sent")
 		}
 		// A reader rather than a bytes.Reader leaves GetBody nil: no automatic
 		// replay of a POST by net/http.
@@ -150,7 +189,7 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 	}
 	req, err := http.NewRequestWithContext(ctx, method, "https://api.github.com"+path, body)
 	if err != nil {
-		return false, errors.New("cannot build GitHub request; nothing sent")
+		return false, notSent("cannot build GitHub request; nothing sent")
 	}
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/vnd.github+json")
@@ -171,7 +210,7 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 		if method == http.MethodPost {
 			return false, errors.New("GitHub send failed; outcome unknown: check GitHub before trying again (not retried)")
 		}
-		return false, errors.New("GitHub lookup failed; nothing sent")
+		return false, notSent("could not reach GitHub" + transportCause(err, token) + "; nothing sent")
 	}
 	defer func() { _ = response.Body.Close() }()
 	want := http.StatusOK
@@ -179,11 +218,10 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 		want = http.StatusCreated
 	}
 	if response.StatusCode != want {
-		suffix := "; nothing sent"
 		if method == http.MethodPost && (response.StatusCode < 400 || response.StatusCode >= 500) {
-			suffix = "; outcome unknown: check GitHub before trying again (not retried)"
+			return false, fmt.Errorf("GitHub returned HTTP %d; outcome unknown: check GitHub before trying again (not retried)", response.StatusCode)
 		}
-		return false, fmt.Errorf("GitHub returned HTTP %d%s", response.StatusCode, suffix)
+		return false, notSent(fmt.Sprintf("GitHub returned HTTP %d; nothing sent", response.StatusCode))
 	}
 	dec := json.NewDecoder(io.LimitReader(response.Body, 1<<20))
 	err = dec.Decode(result)
@@ -197,7 +235,7 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 		if method == http.MethodPost {
 			return false, errors.New("GitHub receipt unreadable; outcome unknown: check GitHub before trying again")
 		}
-		return false, errors.New("GitHub lookup unreadable; nothing sent")
+		return false, notSent("GitHub lookup unreadable; nothing sent")
 	}
 	return strings.Contains(response.Header.Get("Link"), `rel="next"`), nil
 }
@@ -206,68 +244,72 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 func (s *Sender) git(ctx context.Context, args ...string) (string, int, error) {
 	out, err := s.runner.Run(ctx, toolrun.ToolCmd{Name: "git", Args: args, WorkDir: s.dir, Timeout: timeout})
 	if err != nil {
-		return "", 0, errors.New("cannot read GitHub repository from git; nothing sent")
+		return "", 0, notSent("cannot read GitHub repository from git; nothing sent")
 	}
 	return strings.TrimSpace(string(out.Stdout)), out.ExitCode, nil
 }
 
-func (s *Sender) repository(ctx context.Context) (string, string, error) {
+// repository returns the target repository and the pull request head. When
+// the checkout names no head, noHead says why; a can answer still opens an
+// issue then.
+func (s *Sender) repository(ctx context.Context) (repo, head string, noHead, err error) {
 	origin, code, err := s.git(ctx, "config", "--get", "remote.origin.url")
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	if code != 0 && code != 1 {
-		return "", "", errors.New("cannot read origin; nothing sent")
+		return "", "", nil, notSent("cannot read origin; nothing sent")
 	}
-	repo := githubRepository(origin)
+	repo = githubRepository(origin)
 	if repo == "" {
-		return "", "", nil
+		return "", "", nil, nil
 	}
 	target, _, err := s.git(ctx, "config", "--get", "remote.upstream.url")
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	if upstream := githubRepository(target); upstream != "" {
 		repo = upstream
 	}
 	branch, code, err := s.git(ctx, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	if code == 1 {
-		return repo, "", nil
-	} // Detached HEAD.
+		return repo, "", errDetached, nil
+	}
 	if code != 0 {
-		return "", "", errors.New("cannot read current branch; nothing sent")
+		return "", "", nil, notSent("cannot read current branch; nothing sent")
 	}
 	upstream, code, err := s.git(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
-	if code != 0 {
-		return repo, "", nil
-	}
+	hasUpstream := code == 0
 	pushRemote, _, err := s.git(ctx, "for-each-ref", "--format=%(push:remotename)", "refs/heads/"+branch)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	if pushRemote == "" {
 		pushRemote = "origin"
 	}
+	if !hasUpstream {
+		return repo, "", noUpstream(pushRemote), nil
+	}
 	remote, code, err := s.git(ctx, "remote", "get-url", "--push", pushRemote)
 	if err != nil {
-		return "", "", err
+		return "", "", nil, err
 	}
 	pushRepo := githubRepository(remote)
 	if code != 0 || pushRepo == "" {
-		return "", "", errors.New("cannot identify the GitHub push destination; nothing sent")
+		return "", "", nil, notSent("cannot identify the GitHub push destination; nothing sent")
 	}
 	_, remoteBranch, ok := strings.Cut(upstream, "/")
 	if !ok || remoteBranch == "" {
-		return "", "", errors.New("cannot identify the upstream branch; nothing sent")
+		return "", "", nil, notSent("cannot identify the upstream branch; nothing sent")
 	}
 	owner, _, _ := strings.Cut(pushRepo, "/")
-	return repo, owner + ":" + remoteBranch, nil
+	return repo, owner + ":" + remoteBranch, nil, nil
 }
 
 // githubRepository accepts GitHub HTTPS, SSH and scp-style clone URLs. Reject

@@ -50,12 +50,15 @@ func nonInteractive(cmd toolrun.ToolCmd) toolrun.ToolCmd {
 
 // Git supplies Git operations scoped to the checkout.
 type Git struct {
-	Root                 string
-	Runner               toolrun.Runner
-	ActionRepository     string
-	PolicyPath           string
-	WorkflowsDir         string
-	Version1, UsesAction func([]byte) bool
+	Root             string
+	Runner           toolrun.Runner
+	ActionRepository string
+	PolicyPath       string
+	WorkflowsDir     string
+	// Policy reports whether data is a version 1 policy, and whether that
+	// policy makes the check required.
+	Policy     func([]byte) (valid, required bool)
+	UsesAction func([]byte) bool
 }
 
 // Repository verifies that the origin fetch and push URLs identify one repository.
@@ -157,20 +160,25 @@ func (g Git) Aligned(ctx context.Context, branch string) (bool, error) {
 	}
 }
 
-// Merged detects an onboarded default branch without relying on pull request history.
-func (g Git) Merged(ctx context.Context, branch string) (bool, error) {
+// Merged detects an onboarded default branch without relying on pull request
+// history, and reports whether its policy makes the check required.
+func (g Git) Merged(ctx context.Context, branch string) (merged, required bool, err error) {
 	ref := OriginRef(branch)
 	names, err := g.run(ctx, "ls-tree", "-z", "-r", "--name-only", ref, "--", g.PolicyPath, g.WorkflowsDir)
 	if err != nil {
-		return false, err
+		return false, false, err
 	}
 	files := strings.Split(names, "\x00")
 	if !slices.Contains(files, g.PolicyPath) {
-		return false, nil
+		return false, false, nil
 	}
 	policy, err := g.run(ctx, "show", ref+":"+g.PolicyPath)
-	if err != nil || !g.Version1([]byte(policy)) {
-		return false, err
+	if err != nil {
+		return false, false, err
+	}
+	valid, required := g.Policy([]byte(policy))
+	if !valid {
+		return false, false, nil
 	}
 	for _, file := range files {
 		if ext := path.Ext(file); path.Dir(file) != g.WorkflowsDir || (ext != ".yaml" && ext != ".yml") {
@@ -178,13 +186,13 @@ func (g Git) Merged(ctx context.Context, branch string) (bool, error) {
 		}
 		data, err := g.run(ctx, "show", ref+":"+file)
 		if err != nil {
-			return false, err
+			return false, false, err
 		}
 		if g.UsesAction([]byte(data)) {
-			return true, nil
+			return true, required, nil
 		}
 	}
-	return false, nil
+	return false, false, nil
 }
 
 // Pending lists modified or untracked setup paths, preserving the input order.

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coupling-dev/archfit/internal/application/setup"
 	"github.com/coupling-dev/archfit/internal/testutil"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
@@ -60,12 +61,38 @@ func TestSetupWrongBranchStopsWithoutWriting(t *testing.T) {
 	}
 }
 
+// TestSetupDetectsMergedWithoutGitHub: after the setup pull request is
+// merged, setup reports the checks that run, also when the setup branch
+// is still there (B3) and when the policy makes the check required.
 func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
+	for _, tc := range []struct {
+		name                  string
+		setupBranch, required bool
+		state, next           string
+	}{
+		{"advisory", false, false, "advisory checks on", "open the setup page: " + setup.AppURL},
+		{"setup branch left behind", true, false, "advisory checks on", "open the setup page: " + setup.AppURL},
+		{"required", true, true, "required checks on", "check that a branch ruleset requires archfit/gate: https://github.com/o/r/settings/rules"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			setupMergedRepo(t, tc.setupBranch, tc.required, tc.state, tc.next)
+		})
+	}
+}
+
+func setupMergedRepo(t *testing.T, setupBranch, required bool, state, next string) {
+	t.Helper()
 	files := fixtureFiles()
 	files[".github/workflows/test.yaml"] = "jobs:\n  archfit:\n    steps:\n      - uses: coupling-dev/archfit-action@v1\n"
+	if required {
+		files[defaultConfigPath] = strings.Replace(fixturePolicy, "version: 1\n", "version: 1\ngate: required\n", 1)
+	}
 	dir := fixtureRepo(t, files, nil)
 	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/o/r.git")
 	gitFixture(t, dir, "switch", "main")
+	if setupBranch {
+		gitFixture(t, dir, "branch", "archfit/setup", "main")
+	}
 	runner := toolrun.New()
 	mock := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
 		if cmd.Name == "gh" {
@@ -88,7 +115,7 @@ func TestSetupDetectsMergedWithoutGitHub(t *testing.T) {
 		if words := testutil.StoryNotUsedIn(stdout.String()); len(words) > 0 {
 			t.Errorf("setup vocabulary %v in:\n%s", words, stdout.String())
 		}
-		if code != 0 || !strings.Contains(stdout.String(), "state: done") || !strings.Contains(stdout.String(), "advisory:") || strings.Contains(stdout.String(), "next:") {
+		if code != 0 || !strings.Contains(stdout.String(), "state: "+state+"\n") || !strings.Contains(stdout.String(), "next: "+next+"\n") {
 			t.Fatalf("exit %d, stdout %q, stderr %q", code, stdout.String(), stderr.String())
 		}
 	}
@@ -136,12 +163,17 @@ func TestSetupCommitPersistsAfterCommandReturns(t *testing.T) {
 
 func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:gocyclo // process stub covers each external command
 	const signedIn = "repo, workflow"
+	// What gh 2.105 prints when a TLS-intercepting proxy breaks its call (B6).
+	const unreachable = "github.com\n  X Failed to log in to github.com account someone (keyring)\n" +
+		"  - The token in keyring is invalid.\n" +
+		`  - Error: Get "https://api.github.com/": tls: failed to verify certificate: x509: OSStatus -26276` + "\n"
 	for _, tc := range []struct {
-		name, auth, prs, checks, state, next string
+		name, auth, authErr, prs, checks, state, next string
 	}{
-		{"no gh", "", "", "", "setup pull request not opened; gh is not signed in", "open the pull request:"},
-		{"no app check", signedIn, `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[]}`, "waiting for the App", "install the App:"},
-		{"app check", signedIn, `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[{"app":{"slug":"archfit-review"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/check","output":{"title":"merge to start"}}]}`, "waiting for the merge", "merge #7:"},
+		{"no gh", "", "You are not logged into any GitHub hosts. To log in, run: gh auth login\n", "", "", "setup pull request not opened; gh is not signed in", "open the pull request:"},
+		{"gh cannot reach GitHub", "", unreachable, "", "", "setup pull request not opened; could not reach GitHub", "open the pull request:"},
+		{"no app check", signedIn, "", `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[]}`, "waiting for the App", "install the App:"},
+		{"app check", signedIn, "", `[{"number":7,"state":"OPEN","url":"https://github.com/o/r/pull/7","headRefOid":"abc"}]`, `{"check_runs":[{"app":{"slug":"archfit-review"},"status":"completed","conclusion":"neutral","html_url":"https://github.com/o/r/check","output":{"title":"merge to start"}}]}`, "waiting for the merge", "merge #7:"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			files := fixtureFiles()
@@ -172,7 +204,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 					t.Fatalf("unexpected write: %s", args)
 				case cmd.Name == "gh" && strings.HasPrefix(args, "auth status"):
 					if tc.auth == "" {
-						return toolrun.Output{ExitCode: 1}, nil
+						return toolrun.Output{ExitCode: 1, Stderr: []byte(tc.authErr)}, nil
 					}
 					return toolrun.Output{Stderr: []byte("- Token scopes: 'repo', 'workflow'\n")}, nil
 				case cmd.Name == "gh" && strings.HasPrefix(args, "pr list"):
@@ -197,6 +229,10 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 				wantCode := 0
 				if code != wantCode || !strings.Contains(stdout.String(), "state: "+tc.state) || !strings.Contains(stdout.String(), "next: "+tc.next) {
 					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
+				}
+				if tc.authErr == unreachable && (!strings.Contains(stdout.String(), "could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276\n") ||
+					strings.Contains(stdout.String(), "not signed in") || strings.Contains(stdout.String(), "api.github.com")) {
+					t.Fatalf("unreachable GitHub reported as:\n%s", stdout.String())
 				}
 			}
 		})
@@ -449,7 +485,7 @@ func TestSetupNoHooksIgnoresPrivateHarnessAfterMerge(t *testing.T) {
 	}}
 	var stdout, stderr bytes.Buffer
 	code := runDeps([]string{setupCommand, setupNoHooks, "-C", dir}, &appDeps{Runner: mock, Stdout: &stdout, Stderr: &stderr})
-	if code != 0 || !strings.Contains(stdout.String(), "state: done") {
+	if code != 0 || !strings.Contains(stdout.String(), "state: advisory checks on") {
 		t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 	}
 }

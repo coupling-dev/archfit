@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	urlpkg "net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -30,26 +31,94 @@ type AppCheck struct {
 	Status, Conclusion, HTMLURL, Title string
 }
 
+// Login is what gh reports about its login. Unreachable holds gh's error when
+// it could not ask GitHub.
+type Login struct {
+	Ready, Workflow bool
+	Unreachable     string
+}
+
 // Auth reports whether the active login works and whether a known scope permits workflows.
 // Missing scope information is not evidence of a missing permission.
-func (g GitHub) Auth(ctx context.Context) (bool, bool) {
+//
+// gh reports a network failure as an invalid token, followed by an "Error:"
+// line with the cause. Only "not logged into any" hosts and an HTTP 401 mean
+// the login itself is missing or refused; any other failure is reported as
+// unreachable with its cause, so the user does not sign in again for a
+// network fault.
+func (g GitHub) Auth(ctx context.Context) Login {
 	out, err := g.command(ctx, "auth", "status", "--hostname", "github.com", "--active")
-	if err != nil || out.ExitCode != 0 {
-		return false, false
+	if errors.Is(err, context.DeadlineExceeded) {
+		return Login{Unreachable: fmt.Sprintf("gh did not answer within %s", gitTimeout)}
+	}
+	if err != nil {
+		return Login{}
+	}
+	if out.ExitCode != 0 {
+		return Login{Unreachable: unreachable(string(out.Stdout) + "\n" + string(out.Stderr))}
 	}
 	for _, data := range [][]byte{out.Stdout, out.Stderr} {
 		for line := range strings.SplitSeq(string(data), "\n") {
-			if scopes, ok := strings.CutPrefix(strings.TrimSpace(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "-"))), "Token scopes:"); ok {
+			if scopes, ok := strings.CutPrefix(statusLine(line), "Token scopes:"); ok {
 				for scope := range strings.SplitSeq(scopes, ",") {
 					if strings.Trim(strings.TrimSpace(scope), "'\"") == "workflow" {
-						return true, true
+						return Login{Ready: true, Workflow: true}
 					}
 				}
-				return true, false
+				return Login{Ready: true}
 			}
 		}
 	}
-	return true, true
+	return Login{Ready: true, Workflow: true}
+}
+
+// unreachable returns the cause of a failed auth status that was not about
+// the login, and "" when gh is not signed in, GitHub refused the token, or gh
+// gave no cause.
+func unreachable(output string) string {
+	if strings.Contains(output, "not logged into any") {
+		return ""
+	}
+	for line := range strings.SplitSeq(output, "\n") {
+		if detail, ok := strings.CutPrefix(statusLine(line), "Error:"); ok {
+			return errorCause(strings.TrimSpace(detail))
+		}
+	}
+	return ""
+}
+
+var (
+	// requestPrefix is the method and URL that Go puts before a transport error.
+	requestPrefix = regexp.MustCompile(`^[A-Za-z]+ "[^"]*": `)
+	// httpAnswer matches gh's two forms of an HTTP error: the scope check's
+	// "non-200 OK status code: 403 Forbidden body: ..." and the API
+	// client's "HTTP 403: <message> (<url>)".
+	httpAnswer = regexp.MustCompile(`^(?:non-200 OK status code: |HTTP )([0-9]{3})\b`)
+)
+
+// errorCause keeps what gh's error says went wrong, never the request URL or
+// a response message: a proxy may echo request headers into either. An HTTP
+// answer keeps only its status, and a 401 is a refused login, not a cause.
+func errorCause(detail string) string {
+	cause := ghDetail(detail)
+	if cause == "GitHub answered HTTP 401" {
+		return ""
+	}
+	return cause
+}
+
+// ghDetail is one line of gh's error without the request URL or the text of
+// an HTTP answer.
+func ghDetail(detail string) string {
+	if m := httpAnswer.FindStringSubmatch(detail); m != nil {
+		return "GitHub answered HTTP " + m[1]
+	}
+	return requestPrefix.ReplaceAllString(detail, "")
+}
+
+// statusLine trims the indentation and list marker of a gh auth status line.
+func statusLine(line string) string {
+	return strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(line), "-"))
 }
 
 // PullRequest finds an open setup pull request from the same repository.
@@ -192,7 +261,7 @@ func (g GitHub) run(ctx context.Context, args ...string) (string, error) {
 	}
 	if out.ExitCode != 0 {
 		detail, _, _ := strings.Cut(strings.TrimSpace(string(out.Stderr)), "\n")
-		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, detail)
+		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, ghDetail(detail))
 	}
 	return string(out.Stdout), nil
 }

@@ -19,15 +19,17 @@ import (
 )
 
 const (
-	testReason       = "why"
-	testRepo         = "acme/shop"
-	unknownOutcome   = "outcome unknown"
-	secondCredential = "second"
-	thirdCredential  = "third"
-	forkHead         = "worker:feature"
-	originCommand    = "git config --get remote.origin.url"
-	pushURLCommand   = "git remote get-url --push origin"
-	upstreamCommand  = "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}"
+	testReason        = "why"
+	testRepo          = "acme/shop"
+	unknownOutcome    = "outcome unknown"
+	secondCredential  = "second"
+	thirdCredential   = "third"
+	forkHead          = "worker:feature"
+	originCommand     = "git config --get remote.origin.url"
+	pushURLCommand    = "git remote get-url --push origin"
+	upstreamCommand   = "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}"
+	branchCommand     = "git symbolic-ref --quiet --short HEAD"
+	pushRemoteCommand = "git for-each-ref --format=%(push:remotename) refs/heads/feature"
 )
 
 const testToken = "secret-test-token"
@@ -46,7 +48,7 @@ func TestSendPaths(t *testing.T) {
 		{"check comment", false, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
 		{"can comment", true, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
 		{"can issue", true, "[]", "/repos/acme/shop/issues", issueURL, ""},
-		{"check without pull", false, "[]", "", "", "next: open a pull request first"},
+		{"check without pull", false, "[]", "", "", "no open pull request for acme:feature; nothing sent\nnext: open a pull request first"},
 		{"ambiguous", false, "[{\"number\":431},{\"number\":432}]", "", "", "#431, #432"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -135,6 +137,11 @@ func TestAPIFailuresNeverRetryOrLeak(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), tc.want) || strings.Contains(err.Error(), testToken) || got != (Outcome{}) || posts != tc.posts {
 				t.Fatalf("delivery=%+v err=%v posts=%d", got, err, posts)
 			}
+			// An unknown outcome may have reached GitHub: it must not invite
+			// the same request a second way.
+			if marked := nothingSentMarked(err); marked != (tc.want != unknownOutcome) {
+				t.Errorf("nothing-sent mark %t on %q", marked, err)
+			}
 		})
 	}
 }
@@ -156,9 +163,14 @@ func TestSendOutcomeUnknownAfterConnectionLost(t *testing.T) {
 		_ = conn.Close()
 	})
 	got, err := s.Send(t.Context(), Input{Reason: testReason})
-	if err == nil || !strings.Contains(err.Error(), unknownOutcome) || got != (Outcome{}) || posts.Load() != 1 {
+	if err == nil || !strings.Contains(err.Error(), unknownOutcome) || nothingSentMarked(err) || got != (Outcome{}) || posts.Load() != 1 {
 		t.Fatalf("delivery=%+v err=%v posts=%d", got, err, posts.Load())
 	}
+}
+
+func nothingSentMarked(err error) bool {
+	var marked interface{ NothingSent() }
+	return errors.As(err, &marked)
 }
 
 func TestNoCredentialsSendsNothing(t *testing.T) {
@@ -208,21 +220,21 @@ func TestRepositoryRouting(t *testing.T) {
 	}{
 		{"origin", nil, testRepo, "acme:feature"},
 		{"fork push", map[string]toolrun.Output{
-			"git for-each-ref --format=%(push:remotename) refs/heads/feature": {Stdout: []byte("fork\n")},
-			"git remote get-url --push fork":                                  {Stdout: []byte("git@github.com:worker/shop.git\n")},
+			pushRemoteCommand:                {Stdout: []byte("fork\n")},
+			"git remote get-url --push fork": {Stdout: []byte("git@github.com:worker/shop.git\n")},
 		}, testRepo, forkHead},
 		{"origin fork upstream", map[string]toolrun.Output{
 			originCommand:                          {Stdout: []byte("https://github.com/worker/shop.git")},
 			"git config --get remote.upstream.url": {Stdout: []byte("https://github.com/acme/shop.git")},
 		}, testRepo, forkHead},
 		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}, testRepo, ""},
-		{"detached", map[string]toolrun.Output{"git symbolic-ref --quiet --short HEAD": {ExitCode: 1}}, testRepo, ""},
+		{"detached", map[string]toolrun.Output{branchCommand: {ExitCode: 1}}, testRepo, ""},
 		{"non GitHub", map[string]toolrun.Output{originCommand: {Stdout: []byte("git@gitlab.com:acme/shop.git")}}, "", ""},
 		{"no origin", map[string]toolrun.Output{originCommand: {ExitCode: 1}}, "", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := New(".", gitRunner(t, tc.override))
-			repo, head, err := s.repository(t.Context())
+			repo, head, _, err := s.repository(t.Context())
 			if err != nil || repo != tc.repo || head != tc.head {
 				t.Fatalf("repo=%q head=%q err=%v", repo, head, err)
 			}
@@ -230,11 +242,54 @@ func TestRepositoryRouting(t *testing.T) {
 	}
 }
 
-func TestNoUpstreamDoesNotLookupOrSendCheck(t *testing.T) {
-	s := New(".", gitRunner(t, map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}))
-	got, err := s.Send(t.Context(), Input{Reason: testReason})
-	if err == nil || !strings.Contains(err.Error(), "open a pull request first") || got != (Outcome{}) {
-		t.Fatalf("delivery=%+v err=%v", got, err)
+// TestNoHeadSaysWhy: a branch pushed without -u has a pull request that
+// archfit cannot find; it must not claim there is none (B6).
+func TestNoHeadSaysWhy(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		override map[string]toolrun.Output
+		want     string
+	}{
+		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD"},
+		{"no upstream, fork push remote", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}, pushRemoteCommand: {Stdout: []byte("fork\n")}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u fork HEAD"},
+		{"no upstream, unsafe remote name", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}, pushRemoteCommand: {Stdout: []byte("$(touch x)\n")}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: push the branch with -u to its remote"},
+		{"detached", map[string]toolrun.Output{branchCommand: {ExitCode: 1}},
+			"HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := New(".", gitRunner(t, tc.override))
+			got, err := s.Send(t.Context(), Input{Reason: testReason})
+			var marked interface{ NothingSent() }
+			if err == nil || err.Error() != tc.want || !errors.As(err, &marked) || got != (Outcome{}) {
+				t.Fatalf("delivery=%+v err=%v", got, err)
+			}
+		})
+	}
+}
+
+// TestUnreachableGitHubNamesTheCause: a lookup that never reaches GitHub
+// says so with the network error, never the URL or the token (B6).
+func TestUnreachableGitHubNamesTheCause(t *testing.T) {
+	for _, tc := range []struct{ name, cause, want string }{
+		{"tls", "tls: failed to verify certificate: x509: OSStatus -26276",
+			"could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276; nothing sent"},
+		{"token in the cause", "proxy said Bearer " + testToken, "could not reach GitHub; nothing sent"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("GH_TOKEN", testToken)
+			s := New(".", gitRunner(t, nil))
+			s.Client = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, errors.New(tc.cause)
+			})}
+			got, err := s.Send(t.Context(), Input{Reason: testReason})
+			var marked interface{ NothingSent() }
+			if err == nil || err.Error() != tc.want || !errors.As(err, &marked) || got != (Outcome{}) {
+				t.Fatalf("delivery=%+v err=%v", got, err)
+			}
+		})
 	}
 }
 
@@ -340,11 +395,11 @@ func fakeSender(t *testing.T, override map[string]toolrun.Output, handler http.H
 func gitRunner(t *testing.T, override map[string]toolrun.Output) *toolrun.RunnerMock {
 	t.Helper()
 	commands := map[string]toolrun.Output{
-		originCommand:                           {Stdout: []byte("https://github.com/acme/shop.git\n")},
-		"git config --get remote.upstream.url":  {ExitCode: 1},
-		"git symbolic-ref --quiet --short HEAD": {Stdout: []byte("feature\n")},
-		upstreamCommand:                         {Stdout: []byte("origin/feature\n")},
-		"git for-each-ref --format=%(push:remotename) refs/heads/feature": {},
+		originCommand:                          {Stdout: []byte("https://github.com/acme/shop.git\n")},
+		"git config --get remote.upstream.url": {ExitCode: 1},
+		branchCommand:                          {Stdout: []byte("feature\n")},
+		upstreamCommand:                        {Stdout: []byte("origin/feature\n")},
+		pushRemoteCommand:                      {},
 	}
 	for key, value := range override {
 		commands[key] = value

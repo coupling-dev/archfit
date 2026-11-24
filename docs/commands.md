@@ -135,9 +135,16 @@ Only an error whose `next` is `archfit request` joins the request: an error of a
 
 A use past the surface asks one question: should its package be part of the surface? The printed request shows it on a `question:` line; the App asks the owner to declare the package `public` or `model`, or to reject the request.
 
-With a GitHub remote, `archfit request` posts `/archfit request <why> [--expires DATE]` as a comment on the one open pull request for the current branch. The target repository is `origin`, or a configured GitHub `upstream` for a fork. The head uses the push remote's owner, falling back to the `origin` owner. Several matching pull requests means nothing is sent: the error names their numbers. A detached HEAD or a branch without an upstream has no matching pull request.
+With a GitHub remote, `archfit request` posts `/archfit request <why> [--expires DATE]` as a comment on the one open pull request for the current branch. The target repository is `origin`, or a configured GitHub `upstream` for a fork. The head uses the push remote's owner, falling back to the `origin` owner. Several matching pull requests means nothing is sent: the error names their numbers. A detached HEAD or a branch without an upstream names no pull request: the error says which, and for a branch without an upstream `next: git push -u <push remote> HEAD`.
 
-Without a pull request, only a request from `archfit can` opens an issue. Its body holds the request line and the `can` record; the App marks the numbers "as reported" until a pull request confirms them. With `check` output, nothing is opened: `next: open a pull request first`.
+Without a pull request, only a request from `archfit can` opens an issue. Its body holds the request line and the `can` record; the App marks the numbers "as reported" until a pull request confirms them. With `check` output, nothing is opened: `no open pull request for <owner>:<branch>` and `next: open a pull request first`.
+
+When a network error stops the lookup, the error is `could not reach GitHub: <cause>; nothing sent`. The cause never includes a URL or a token. When nothing reached GitHub for a request from `check` output, the last line is the comment that asks the same thing, to post on the pull request yourself:
+
+```text
+archfit: send the request: could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276; nothing sent
+or reply on the pull request: /archfit request netem needs the shared retry helper
+```
 
 Credentials are tried in order: `GH_TOKEN`, `GITHUB_TOKEN`, then `gh auth token`. No credentials means exit `2` and `next: gh auth login`. Tokens are never printed. Success exits `0` and prints the comment or issue URL. API errors exit `2` without printing a successful request or changing the last result. HTTP calls time out after 30 seconds. A POST is never retried; when the send outcome is unknown (for example, a lost connection after sending), check GitHub before trying again.
 
@@ -177,7 +184,7 @@ next: ask an owner     (open a pull request first if there is none)
 
 | The repository has | `archfit init` |
 | --- | --- |
-| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the local GitHub identity; an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
+| No `.archfit.yaml` | Writes a version 1 policy from the code: a module for each directory of code cut to two levels, such as `pkg/chaos` (for Python, below `src/`), with `paths` and `public` (the packages other modules use today); `depends_on` as the dependencies that exist; `tests` and `generated`; `owners` from the local GitHub identity (when that is the only owner, init and setup say once that owners approve requests, so the owner should not write most of the changes); an `only` rule for network, process, or database code that only some modules use; and an exception for each error that exists today, so the first `check` passes when the evidence is complete. |
 | Any other `.archfit.yaml`, such as version 2 (Archfit 3) | Fails with the version error and changes nothing. Remove the file, then run `archfit init`. |
 | A version 1 `.archfit.yaml` | Leaves it as it is. |
 
@@ -217,7 +224,7 @@ The list identifies exceptions, modules with no public part declared, and module
 
 Run `archfit setup` from the default branch of a checkout with a GitHub `origin`.
 Run `archfit setup` again when the output asks you to continue.
-After setup creates `archfit/setup`, continue on that branch.
+After setup creates `archfit/setup`, continue on that branch until the setup pull request is merged.
 Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a checkout.
 
 | State | What setup does | What to do next |
@@ -225,10 +232,11 @@ Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a ch
 | No policy | Writes a policy and the agent instructions. | Read `.archfit.yaml`, then run `archfit setup` again. |
 | No workflow | Keeps the policy and writes a [pinned workflow](ci.md#the-workflow-archfit-setup-writes). | Follow the next step after the push. |
 | Stopped before the push | The HTTPS push uses a `gh` login with known classic scopes, without `workflow`. | Run `gh auth refresh -s workflow`, then run setup again. |
-| Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. | Open the pull request on GitHub with the saved body. |
+| Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. The state says why: `gh is not signed in`, or `could not reach GitHub` with its cause. | Open the pull request on GitHub with the saved body. |
 | Pull request open, no App check | Prints the App install link. Setup does not re-run the workflow. | Install the App. Use the printed re-run link if the check does not start. |
 | App check present | Prints the status of `archfit/gate`. | Review and merge the setup pull request. |
-| Done | The default branch has the policy and an Archfit workflow. | Checks are advisory. Setup prints no `next:` line. |
+| Advisory checks on | The default branch has the policy and an Archfit workflow. | Open the setup page: an owner approves the first policy there, then makes the check required. |
+| Required checks on | The same, and the policy has `gate: required`. | Check that a branch ruleset requires `archfit/gate`: without it, a fail does not block a merge. |
 
 After writing a new policy, setup shows how it would judge up to 30 recent first-parent changes. It also includes the counts in the first setup pull request body. Replay uses the local remote-tracking default branch, does not fetch PR labels or start CI, and stops after 60 seconds. If the local ref is unavailable, run `archfit replay` later.
 
@@ -240,6 +248,8 @@ Review the pull request before merging.
 SSH pushes use the SSH key and do not require the `gh` `workflow` scope.
 When `gh` does not report classic scopes, setup attempts the push and reports a permission error if Git rejects it.
 Without a signed-in `gh`, setup still pushes via Git. It cannot see the pull request or App check.
+When `gh` cannot reach GitHub (for example, a network or TLS error, or no answer within 30 seconds), setup says `could not reach GitHub` with the cause, not that `gh` is not signed in. The cause never includes the request URL or a response body; an HTTP answer other than 401 shows only its status.
+After the merge, setup reads the default branch first, so a leftover `archfit/setup` branch does not stop it.
 A later run does not push an unchanged branch. If Git refuses to update the workflow, fix your Git credentials.
 When setup can detect a merged policy and workflow, it works without `gh`.
 

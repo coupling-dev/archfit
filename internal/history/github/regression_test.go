@@ -26,7 +26,7 @@ func TestEffectivePushURLAndTrackingBranch(t *testing.T) {
 		}, "acme:feature/part"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, head, err := New(".", gitRunner(t, tc.override)).repository(t.Context())
+			_, head, _, err := New(".", gitRunner(t, tc.override)).repository(t.Context())
 			if err != nil || head != tc.want {
 				t.Fatalf("head=%q err=%v, want %q", head, err, tc.want)
 			}

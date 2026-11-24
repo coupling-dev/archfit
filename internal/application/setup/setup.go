@@ -55,7 +55,7 @@ type Git interface {
 	SetupBranchExists(context.Context, string) (bool, error)
 	Fetch(context.Context, string) error
 	Aligned(context.Context, string) (bool, error)
-	Merged(context.Context, string) (bool, error)
+	Merged(context.Context, string) (merged, required bool, err error)
 	Pending(context.Context, []string) ([]string, error)
 	Pin(context.Context, string) (string, error)
 	Identity(context.Context) (string, error)
@@ -78,9 +78,17 @@ type AppCheck struct {
 	Status, Conclusion, HTMLURL, Title string
 }
 
+// Login is what gh reports about its GitHub login. Unreachable holds gh's
+// error when it could not ask GitHub; Ready is then false, but the login may
+// be fine, so setup does not say that gh is not signed in.
+type Login struct {
+	Ready, Workflow bool
+	Unreachable     string
+}
+
 // GitHub reads and opens pull requests and inspects the App check.
 type GitHub interface {
-	Auth(context.Context) (ready, workflowScope bool)
+	Auth(context.Context) Login
 	PullRequest(context.Context, string, string, string) (PullRequest, error)
 	Create(context.Context, string, string, string) (PullRequest, error)
 	Check(context.Context, string, string) (AppCheck, error)
@@ -126,12 +134,14 @@ type State string
 // States reported by setup, including states that require a person.
 const (
 	Blocked      State = "stopped"
-	Merged       State = "done"
+	Advisory     State = "advisory checks on"
+	Required     State = "required checks on"
 	NoPolicy     State = "no workflow yet"
 	NoWorkflow   State = "policy, no workflow"
 	Unpublished  State = "setup pull request open; the App is not installed"
 	ComparePR    State = "setup pull request not opened"
 	ManualPR     State = "setup pull request not opened; gh is not signed in"
+	OfflinePR    State = "setup pull request not opened; could not reach GitHub"
 	NeedsScope   State = "stopped before the push"
 	NoCheck      State = "waiting for the App"
 	CheckPresent State = "waiting for the merge"
@@ -167,13 +177,17 @@ func Next(p Progress) string {
 		return refreshNext
 	case NoWorkflow, Unpublished, NoCheck:
 		return "install the App: " + link
-	case ManualPR, ComparePR:
+	case ManualPR, OfflinePR, ComparePR:
 		return fmt.Sprintf("open the pull request: https://github.com/%s/compare/%s...%s?expand=1",
 			p.Repo, url.PathEscape(p.Default), Branch)
 	case CheckPresent:
 		return fmt.Sprintf("merge #%d: %s", p.PR.Number, p.PR.URL)
 	case Closed:
 		return fmt.Sprintf("pull request #%d was closed; reopen it, or delete the branch archfit/setup, then archfit setup", p.PR.Number)
+	case Advisory:
+		return "open the setup page: " + AppURL
+	case Required:
+		return fmt.Sprintf("check that a branch ruleset requires archfit/gate: https://github.com/%s/settings/rules", p.Repo)
 	default:
 		return ""
 	}
@@ -244,8 +258,9 @@ func Body(version, link string, replay *ReplaySummary, decisions []string) strin
 // Detection is the state and branch metadata read before setup advances.
 type Detection struct {
 	Progress
-	branch               string
-	pushed, ready, scope bool
+	branch string
+	pushed bool
+	login  Login
 }
 
 // Detect reads the checkout and the remote default branch before any setup writes.
@@ -269,17 +284,6 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		out.stop(errors.New("start from the default branch or archfit/setup"), "git switch "+ShellQuote(s.Default)+", then archfit setup")
 		return s, false
 	}
-	if s.branch == s.Default {
-		exists, err := d.Git.SetupBranchExists(ctx, Branch)
-		if err != nil {
-			out.stop(err, "check the setup branch on origin, then archfit setup")
-			return s, false
-		}
-		if exists {
-			out.stop(errors.New("the setup branch already exists"), "git switch archfit/setup, then archfit setup")
-			return s, false
-		}
-	}
 	if next, err := d.Files.SafePaths(); err != nil {
 		out.stop(err, next)
 		return s, false
@@ -302,12 +306,29 @@ func Detect(ctx context.Context, d Dependencies, out *Outcome) (Detection, bool)
 		out.stop(errors.New("local "+s.Default+" does not match origin/"+s.Default), "sync "+ShellQuote(s.Default)+" with "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
 	}
-	if merged, err := d.Git.Merged(ctx, s.Default); err != nil {
+	// A merged setup leaves its branch behind, so the merge is read first.
+	merged, required, err := d.Git.Merged(ctx, s.Default)
+	if err != nil {
 		out.stop(err, "check "+ShellQuote("origin/"+s.Default)+", then archfit setup")
 		return s, false
-	} else if merged {
-		s.State = Merged
+	}
+	if merged {
+		s.State = Advisory
+		if required {
+			s.State = Required
+		}
 		return s, true
+	}
+	if s.branch == s.Default {
+		exists, err := d.Git.SetupBranchExists(ctx, Branch)
+		if err != nil {
+			out.stop(err, "check the setup branch on origin, then archfit setup")
+			return s, false
+		}
+		if exists {
+			out.stop(errors.New("the setup branch already exists"), "git switch archfit/setup, then archfit setup")
+			return s, false
+		}
 	}
 	switch {
 	case !policy:
@@ -336,8 +357,11 @@ func Run(ctx context.Context, d Dependencies) Outcome {
 	}
 	out.Progress = s.Progress
 	switch s.State {
-	case Merged:
+	case Advisory:
 		out.add("advisory: checks report on each pull request and do not block a merge")
+		out.After = append(out.After, "an owner approves the first policy there, then makes the check required")
+	case Required:
+		out.add("required: a fail blocks a merge when a branch ruleset requires archfit/gate")
 		out.add("setup page: %s", AppURL)
 	case NoPolicy:
 		lines, err := d.Init(ctx)
@@ -414,7 +438,7 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.stop(errors.New("no setup files are available to commit"), "review the setup files, then archfit setup")
 		return
 	}
-	s.ready, s.scope = d.GitHub.Auth(ctx)
+	s.login = d.GitHub.Auth(ctx)
 	if !s.pushed {
 		https, err := d.Git.PushSafety(ctx, s.Default, d.Files.Paths())
 		if err != nil {
@@ -434,7 +458,7 @@ func publish(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 			out.stop(err, next)
 			return
 		}
-		if s.ready && https && !s.scope {
+		if s.login.Ready && https && !s.login.Workflow {
 			out.State = NeedsScope
 			out.add("the gh login has no workflow scope, so GitHub would refuse the workflow file")
 			return
@@ -512,7 +536,8 @@ func decisionLines(d Dependencies) ([]string, error) {
 
 func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	out.InstallURL = InstallURL
-	if s.ready {
+	switch {
+	case s.login.Ready:
 		pr, err := d.GitHub.PullRequest(ctx, s.Repo, s.Default, Branch)
 		if err != nil {
 			out.stop(err, "fix the pull request lookup, then archfit setup")
@@ -529,7 +554,11 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		if d.GitHub.IsFork(ctx, s.Repo) {
 			out.add("warning: fork pull requests do not receive an id-token")
 		}
-	} else {
+	case s.login.Unreachable != "":
+		// Not knowing is not the same as no pull request: say both.
+		out.add("could not reach GitHub: %s", s.login.Unreachable)
+		out.add("pull request: open it, or check on GitHub; gh cannot show it")
+	default:
 		out.add("pull request: open it, or check on GitHub; gh cannot show it")
 	}
 	decisions, err := decisionLines(d)
@@ -541,7 +570,8 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.stop(err, "fix the pull request body file")
 		return
 	}
-	if s.ready {
+	switch {
+	case s.login.Ready:
 		pr, err := d.GitHub.Create(ctx, s.Repo, s.Default, Branch)
 		if err == nil {
 			out.add("opened setup pull request #%d: %s", pr.Number, pr.URL)
@@ -549,7 +579,9 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		}
 		out.add("could not open the pull request: %v", err)
 		out.State = ComparePR
-	} else {
+	case s.login.Unreachable != "":
+		out.State = OfflinePR
+	default:
 		out.State = ManualPR
 	}
 	out.add("pull request body: %s", BodyPath)

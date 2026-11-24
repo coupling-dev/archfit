@@ -2,6 +2,7 @@ package requestsend
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/coupling-dev/archfit/internal/toolrun"
@@ -28,13 +29,13 @@ func TestRoutingWithRealGit(t *testing.T) {
 	git("config", "branch.feature.pushRemote", "fork")
 	git("config", "push.default", "current")
 	s := New(dir, runner)
-	repo, head, err := s.repository(t.Context())
-	if err != nil || repo != testRepo || head != forkHead {
-		t.Fatalf("repo=%q head=%q err=%v", repo, head, err)
+	repo, head, noHead, err := s.repository(t.Context())
+	if err != nil || repo != testRepo || head != forkHead || noHead != nil {
+		t.Fatalf("repo=%q head=%q noHead=%v err=%v", repo, head, noHead, err)
 	}
 	git("checkout", "--detach", "-q")
-	repo, head, err = s.repository(t.Context())
-	if err != nil || repo != testRepo || head != "" {
-		t.Fatalf("detached: repo=%q head=%q err=%v", repo, head, err)
+	repo, head, noHead, err = s.repository(t.Context())
+	if err != nil || repo != testRepo || head != "" || !errors.Is(noHead, errDetached) {
+		t.Fatalf("detached: repo=%q head=%q noHead=%v err=%v", repo, head, noHead, err)
 	}
 }

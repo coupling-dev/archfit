@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -13,8 +14,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/coupling-dev/archfit/internal/testutil"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
+
+const onePullJSON = "[{\"number\":431}]"
 
 func TestRequestSendsFromCLI(t *testing.T) {
 	const token = "cli-secret-token"
@@ -29,14 +33,19 @@ func TestRequestSendsFromCLI(t *testing.T) {
 		code          int
 		next          string
 		posts         int
+		offline       bool
+		reply         bool
 	}{
-		{"pull comment", []string{cmdCheck}, true, "[{\"number\":431}]", 201, false, 0, "", 1},
-		{"can issue", []string{cmdCan, pkgTC, pkgUtil}, false, "[]", 201, false, 0, "", 1},
-		{"check no upstream", []string{cmdCheck}, false, "[]", 0, false, 2, "open a pull request first", 0},
-		{"check no pull", []string{cmdCheck}, true, "[]", 0, false, 2, "open a pull request first", 0},
-		{"ambiguous", []string{cmdCheck}, true, "[{\"number\":431},{\"number\":432}]", 0, false, 2, "#431, #432", 0},
-		{"API failure", []string{cmdCheck}, true, "[{\"number\":431}]", 403, false, 2, "HTTP 403", 1},
-		{"no credentials", []string{cmdCheck}, true, "[]", 0, true, 2, "next: gh auth login", 0},
+		{"pull comment", []string{cmdCheck}, true, onePullJSON, 201, false, 0, "", 1, false, false},
+		{"can issue", []string{cmdCan, pkgTC, pkgUtil}, false, "[]", 201, false, 0, "", 1, false, false},
+		{"check no upstream", []string{cmdCheck}, false, "[]", 0, false, 2, "this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD", 0, false, true},
+		{"check no pull", []string{cmdCheck}, true, "[]", 0, false, 2, "open a pull request first", 0, false, true},
+		{"ambiguous", []string{cmdCheck}, true, "[{\"number\":431},{\"number\":432}]", 0, false, 2, "#431, #432", 0, false, true},
+		{"API failure", []string{cmdCheck}, true, onePullJSON, 403, false, 2, "HTTP 403", 1, false, true},
+		{"API failure, outcome unknown", []string{cmdCheck}, true, onePullJSON, 500, false, 2, "outcome unknown", 1, false, false},
+		{"no credentials", []string{cmdCheck}, true, "[]", 0, true, 2, "next: gh auth login", 0, false, true},
+		{"can, no credentials", []string{cmdCan, pkgTC, pkgUtil}, false, "[]", 0, true, 2, "next: gh auth login", 0, false, false},
+		{"GitHub unreachable", []string{cmdCheck}, true, "[]", 0, false, 2, "could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276; nothing sent", 0, true, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Setenv("GH_TOKEN", token)
@@ -90,6 +99,9 @@ func TestRequestSendsFromCLI(t *testing.T) {
 			transport := http.DefaultTransport.(*http.Transport).Clone()
 			defer transport.CloseIdleConnections()
 			client := &http.Client{Transport: requestTransport(func(r *http.Request) (*http.Response, error) {
+				if tc.offline {
+					return nil, errors.New("tls: failed to verify certificate: x509: OSStatus -26276")
+				}
 				r = r.Clone(r.Context())
 				r.URL.Scheme, r.URL.Host = target.Scheme, target.Host
 				return transport.RoundTrip(r)
@@ -112,6 +124,13 @@ func TestRequestSendsFromCLI(t *testing.T) {
 				}
 			} else if stdout.Len() != 0 || !strings.Contains(stderr.String(), tc.next) {
 				t.Errorf("stdout=%q stderr=%q; want next %q", stdout.String(), stderr.String(), tc.next)
+			}
+			reply := "\nor reply on the pull request: /archfit request " + whyGraph + "\n"
+			if strings.Contains(stderr.String(), reply) != tc.reply {
+				t.Errorf("reply line shown %t, want %t; stderr=%s", !tc.reply, tc.reply, stderr.String())
+			}
+			if words := testutil.StoryNotUsedIn(stderr.String()); len(words) > 0 {
+				t.Errorf("request vocabulary %v in:\n%s", words, stderr.String())
 			}
 			if strings.Contains(stdout.String()+stderr.String(), token) {
 				t.Error("credential in command output")

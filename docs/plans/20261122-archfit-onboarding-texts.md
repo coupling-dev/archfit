@@ -147,6 +147,18 @@ the App, once the pull request is open: <install link>
 Exit `0`. The last line is information. The second run cannot tell the pull request from the App check, so it says so
 (see 2.6).
 
+When `gh` is signed in but cannot reach GitHub (gh's `auth status` then says the token is invalid and gives an `Error:`
+line), setup does not say that gh is not signed in. Before the body line it prints the cause from gh's error, without
+the request URL or a response body (an HTTP answer shows only its status), and the state names it:
+
+```text
+could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276
+pull request: open it, or check on GitHub; gh cannot show it
+pull request body: .archfit-cache/setup-pull-request.md
+state: setup pull request not opened; could not reach GitHub
+next: open the pull request: https://github.com/<owner>/<repo>/compare/main...archfit/setup?expand=1
+```
+
 ### 2.6 Setup pull request open, App not installed
 
 Second run, or a run after 2.5:
@@ -182,13 +194,23 @@ Exit `0`.
 ### 2.8 Merged: advisory
 
 ```text
-setup pull request #12 is merged
-advisory: checks report on each pull request and do not block a merge (changed; see 6.1)
-setup page: <setup page link>
-state: done
+advisory: checks report on each pull request and do not block a merge
+state: advisory checks on
+next: open the setup page: <setup page link>
+an owner approves the first policy there, then makes the check required
 ```
 
-No `next:` line. Exit `0`.
+Exit `0`. Setup reads the merge before the setup branch, so a leftover `archfit/setup` branch does not stop it. Setup
+cannot tell whether the first policy is approved, so its one action is to open the setup page, which can.
+
+When the merged policy has `gate: required`:
+
+```text
+required: a fail blocks a merge when a branch ruleset requires archfit/gate
+setup page: <setup page link>
+state: required checks on
+next: check that a branch ruleset requires archfit/gate: https://github.com/<owner>/<repo>/settings/rules
+```
 
 ### 2.9 Stop states (exit 2)
 

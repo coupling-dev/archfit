@@ -155,9 +155,11 @@ jobs:
 `, strings.ReplaceAll(branch, "'", "''"), actionRepo, sha, tag, setup.AppURL)
 }
 
-func (f setupFiles) ValidPolicy(data []byte) bool {
-	_, err := policyfile.Decode(data)
-	return err == nil
+// ValidPolicy reports whether data is a version 1 policy and whether it makes
+// the check required.
+func (f setupFiles) ValidPolicy(data []byte) (valid, required bool) {
+	policy, err := policyfile.Decode(data)
+	return err == nil, err == nil && policy.Gate == policyfile.GateRequired
 }
 
 func (f setupFiles) PinNote() string { return doctorPin(f.co.root, version) }

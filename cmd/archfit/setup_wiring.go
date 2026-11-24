@@ -36,7 +36,7 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 	git := setupgit.Git{
 		Root: co.root, Runner: local.Runner, ActionRepository: actionRepo,
 		PolicyPath: defaultConfigPath, WorkflowsDir: workflowsDir,
-		Version1: files.ValidPolicy, UsesAction: setupUsesAction,
+		Policy: files.ValidPolicy, UsesAction: setupUsesAction,
 	}
 	gh := setupGH{setupgit.GitHub{Root: co.root, Runner: local.Runner, BodyPath: setup.BodyPath}}
 	return setup.Dependencies{
@@ -103,6 +103,10 @@ func (g setupGH) PullRequest(ctx context.Context, repo, base, branch string) (se
 func (g setupGH) Create(ctx context.Context, repo, base, branch string) (setup.PullRequest, error) {
 	p, err := g.GitHub.Create(ctx, repo, base, branch)
 	return setup.PullRequest(p), err
+}
+
+func (g setupGH) Auth(ctx context.Context) setup.Login {
+	return setup.Login(g.GitHub.Auth(ctx))
 }
 
 func (g setupGH) Check(ctx context.Context, repo, head string) (setup.AppCheck, error) {

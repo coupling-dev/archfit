@@ -12,6 +12,7 @@ The Go coverage example describes version 2 (Archfit 3). Use the current text-re
 Run [`archfit setup`](commands.md#setup) to write this workflow. Setup substitutes your default branch for
 `main` and the commit SHA of the Action tag that matches the installed Archfit release.
 For an annotated tag, it uses the commit the tag points to. Development builds cannot pin an Action release.
+A candidate build, made for testing before a release, pins an Action commit and marks it `# candidate` instead of a tag.
 Setup does not replace an existing workflow. The Action checks out the repository itself.
 
 ```yaml
