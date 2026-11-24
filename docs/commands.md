@@ -238,15 +238,15 @@ Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a ch
 | Advisory checks on | The default branch has the policy and an Archfit workflow. | Open the setup page: an owner approves the first policy there, then makes the check required. |
 | Required checks on | The same, and the policy has `gate: required`. | Check that a branch ruleset requires `archfit/gate`: without it, a fail does not block a merge. |
 
-After writing a new policy, setup shows how it would judge up to 30 recent first-parent changes. It also includes the counts in the first setup pull request body. Replay uses the local remote-tracking default branch, does not fetch PR labels or start CI, and stops after 60 seconds. If the local ref is unavailable, run `archfit replay` later.
+After writing a new policy, setup shows how it would judge up to 30 recent first-parent changes. It also includes the counts in the first setup pull request body. Replay uses the local remote-tracking default branch, does not fetch pull request labels or start CI, and stops after 60 seconds. If the local ref is unavailable, run `archfit replay` later.
 The replay line names up to three of the changes to show an owner, newest first, each with the status an owner would see on it, for example `1 to show an owner (#1: unknown)`.
 Setup asks GitHub for no labels, so it takes the pull request number from the commit subject (`(#12)` or `Merge pull request #12`), or else names the short commit id.
 
-Before a commit, setup prints the files it commits on `archfit/setup` and says that it pushes the branch. It does not ask first.
+Before a commit, setup runs the check against the remote default branch. A `fail` does not stop setup.
+An `unknown` stops setup before the commit and shows the check's next step.
+Then setup prints the files it commits on `archfit/setup` and says that it pushes the branch. It does not ask first.
 The first run, which writes the policy, also says that the next run commits the Claude Code and Codex hook files.
 To leave them out, run that next `archfit setup` with `--no-hooks`: once they are committed on `archfit/setup`, `--no-hooks` stops until you delete the branch.
-Then setup runs the check against the remote default branch. A `fail` does not stop setup.
-An `unknown` stops setup before the commit and shows the check's next step.
 Setup commits only changed setup paths, but includes any existing edits in those paths.
 Review the pull request before merging.
 A candidate build, which pins the Action by commit, adds one sentence to the pull request body that explains its `# candidate` pin.

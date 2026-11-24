@@ -405,8 +405,8 @@ func Run(ctx context.Context, d Dependencies) Outcome {
 		// The run that commits prints its lines only at its end, so this is
 		// the last point where --no-hooks keeps the hooks out of the branch.
 		if hooks := d.Files.HookPaths(); len(hooks) > 0 {
-			out.add("the next %s commits the setup files, with %s, on %s and pushes the branch; %s --no-hooks leaves out the hook files",
-				Command, strings.Join(hooks, " and "), Branch, Command)
+			out.add("the next %s commits the setup files, with %s, on %s and pushes the branch; add --no-hooks to that run to leave out the hook files",
+				Command, strings.Join(hooks, " and "), Branch)
 		}
 	default:
 		publish(ctx, d, s, &out)
@@ -520,7 +520,6 @@ func commit(ctx context.Context, d Dependencies, s *Detection, out *Outcome, pat
 		out.stop(errors.New("git author name or email is missing"), "set git user.name and user.email, then archfit setup")
 		return false
 	}
-	out.add("setup commits %s on %s and pushes the branch", strings.Join(paths, ", "), Branch)
 	base := "origin/" + s.Default
 	check, err := d.Check(ctx, base)
 	if err != nil {
@@ -535,6 +534,7 @@ func commit(ctx context.Context, d Dependencies, s *Detection, out *Outcome, pat
 		}
 		return false
 	}
+	out.add("setup commits %s on %s and pushes the branch", strings.Join(paths, ", "), Branch)
 	if s.branch != Branch {
 		if err := d.Git.Switch(ctx, Branch, s.Default); err != nil {
 			out.stop(err, "sync the default branch or switch to "+Branch+", then archfit setup")

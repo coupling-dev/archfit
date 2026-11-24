@@ -169,6 +169,9 @@ func TestSetupStopsWithoutPublishing(t *testing.T) {
 				out := Run(t.Context(), deps)
 				assertOutcome(t, out, Blocked, 2, tc.next, tc.line)
 				assertActions(t, f.actions, actions...)
+				if text := strings.Join(out.Lines, "\n"); strings.Contains(text, "setup commits") {
+					t.Errorf("a stop before the commit says setup commits:\n%s", text)
+				}
 			}
 		})
 	}
@@ -444,7 +447,7 @@ func TestCandidateActionPin(t *testing.T) {
 }
 
 // TestSetupSaysWhatItCommits: the run that commits names the files and the
-// branch before the check, and the run before it says how to leave out the
+// branch after the check and before the commit, and the run before it says how to leave out the
 // hooks, while --no-hooks can still do that.
 func TestSetupSaysWhatItCommits(t *testing.T) {
 	hooks := []string{".claude/settings.json", ".codex/hooks.json"}
@@ -455,7 +458,7 @@ func TestSetupSaysWhatItCommits(t *testing.T) {
 		committed string
 	}{
 		{"with hooks", hooks,
-			"the next archfit setup commits the setup files, with .claude/settings.json and .codex/hooks.json, on archfit/setup and pushes the branch; archfit setup --no-hooks leaves out the hook files",
+			"the next archfit setup commits the setup files, with .claude/settings.json and .codex/hooks.json, on archfit/setup and pushes the branch; add --no-hooks to that run to leave out the hook files",
 			"setup commits .archfit.yaml, .github/workflows/archfit.yaml, .claude/settings.json, .codex/hooks.json on archfit/setup and pushes the branch"},
 		{"no hooks", nil, "", "setup commits .archfit.yaml, .github/workflows/archfit.yaml on archfit/setup and pushes the branch"},
 	} {
@@ -470,12 +473,9 @@ func TestSetupSaysWhatItCommits(t *testing.T) {
 				t.Errorf("missing %q in:\n%s", tc.firstRun, first)
 			}
 			second := strings.Join(Run(t.Context(), deps).Lines, "\n")
-			says, check := strings.Index(second, tc.committed), strings.Index(second, "check: fail against origin/main")
-			if says < 0 || check < says {
-				t.Errorf("want %q before the check in:\n%s", tc.committed, second)
-			}
-			if !strings.Contains(second, "committed as Setup Author <author@example.invalid>") {
-				t.Errorf("missing the commit line in:\n%s", second)
+			check, says, done := strings.Index(second, "check: fail against origin/main"), strings.Index(second, tc.committed), strings.Index(second, "committed as Setup Author <author@example.invalid>")
+			if check < 0 || says < check || done < says {
+				t.Errorf("want the check, then %q, then the commit, in:\n%s", tc.committed, second)
 			}
 			for _, text := range []string{first, second} {
 				if words := testutil.StoryNotUsedIn(text); len(words) > 0 {

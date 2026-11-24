@@ -242,7 +242,7 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 
 func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process boundary enumerates each external response
 	old := version
-	version = "v0.10.0"
+	version = setupRelease
 	t.Cleanup(func() { version = old })
 	for _, tc := range []struct {
 		name         string
@@ -347,9 +347,9 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 					t.Fatal(out)
 				}
 			}
-			announce := regexp.MustCompile(`(?m)^setup commits (\S+, )*\.github/workflows/archfit\.yaml(, \S+)* on archfit/setup and pushes the branch\ncheck: `)
+			announce := regexp.MustCompile(`(?m)^check: .*\nsetup commits (\S+, )*\.github/workflows/archfit\.yaml(, \S+)* on archfit/setup and pushes the branch\n`)
 			if out := run(); !strings.Contains(out, "opened setup pull request #7") || !announce.MatchString(out) ||
-				!strings.Contains(out, "committed as Setup Author <author@example.invalid>") || strings.Contains(out, "--no-hooks leaves out") {
+				!strings.Contains(out, "committed as Setup Author <author@example.invalid>") || strings.Contains(out, "add --no-hooks") {
 				t.Fatal(out)
 			}
 			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md")) //nolint:gosec // dir is a test fixture

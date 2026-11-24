@@ -303,16 +303,17 @@ func TestRunNamesUpToThreeChangesToLookAt(t *testing.T) {
 }
 
 func TestChangeName(t *testing.T) {
+	const fullCommit = "abcdef0123"
 	cases := []struct {
 		name string
 		c    replay.Change
 		want string
 	}{
-		{"pull request from GitHub", replay.Change{Commit: "abcdef0123", PR: 7, Subject: "Fix (#3)"}, "#7"},
-		{"squash subject", replay.Change{Commit: "abcdef0123", Subject: "Add the tc shaper (#431)"}, "#431"},
-		{"merge subject", replay.Change{Commit: "abcdef0123", Subject: "Merge pull request #12 from a/feature"}, "#12"},
-		{"number inside the subject", replay.Change{Commit: "abcdef0123", Subject: "Revert (#5) and more"}, "abcdef0"},
-		{"no number", replay.Change{Commit: "abcdef0123", Subject: "Initial commit"}, "abcdef0"},
+		{"pull request from GitHub", replay.Change{Commit: fullCommit, PR: 7, Subject: "Fix (#3)"}, "#7"},
+		{"squash subject", replay.Change{Commit: fullCommit, Subject: "Add the tc shaper (#431)"}, "#431"},
+		{"merge subject", replay.Change{Commit: fullCommit, Subject: "Merge pull request #12 from a/feature"}, "#12"},
+		{"number inside the subject", replay.Change{Commit: fullCommit, Subject: "Revert (#5) and more"}, "abcdef0"},
+		{"no number", replay.Change{Commit: fullCommit, Subject: "Initial commit"}, "abcdef0"},
 		{"short commit", replay.Change{Commit: "abc"}, "abc"},
 	}
 	for _, tc := range cases {

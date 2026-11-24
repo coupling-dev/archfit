@@ -77,7 +77,7 @@ func TestBody(t *testing.T) {
 	if strings.Contains(bare, "## Last 30") || strings.Contains(bare, "## For the owner") || strings.Contains(bare, "candidate") {
 		t.Errorf("empty sections rendered: %q", bare)
 	}
-	full := Body("0.10.0", InstallURL, "candidate", &ReplaySummary{Passed: 22, NeededOwner: 5, ToShowOwner: 3, ToShow: []string{"#12: fail"}}, []string{"exception legacy: expires 2027-02-20"})
+	full := Body("0.10.0", InstallURL, "candidate", &ReplaySummary{Passed: 22, NeededOwner: 5, ToShowOwner: 3, ToShow: []string{toShowFail}}, []string{"exception legacy: expires 2027-02-20"})
 	for _, section := range []string{
 		"advisory: nothing blocks a merge until an owner makes the check required.\nThe workflow pins a candidate build of the Action: a commit made for testing before a release, marked `# candidate` instead of a release tag.\n",
 		"## Last 30 merged pull requests\n\n22 passed, 5 needed an owner, 3 to show an owner (#12: fail, 2 more). Read them",
@@ -89,6 +89,9 @@ func TestBody(t *testing.T) {
 	}
 }
 
+// toShowFail names a change to show an owner and what the owner sees.
+const toShowFail = "#12: fail"
+
 func TestReplayCountsNameTheChangesToShow(t *testing.T) {
 	for _, tc := range []struct {
 		name string
@@ -97,9 +100,9 @@ func TestReplayCountsNameTheChangesToShow(t *testing.T) {
 	}{
 		{"none to show", ReplaySummary{Passed: 3}, "3 passed, 0 needed an owner, 0 to show an owner"},
 		{"one", ReplaySummary{Passed: 2, ToShowOwner: 1, ToShow: []string{"#1: unknown"}}, "2 passed, 0 needed an owner, 1 to show an owner (#1: unknown)"},
-		{"three", ReplaySummary{ToShowOwner: 3, ToShow: []string{"#12: fail", "#11: unknown", "4f2a9c1: unknown"}},
+		{"three", ReplaySummary{ToShowOwner: 3, ToShow: []string{toShowFail, "#11: unknown", "4f2a9c1: unknown"}},
 			"0 passed, 0 needed an owner, 3 to show an owner (#12: fail, #11: unknown, 4f2a9c1: unknown)"},
-		{"more than three", ReplaySummary{NeededOwner: 1, ToShowOwner: 5, ToShow: []string{"#12: fail", "#11: unknown", "#9: waiting"}},
+		{"more than three", ReplaySummary{NeededOwner: 1, ToShowOwner: 5, ToShow: []string{toShowFail, "#11: unknown", "#9: waiting"}},
 			"0 passed, 1 needed an owner, 5 to show an owner (#12: fail, #11: unknown, #9: waiting, 2 more)"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

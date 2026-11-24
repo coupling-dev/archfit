@@ -190,16 +190,19 @@ func TestSetupHookPathsFollowNoHooks(t *testing.T) {
 
 // TestSetupPinNoteLeavesOutCannotTell: setup prints the pin line only when it
 // can compare; a candidate pin is "cannot tell", which only doctor reports.
+// setupRelease is the engine version these setup tests pin.
+const setupRelease = "v0.10.0"
+
 func TestSetupPinNoteLeavesOutCannotTell(t *testing.T) {
 	old := version
-	version = "v0.10.0"
+	version = setupRelease
 	t.Cleanup(func() { version = old })
 	sha := strings.Repeat("b", 40)
 	for _, tc := range []struct {
 		name, comment, want string
 	}{
 		{"candidate", "candidate", ""},
-		{"release", "v0.10.0", "the local engine matches the workflow pin"},
+		{"release", setupRelease, "the local engine matches the workflow pin"},
 		{"other release", "v0.9.0", "the local engine does not match the workflow pin (v0.10.0 vs v0.9.0)"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
