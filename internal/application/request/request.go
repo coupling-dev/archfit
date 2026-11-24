@@ -220,7 +220,9 @@ func (s Service) Ask(ctx context.Context, in Input) (Outcome, error) {
 	}
 	sent, err := s.Sender.Send(ctx, req)
 	if err != nil {
-		return Outcome{}, fmt.Errorf("send the request: %w", err)
+		// The request comes back with the error, so the caller can show
+		// another way to post it.
+		return Outcome{Request: req}, fmt.Errorf("send the request: %w", err)
 	}
 	return Outcome{Request: req, Number: sent.Number, URL: sent.URL}, nil
 }

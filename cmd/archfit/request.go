@@ -77,7 +77,7 @@ func (c *RequestCmd) Run(deps *appDeps) error {
 	}
 	out, err := svc.Ask(ctx, request.Input{Reason: c.Message, Expires: c.Expires})
 	if err != nil {
-		return noVerdict(err)
+		return noVerdict(withReply(err, out.Request))
 	}
 	if out.URL != "" {
 		_, err := fmt.Fprintln(deps.Stdout, out.URL)
@@ -94,6 +94,19 @@ func (c *RequestCmd) Run(deps *appDeps) error {
 		return noVerdict(err)
 	}
 	return exitWith(exitUnknown)
+}
+
+// withReply adds the pull request comment that asks the same thing when
+// nothing reached GitHub. Only a request from check output has one: the App
+// reads the check of the pull request it is posted on. An unknown outcome
+// gets none, so a request is not asked twice.
+func withReply(err error, r request.Request) error {
+	var notSent interface{ NothingSent() }
+	if r.Base == "" || !errors.As(err, &notSent) {
+		return err
+	}
+	line := strings.TrimSuffix(requestsend.Line(requestsend.Input{Reason: r.Reason, Expires: r.Expires}), "\n")
+	return fmt.Errorf("%w\nor reply on the pull request: %s", err, line)
 }
 
 // writeRequest prints a request no App sent: the errors it asks about, the

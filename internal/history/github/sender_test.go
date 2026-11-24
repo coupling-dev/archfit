@@ -46,7 +46,7 @@ func TestSendPaths(t *testing.T) {
 		{"check comment", false, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
 		{"can comment", true, onePull, "/repos/acme/shop/issues/431/comments", commentURL, ""},
 		{"can issue", true, "[]", "/repos/acme/shop/issues", issueURL, ""},
-		{"check without pull", false, "[]", "", "", "next: open a pull request first"},
+		{"check without pull", false, "[]", "", "", "no open pull request for acme:feature; nothing sent\nnext: open a pull request first"},
 		{"ambiguous", false, "[{\"number\":431},{\"number\":432}]", "", "", "#431, #432"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -222,7 +222,7 @@ func TestRepositoryRouting(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := New(".", gitRunner(t, tc.override))
-			repo, head, err := s.repository(t.Context())
+			repo, head, _, err := s.repository(t.Context())
 			if err != nil || repo != tc.repo || head != tc.head {
 				t.Fatalf("repo=%q head=%q err=%v", repo, head, err)
 			}
@@ -230,11 +230,50 @@ func TestRepositoryRouting(t *testing.T) {
 	}
 }
 
-func TestNoUpstreamDoesNotLookupOrSendCheck(t *testing.T) {
-	s := New(".", gitRunner(t, map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}))
-	got, err := s.Send(t.Context(), Input{Reason: testReason})
-	if err == nil || !strings.Contains(err.Error(), "open a pull request first") || got != (Outcome{}) {
-		t.Fatalf("delivery=%+v err=%v", got, err)
+// TestNoHeadSaysWhy: a branch pushed without -u has a pull request that
+// archfit cannot find; it must not claim there is none (B6).
+func TestNoHeadSaysWhy(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		override map[string]toolrun.Output
+		want     string
+	}{
+		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD"},
+		{"detached", map[string]toolrun.Output{"git symbolic-ref --quiet --short HEAD": {ExitCode: 1}},
+			"HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s := New(".", gitRunner(t, tc.override))
+			got, err := s.Send(t.Context(), Input{Reason: testReason})
+			var marked interface{ NothingSent() }
+			if err == nil || err.Error() != tc.want || !errors.As(err, &marked) || got != (Outcome{}) {
+				t.Fatalf("delivery=%+v err=%v", got, err)
+			}
+		})
+	}
+}
+
+// TestUnreachableGitHubNamesTheCause: a lookup that never reaches GitHub
+// says so with the network error, never the URL or the token (B6).
+func TestUnreachableGitHubNamesTheCause(t *testing.T) {
+	for _, tc := range []struct{ name, cause, want string }{
+		{"tls", "tls: failed to verify certificate: x509: OSStatus -26276",
+			"could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276; nothing sent"},
+		{"token in the cause", "proxy said Bearer " + testToken, "could not reach GitHub; nothing sent"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Setenv("GH_TOKEN", testToken)
+			s := New(".", gitRunner(t, nil))
+			s.Client = &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+				return nil, errors.New(tc.cause)
+			})}
+			got, err := s.Send(t.Context(), Input{Reason: testReason})
+			var marked interface{ NothingSent() }
+			if err == nil || err.Error() != tc.want || !errors.As(err, &marked) || got != (Outcome{}) {
+				t.Fatalf("delivery=%+v err=%v", got, err)
+			}
+		})
 	}
 }
 
