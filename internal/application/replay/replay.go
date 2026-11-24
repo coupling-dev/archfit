@@ -34,12 +34,19 @@ package replay
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strconv"
 
 	"github.com/coupling-dev/archfit/internal/model/result"
 )
 
-// maxExamples is how many changes that would ask the result names.
+// maxExamples is how many changes of each named class the result names.
 const maxExamples = 3
+
+// subjectNumber finds the pull request number GitHub writes into the subject
+// of a squash merge, "Title (#12)", or of a merge commit, "Merge pull request
+// #12 from ...".
+var subjectNumber = regexp.MustCompile(`\(#([0-9]+)\)\s*$|^Merge pull request #([0-9]+)\b`)
 
 // Change is one first-parent commit of the default branch.
 type Change struct {
@@ -64,11 +71,26 @@ func (c Change) Label() string {
 	if c.PR > 0 {
 		return fmt.Sprintf("#%d %s", c.PR, c.Title)
 	}
-	short := c.Commit
-	if len(short) > 7 {
-		short = short[:7]
+	return c.short() + " " + c.Subject
+}
+
+// Name names the change in a list: "#12", the number GitHub wrote into the
+// subject when no pull request is known, or else the short commit id.
+func (c Change) Name() string {
+	if c.PR > 0 {
+		return "#" + strconv.Itoa(c.PR)
 	}
-	return short + " " + c.Subject
+	if m := subjectNumber.FindStringSubmatch(c.Subject); m != nil {
+		return "#" + m[1] + m[2]
+	}
+	return c.short()
+}
+
+func (c Change) short() string {
+	if len(c.Commit) > 7 {
+		return c.Commit[:7]
+	}
+	return c.Commit
 }
 
 // Source is the history a replay reads.
@@ -111,6 +133,15 @@ type Example struct {
 	What string
 }
 
+// Look is a change to look at first.
+type Look struct {
+	// Name is Change.Name.
+	Name string
+	// Status is what an owner would see on it: fail, waiting or unknown.
+	// A change with no parent, or a check that could not run, is unknown.
+	Status string
+}
+
 // Result is what a replay found.
 type Result struct {
 	// Source is the branch the changes were read from.
@@ -123,6 +154,8 @@ type Result struct {
 	Passed, Asked, Look int
 	// Examples are up to three of the changes that would ask, newest first.
 	Examples []Example
+	// LookAt are up to three of the changes to look at first, newest first.
+	LookAt []Look
 	// Stopped is true when the context ended before every change was read.
 	Stopped bool
 	// Incomplete is true when the clone is shallow and the history it holds
@@ -165,6 +198,9 @@ func (s Service) Run(ctx context.Context, n int) (Result, error) {
 			}
 		default:
 			res.Look++
+			if len(res.LookAt) < maxExamples {
+				res.LookAt = append(res.LookAt, Look{Name: c.Name(), Status: what})
+			}
 		}
 	}
 	return res, nil
@@ -178,14 +214,16 @@ const (
 	classAsked
 )
 
-// judge classifies one change. what is the first error that asks an owner.
+// judge classifies one change. what is the first error that asks an owner,
+// or the status of a change to look at.
 func (s Service) judge(ctx context.Context, c Change) (cl class, what string, err error) {
+	unknown := string(result.StatusUnknown)
 	if c.Parent == "" {
-		return classLook, "", nil
+		return classLook, unknown, nil
 	}
 	r, err := s.Checker.Check(ctx, c)
 	if err != nil {
-		return classLook, "", err
+		return classLook, unknown, err
 	}
 	switch r.Status {
 	case result.StatusPass:
@@ -197,7 +235,10 @@ func (s Service) judge(ctx context.Context, c Change) (cl class, what string, er
 			}
 		}
 	}
-	return classLook, "", nil
+	if r.Status == "" {
+		return classLook, unknown, nil
+	}
+	return classLook, string(r.Status), nil
 }
 
 // linear reports whether the changes hold no merge commit.

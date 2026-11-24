@@ -46,7 +46,11 @@ func setupDependencies(deps *appDeps, dir string, noHooks bool) (setup.Dependenc
 			svc := co.replay(&local)
 			svc.History = replayHistory{co: co, ref: setupgit.OriginRef(branch), noLabels: true}
 			r, err := svc.Run(ctx, 30)
-			return setup.ReplaySummary{Read: r.Read, Passed: r.Passed, NeededOwner: r.Asked, ToShowOwner: r.Look}, err
+			summary := setup.ReplaySummary{Read: r.Read, Passed: r.Passed, NeededOwner: r.Asked, ToShowOwner: r.Look}
+			for _, l := range r.LookAt {
+				summary.ToShow = append(summary.ToShow, l.Name+": "+l.Status)
+			}
+			return summary, err
 		},
 		Init: func(ctx context.Context) (string, error) {
 			return runInit(ctx, &local, co, noHooks, true)

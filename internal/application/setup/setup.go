@@ -58,6 +58,8 @@ type Files interface {
 	WriteBody(body string) error
 	Paths() []string
 	ValidationPaths() []string
+	// HookPaths are the hook settings files among Paths; none with --no-hooks.
+	HookPaths() []string
 }
 
 type unsafeDestination interface{ UnsafeDestination() }
@@ -134,10 +136,21 @@ type Dependencies struct {
 // ReplaySummary counts where the current policy would have asked for help.
 type ReplaySummary struct {
 	Read, Passed, NeededOwner, ToShowOwner int
+	// ToShow names up to three of the changes to show an owner, newest
+	// first, each with what the owner would see: "#12: fail".
+	ToShow []string
 }
 
 func (r ReplaySummary) counts() string {
-	return fmt.Sprintf("%d passed, %d needed an owner, %d to show an owner", r.Passed, r.NeededOwner, r.ToShowOwner)
+	counts := fmt.Sprintf("%d passed, %d needed an owner, %d to show an owner", r.Passed, r.NeededOwner, r.ToShowOwner)
+	if len(r.ToShow) == 0 {
+		return counts
+	}
+	names := slices.Clone(r.ToShow)
+	if more := r.ToShowOwner - len(names); more > 0 {
+		names = append(names, fmt.Sprintf("%d more", more))
+	}
+	return counts + " (" + strings.Join(names, ", ") + ")"
 }
 
 // CheckResult carries the local verdict and its continuation, if any.
@@ -256,9 +269,14 @@ func installLink(owner, repo uint64) string {
 }
 
 // Body constructs the setup pull request text without local checkout paths.
-func Body(version, link string, replay *ReplaySummary, decisions []string) string {
+// pinNote is the workflow comment of an Action pinned by commit in a candidate
+// build; it is empty for a release.
+func Body(version, link, pinNote string, replay *ReplaySummary, decisions []string) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "This pull request sets up archfit %s: the policy, the workflow and the instructions for agents.\nChecks are advisory: nothing blocks a merge until an owner makes the check required.\n", strings.TrimPrefix(version, "v"))
+	if pinNote != "" {
+		fmt.Fprintf(&b, "The workflow pins a candidate build of the Action: a commit made for testing before a release, marked `# %s` instead of a release tag.\n", pinNote)
+	}
 	if replay != nil {
 		fmt.Fprintf(&b, "\n## Last 30 merged pull requests\n\n%s. Read them with `archfit replay --last 30`.\n", replay.counts())
 	}
@@ -401,6 +419,12 @@ func Run(ctx context.Context, d Dependencies) Outcome {
 				out.add("  %s", line)
 			}
 		}
+		// The run that commits prints its lines only at its end, so this is
+		// the last point where --no-hooks keeps the hooks out of the branch.
+		if hooks := d.Files.HookPaths(); len(hooks) > 0 {
+			out.add("the next %s commits the setup files, with %s, on %s and pushes the branch; add --no-hooks to that run to leave out the hook files",
+				Command, strings.Join(hooks, " and "), Branch)
+		}
 	default:
 		publish(ctx, d, s, &out)
 	}
@@ -527,6 +551,7 @@ func commit(ctx context.Context, d Dependencies, s *Detection, out *Outcome, pat
 		}
 		return false
 	}
+	out.add("setup commits %s on %s and pushes the branch", strings.Join(paths, ", "), Branch)
 	if s.branch != Branch {
 		if err := d.Git.Switch(ctx, Branch, s.Default); err != nil {
 			out.stop(err, "sync the default branch or switch to "+Branch+", then archfit setup")
@@ -539,7 +564,7 @@ func commit(ctx context.Context, d Dependencies, s *Detection, out *Outcome, pat
 		out.stop(err, "fix the commit error, then archfit setup")
 		return false
 	}
-	out.add("committed %s as %s", strings.Join(paths, ", "), identity)
+	out.add("committed as %s", identity)
 	s.pushed = false
 	return true
 }
@@ -583,7 +608,11 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.stop(err, "fix .archfit.yaml")
 		return
 	}
-	if err := d.Files.WriteBody(Body(d.Version, out.InstallURL, out.replay(ctx, s.Default, d.Replay), decisions)); err != nil {
+	var pinNote string
+	if d.ActionRef != "" {
+		pinNote = d.ActionRefNote
+	}
+	if err := d.Files.WriteBody(Body(d.Version, out.InstallURL, pinNote, out.replay(ctx, s.Default, d.Replay), decisions)); err != nil {
 		out.stop(err, "fix the pull request body file")
 		return
 	}
