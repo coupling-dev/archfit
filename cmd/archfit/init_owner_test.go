@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/coupling-dev/archfit/internal/config/policyfile"
+	"github.com/coupling-dev/archfit/internal/testutil"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -49,6 +50,14 @@ func TestInitOwners(t *testing.T) {
 			}
 			if code != 0 || len(policy.Owners) != 1 || policy.Owners[0] != tc.owner || !strings.Contains(out.String(), tc.next) || !strings.Contains(out.String(), tc.notice) {
 				t.Fatalf("exit %d policy %s output %s stderr %s", code, data, out.String(), errout.String())
+			}
+			notes := strings.Count(out.String(), "Owners approve requests: name an owner who does not write most of the changes")
+			if wantNotes := map[bool]int{true: 0, false: 1}[tc.owner == "<your-github-login>"]; notes != wantNotes ||
+				(notes == 1 && !strings.Contains(out.String(), "owner: "+tc.owner+". Owners approve requests")) {
+				t.Errorf("sole owner note %d times, want %d:\n%s", notes, wantNotes, out.String())
+			}
+			if words := testutil.StoryNotUsedIn(out.String()); len(words) > 0 {
+				t.Errorf("init vocabulary %v in:\n%s", words, out.String())
 			}
 		})
 	}

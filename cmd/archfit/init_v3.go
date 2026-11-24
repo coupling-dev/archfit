@@ -111,6 +111,9 @@ func runInit(ctx context.Context, deps *appDeps, co checkout, noHooks, forSetup 
 		if !forSetup {
 			writeOwnerDecisions(&b, draft.File)
 		}
+		if owners := draft.File.Owners; len(owners) == 1 && owners[0] != identity.PlaceholderOwner {
+			b.WriteString(soleOwnerNote(owners[0]) + "\n")
+		}
 		if draft.File.Owners[0] == identity.PlaceholderOwner {
 			b.WriteString("no person is named as an owner yet\n")
 			if forSetup {
@@ -123,6 +126,12 @@ func runInit(ctx context.Context, deps *appDeps, co checkout, noHooks, forSetup 
 		}
 	}
 	return b.String(), nil
+}
+
+// soleOwnerNote says once what the one owner init named does: an owner who
+// writes most changes would approve their own requests.
+func soleOwnerNote(login string) string {
+	return "owner: " + login + ". Owners approve requests: name an owner who does not write most of the changes"
 }
 
 // initFresh writes the first policy of a repository.
