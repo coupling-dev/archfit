@@ -135,7 +135,7 @@ Only an error whose `next` is `archfit request` joins the request: an error of a
 
 A use past the surface asks one question: should its package be part of the surface? The printed request shows it on a `question:` line; the App asks the owner to declare the package `public` or `model`, or to reject the request.
 
-With a GitHub remote, `archfit request` posts `/archfit request <why> [--expires DATE]` as a comment on the one open pull request for the current branch. The target repository is `origin`, or a configured GitHub `upstream` for a fork. The head uses the push remote's owner, falling back to the `origin` owner. Several matching pull requests means nothing is sent: the error names their numbers. A detached HEAD or a branch without an upstream names no pull request: the error says which, and for a branch without an upstream `next: git push -u origin HEAD`.
+With a GitHub remote, `archfit request` posts `/archfit request <why> [--expires DATE]` as a comment on the one open pull request for the current branch. The target repository is `origin`, or a configured GitHub `upstream` for a fork. The head uses the push remote's owner, falling back to the `origin` owner. Several matching pull requests means nothing is sent: the error names their numbers. A detached HEAD or a branch without an upstream names no pull request: the error says which, and for a branch without an upstream `next: git push -u <push remote> HEAD`.
 
 Without a pull request, only a request from `archfit can` opens an issue. Its body holds the request line and the `can` record; the App marks the numbers "as reported" until a pull request confirms them. With `check` output, nothing is opened: `no open pull request for <owner>:<branch>` and `next: open a pull request first`.
 
@@ -232,7 +232,7 @@ Use `--no-hooks` to skip Claude Code and Codex hooks, or `-C DIR` to select a ch
 | No policy | Writes a policy and the agent instructions. | Read `.archfit.yaml`, then run `archfit setup` again. |
 | No workflow | Keeps the policy and writes a [pinned workflow](ci.md#the-workflow-archfit-setup-writes). | Follow the next step after the push. |
 | Stopped before the push | The HTTPS push uses a `gh` login with known classic scopes, without `workflow`. | Run `gh auth refresh -s workflow`, then run setup again. |
-| Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. The state says why: `gh is not signed in`, or `could not reach GitHub` with gh's error. | Open the pull request on GitHub with the saved body. |
+| Pull request not opened | Prints a compare link and saves the body to `.archfit-cache/setup-pull-request.md`. The state says why: `gh is not signed in`, or `could not reach GitHub` with its cause. | Open the pull request on GitHub with the saved body. |
 | Pull request open, no App check | Prints the App install link. Setup does not re-run the workflow. | Install the App. Use the printed re-run link if the check does not start. |
 | App check present | Prints the status of `archfit/gate`. | Review and merge the setup pull request. |
 | Advisory checks on | The default branch has the policy and an Archfit workflow. | Open the setup page: an owner approves the first policy there, then makes the check required. |
@@ -248,7 +248,7 @@ Review the pull request before merging.
 SSH pushes use the SSH key and do not require the `gh` `workflow` scope.
 When `gh` does not report classic scopes, setup attempts the push and reports a permission error if Git rejects it.
 Without a signed-in `gh`, setup still pushes via Git. It cannot see the pull request or App check.
-When `gh` cannot reach GitHub (for example, a network or TLS error), setup says `could not reach GitHub` with gh's error line, not that `gh` is not signed in.
+When `gh` cannot reach GitHub (for example, a network or TLS error, or no answer within 30 seconds), setup says `could not reach GitHub` with the cause, not that `gh` is not signed in. The cause never includes the request URL or a response body; an HTTP answer other than 401 shows only its status.
 After the merge, setup reads the default branch first, so a leftover `archfit/setup` branch does not stop it.
 A later run does not push an unchanged branch. If Git refuses to update the workflow, fix your Git credentials.
 When setup can detect a merged policy and workflow, it works without `gh`.

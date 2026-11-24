@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -127,9 +128,19 @@ func notSent(message string) error { return nothingSent(message) }
 
 // Why the current checkout names no pull request head.
 var (
-	errDetached   = notSent("HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request")
-	errNoUpstream = notSent("this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD")
+	errDetached = notSent("HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request")
+	remoteName  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 )
+
+// noUpstream names the push remote in the command only when the name is safe
+// to paste into a shell.
+func noUpstream(remote string) error {
+	next := "push the branch with -u to its remote"
+	if remoteName.MatchString(remote) {
+		next = "git push -u " + remote + " HEAD"
+	}
+	return notSent("this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: " + next)
+}
 
 // transportCause is the first line of the network error under err, never the
 // URL or a response, and nothing that contains the token.
@@ -274,15 +285,16 @@ func (s *Sender) repository(ctx context.Context) (repo, head string, noHead, err
 	if err != nil {
 		return "", "", nil, err
 	}
-	if code != 0 {
-		return repo, "", errNoUpstream, nil
-	}
+	hasUpstream := code == 0
 	pushRemote, _, err := s.git(ctx, "for-each-ref", "--format=%(push:remotename)", "refs/heads/"+branch)
 	if err != nil {
 		return "", "", nil, err
 	}
 	if pushRemote == "" {
 		pushRemote = "origin"
+	}
+	if !hasUpstream {
+		return repo, "", noUpstream(pushRemote), nil
 	}
 	remote, code, err := s.git(ctx, "remote", "get-url", "--push", pushRemote)
 	if err != nil {

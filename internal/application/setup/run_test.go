@@ -48,7 +48,7 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 			assertOutcome(t, second, tc.wantState, 0, Next(second.Progress), "kept .archfit.yaml", "check: fail against origin/main")
 			assertActions(t, f.actions, tc.wantActions...)
 			if tc.wantState == OfflinePR {
-				assertOutcome(t, second, OfflinePR, 0, Next(second.Progress), "could not reach GitHub: "+tlsFailure)
+				assertOutcome(t, second, OfflinePR, 0, Next(second.Progress), "could not reach GitHub: "+tlsFailure, "gh cannot show it")
 			}
 			if tc.wantState == NeedsScope {
 				assertOutcome(t, second, NeedsScope, 0, refreshNext)
@@ -102,7 +102,7 @@ func TestSetupResumesAcrossExternalSteps(t *testing.T) {
 	}
 }
 
-const tlsFailure = `Get "https://api.github.com/": tls: failed to verify certificate: x509: OSStatus -26276`
+const tlsFailure = "tls: failed to verify certificate: x509: OSStatus -26276"
 
 // TestSetupAfterTheMerge: the setup branch stays behind after its pull
 // request is merged; setup reports the checks that run, not the branch.

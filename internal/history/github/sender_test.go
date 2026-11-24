@@ -19,16 +19,17 @@ import (
 )
 
 const (
-	testReason       = "why"
-	testRepo         = "acme/shop"
-	unknownOutcome   = "outcome unknown"
-	secondCredential = "second"
-	thirdCredential  = "third"
-	forkHead         = "worker:feature"
-	originCommand    = "git config --get remote.origin.url"
-	pushURLCommand   = "git remote get-url --push origin"
-	upstreamCommand  = "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}"
-	branchCommand    = "git symbolic-ref --quiet --short HEAD"
+	testReason        = "why"
+	testRepo          = "acme/shop"
+	unknownOutcome    = "outcome unknown"
+	secondCredential  = "second"
+	thirdCredential   = "third"
+	forkHead          = "worker:feature"
+	originCommand     = "git config --get remote.origin.url"
+	pushURLCommand    = "git remote get-url --push origin"
+	upstreamCommand   = "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}"
+	branchCommand     = "git symbolic-ref --quiet --short HEAD"
+	pushRemoteCommand = "git for-each-ref --format=%(push:remotename) refs/heads/feature"
 )
 
 const testToken = "secret-test-token"
@@ -136,6 +137,11 @@ func TestAPIFailuresNeverRetryOrLeak(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), tc.want) || strings.Contains(err.Error(), testToken) || got != (Outcome{}) || posts != tc.posts {
 				t.Fatalf("delivery=%+v err=%v posts=%d", got, err, posts)
 			}
+			// An unknown outcome may have reached GitHub: it must not invite
+			// the same request a second way.
+			if marked := nothingSentMarked(err); marked != (tc.want != unknownOutcome) {
+				t.Errorf("nothing-sent mark %t on %q", marked, err)
+			}
 		})
 	}
 }
@@ -157,9 +163,14 @@ func TestSendOutcomeUnknownAfterConnectionLost(t *testing.T) {
 		_ = conn.Close()
 	})
 	got, err := s.Send(t.Context(), Input{Reason: testReason})
-	if err == nil || !strings.Contains(err.Error(), unknownOutcome) || got != (Outcome{}) || posts.Load() != 1 {
+	if err == nil || !strings.Contains(err.Error(), unknownOutcome) || nothingSentMarked(err) || got != (Outcome{}) || posts.Load() != 1 {
 		t.Fatalf("delivery=%+v err=%v posts=%d", got, err, posts.Load())
 	}
+}
+
+func nothingSentMarked(err error) bool {
+	var marked interface{ NothingSent() }
+	return errors.As(err, &marked)
 }
 
 func TestNoCredentialsSendsNothing(t *testing.T) {
@@ -209,8 +220,8 @@ func TestRepositoryRouting(t *testing.T) {
 	}{
 		{"origin", nil, testRepo, "acme:feature"},
 		{"fork push", map[string]toolrun.Output{
-			"git for-each-ref --format=%(push:remotename) refs/heads/feature": {Stdout: []byte("fork\n")},
-			"git remote get-url --push fork":                                  {Stdout: []byte("git@github.com:worker/shop.git\n")},
+			pushRemoteCommand:                {Stdout: []byte("fork\n")},
+			"git remote get-url --push fork": {Stdout: []byte("git@github.com:worker/shop.git\n")},
 		}, testRepo, forkHead},
 		{"origin fork upstream", map[string]toolrun.Output{
 			originCommand:                          {Stdout: []byte("https://github.com/worker/shop.git")},
@@ -241,6 +252,10 @@ func TestNoHeadSaysWhy(t *testing.T) {
 	}{
 		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}},
 			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD"},
+		{"no upstream, fork push remote", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}, pushRemoteCommand: {Stdout: []byte("fork\n")}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u fork HEAD"},
+		{"no upstream, unsafe remote name", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}, pushRemoteCommand: {Stdout: []byte("$(touch x)\n")}},
+			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: push the branch with -u to its remote"},
 		{"detached", map[string]toolrun.Output{branchCommand: {ExitCode: 1}},
 			"HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request"},
 	} {
@@ -384,7 +399,7 @@ func gitRunner(t *testing.T, override map[string]toolrun.Output) *toolrun.Runner
 		"git config --get remote.upstream.url": {ExitCode: 1},
 		branchCommand:                          {Stdout: []byte("feature\n")},
 		upstreamCommand:                        {Stdout: []byte("origin/feature\n")},
-		"git for-each-ref --format=%(push:remotename) refs/heads/feature": {},
+		pushRemoteCommand:                      {},
 	}
 	for key, value := range override {
 		commands[key] = value

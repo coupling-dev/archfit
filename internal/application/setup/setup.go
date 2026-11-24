@@ -555,7 +555,9 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 			out.add("warning: fork pull requests do not receive an id-token")
 		}
 	case s.login.Unreachable != "":
+		// Not knowing is not the same as no pull request: say both.
 		out.add("could not reach GitHub: %s", s.login.Unreachable)
+		out.add("pull request: open it, or check on GitHub; gh cannot show it")
 	default:
 		out.add("pull request: open it, or check on GitHub; gh cannot show it")
 	}

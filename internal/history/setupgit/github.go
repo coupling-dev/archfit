@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	urlpkg "net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -43,10 +44,13 @@ type Login struct {
 // gh reports a network failure as an invalid token, followed by an "Error:"
 // line with the cause. Only "not logged into any" hosts and an HTTP 401 mean
 // the login itself is missing or refused; any other failure is reported as
-// unreachable with gh's own line, so the user does not sign in again for a
+// unreachable with its cause, so the user does not sign in again for a
 // network fault.
 func (g GitHub) Auth(ctx context.Context) Login {
 	out, err := g.command(ctx, "auth", "status", "--hostname", "github.com", "--active")
+	if errors.Is(err, context.DeadlineExceeded) {
+		return Login{Unreachable: fmt.Sprintf("gh did not answer within %s", gitTimeout)}
+	}
 	if err != nil {
 		return Login{}
 	}
@@ -68,7 +72,7 @@ func (g GitHub) Auth(ctx context.Context) Login {
 	return Login{Ready: true, Workflow: true}
 }
 
-// unreachable returns gh's error line when a failed auth status was not about
+// unreachable returns the cause of a failed auth status that was not about
 // the login, and "" when gh is not signed in, GitHub refused the token, or gh
 // gave no cause.
 func unreachable(output string) string {
@@ -77,13 +81,27 @@ func unreachable(output string) string {
 	}
 	for line := range strings.SplitSeq(output, "\n") {
 		if detail, ok := strings.CutPrefix(statusLine(line), "Error:"); ok {
-			if detail = strings.TrimSpace(detail); detail != "" && !strings.Contains(detail, "401") {
-				return detail
-			}
-			return ""
+			return errorCause(strings.TrimSpace(detail))
 		}
 	}
 	return ""
+}
+
+// requestPrefix is the method and URL that Go puts before a transport error.
+var requestPrefix = regexp.MustCompile(`^[A-Za-z]+ "[^"]*": `)
+
+// errorCause keeps what gh's error says went wrong, never the request URL or
+// a response body: a proxy may echo request headers into either. An HTTP
+// answer keeps only its status, and a 401 is a refused login, not a cause.
+func errorCause(detail string) string {
+	if status, ok := strings.CutPrefix(detail, "non-200 OK status code: "); ok {
+		code, _, _ := strings.Cut(status, " ")
+		if code == "401" {
+			return ""
+		}
+		return "GitHub answered HTTP " + code
+	}
+	return requestPrefix.ReplaceAllString(detail, "")
 }
 
 // statusLine trims the indentation and list marker of a gh auth status line.
@@ -231,7 +249,7 @@ func (g GitHub) run(ctx context.Context, args ...string) (string, error) {
 	}
 	if out.ExitCode != 0 {
 		detail, _, _ := strings.Cut(strings.TrimSpace(string(out.Stderr)), "\n")
-		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, detail)
+		return "", fmt.Errorf("gh %s exited %d: %s", args[0], out.ExitCode, requestPrefix.ReplaceAllString(detail, ""))
 	}
 	return string(out.Stdout), nil
 }

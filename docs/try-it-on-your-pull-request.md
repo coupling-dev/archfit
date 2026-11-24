@@ -22,7 +22,7 @@ In [Pumba](https://github.com/alexei-led/pumba), a change added a dependency and
    an owner approves the first policy there, then makes the check required
    ```
 
-   An owner approves the first policy on the setup page before anyone can answer a request. When the policy has `gate: required`, setup says `required checks on` and names the branch ruleset that makes the check block a merge.
+   An owner approves the first policy on the setup page before anyone can answer a request. When the policy has `gate: required`, setup says `required checks on` and asks you to check that a branch ruleset requires `archfit/gate`: only the ruleset makes a fail block a merge.
 
 No sign-in or passkey is required for initial advisory checks. See the [setup command reference](commands.md#setup) for its states and recovery steps.
 

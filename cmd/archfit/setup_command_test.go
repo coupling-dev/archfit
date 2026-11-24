@@ -230,7 +230,8 @@ func TestSetupResumesPublishedBranchWithoutMutations(t *testing.T) { //nolint:go
 				if code != wantCode || !strings.Contains(stdout.String(), "state: "+tc.state) || !strings.Contains(stdout.String(), "next: "+tc.next) {
 					t.Fatalf("exit %d stdout %s stderr %s", code, stdout.String(), stderr.String())
 				}
-				if tc.authErr == unreachable && (!strings.Contains(stdout.String(), `could not reach GitHub: Get "https://api.github.com/": tls: failed to verify certificate`) || strings.Contains(stdout.String(), "not signed in")) {
+				if tc.authErr == unreachable && (!strings.Contains(stdout.String(), "could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276\n") ||
+					strings.Contains(stdout.String(), "not signed in") || strings.Contains(stdout.String(), "api.github.com")) {
 					t.Fatalf("unreachable GitHub reported as:\n%s", stdout.String())
 				}
 			}

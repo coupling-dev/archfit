@@ -61,7 +61,7 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 	// The failure texts are what gh 2.105 prints.
 	const failed = "github.com\n  X Failed to log in to github.com account someone (keyring)\n  - Active account: true\n" +
 		"  - The token in keyring is invalid.\n  - To re-authenticate, run: gh auth login -h github.com\n"
-	const tls = `Get "https://api.github.com/": tls: failed to verify certificate: x509: OSStatus -26276`
+	const tls = "tls: failed to verify certificate: x509: OSStatus -26276"
 	for _, tc := range []struct {
 		name, output string
 		exit         int
@@ -73,7 +73,11 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 		{"account not signed in", "  - Token scopes: 'workflow'\n", 1, Login{}},
 		{"no login", "You are not logged into any GitHub hosts. To log in, run: gh auth login\n", 1, Login{}},
 		{"token refused", failed + `  - Error: non-200 OK status code: 401 Unauthorized body: "{}"` + "\n", 1, Login{}},
-		{"network failure", failed + "  - Error: " + tls + "\n", 1, Login{Unreachable: tls}},
+		{"network failure", failed + `  - Error: Get "https://api.github.com/": ` + tls + "\n", 1, Login{Unreachable: tls}},
+		{"port with 401 in it", failed + `  - Error: Get "https://api.github.com/": proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused` + "\n", 1,
+			Login{Unreachable: "proxyconnect tcp: dial tcp 127.0.0.1:4010: connect: connection refused"}},
+		{"GitHub answered", failed + `  - Error: non-200 OK status code: 403 Forbidden body: "{\"message\":\"echo Bearer secret\"}"` + "\n", 1,
+			Login{Unreachable: "GitHub answered HTTP 403"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			gh := mockGH(t, "auth status --hostname github.com --active", "", tc.output, tc.exit)
@@ -84,12 +88,23 @@ func TestAuthChecksWorkflowScope(t *testing.T) {
 	}
 }
 
-func TestAuthWithoutGh(t *testing.T) {
-	gh := GitHub{Runner: &toolrun.RunnerMock{RunFunc: func(context.Context, toolrun.ToolCmd) (toolrun.Output, error) {
-		return toolrun.Output{}, errors.New(`exec: "gh": executable file not found in $PATH`)
-	}}}
-	if got := gh.Auth(t.Context()); got != (Login{}) {
-		t.Errorf("got %+v; want not signed in", got)
+func TestAuthWithoutAnAnswer(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		err  error
+		want Login
+	}{
+		{"no gh", errors.New(`exec: "gh": executable file not found in $PATH`), Login{}},
+		{"gh hangs", context.DeadlineExceeded, Login{Unreachable: "gh did not answer within 30s"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gh := GitHub{Runner: &toolrun.RunnerMock{RunFunc: func(context.Context, toolrun.ToolCmd) (toolrun.Output, error) {
+				return toolrun.Output{}, tc.err
+			}}}
+			if got := gh.Auth(t.Context()); got != tc.want {
+				t.Errorf("got %+v; want %+v", got, tc.want)
+			}
+		})
 	}
 }
 
@@ -103,6 +118,15 @@ func TestPullRequestChoosesOpenSameRepository(t *testing.T) {
 	want := PullRequest{Number: 7, State: "OPEN", URL: "https://github.com/o/r/pull/7", HeadRefOid: "abc"}
 	if err != nil || !reflect.DeepEqual(got, want) {
 		t.Errorf("pull request is %+v, %v; want %+v", got, err, want)
+	}
+}
+
+func TestPullRequestLookupErrorOmitsTheURL(t *testing.T) {
+	gh := mockGH(t, "pr list --repo o/r --head archfit/setup --base main --state all --json number,state,url,headRefOid,isCrossRepository", "",
+		`Post "https://api.github.com/graphql": tls: failed to verify certificate`+"\n", 1)
+	_, err := gh.PullRequest(t.Context(), repo, "main", "archfit/setup")
+	if err == nil || err.Error() != "gh pr exited 1: tls: failed to verify certificate" {
+		t.Errorf("error %v", err)
 	}
 }
 

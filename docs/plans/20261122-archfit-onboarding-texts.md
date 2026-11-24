@@ -148,10 +148,13 @@ Exit `0`. The last line is information. The second run cannot tell the pull requ
 (see 2.6).
 
 When `gh` is signed in but cannot reach GitHub (gh's `auth status` then says the token is invalid and gives an `Error:`
-line), setup does not say that gh is not signed in. Before the body line it prints gh's error, and the state names it:
+line), setup does not say that gh is not signed in. Before the body line it prints the cause from gh's error, without
+the request URL or a response body (an HTTP answer shows only its status), and the state names it:
 
 ```text
-could not reach GitHub: Get "https://api.github.com/": tls: failed to verify certificate: x509: OSStatus -26276
+could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276
+pull request: open it, or check on GitHub; gh cannot show it
+pull request body: .archfit-cache/setup-pull-request.md
 state: setup pull request not opened; could not reach GitHub
 next: open the pull request: https://github.com/<owner>/<repo>/compare/main...archfit/setup?expand=1
 ```
