@@ -162,7 +162,16 @@ func (f setupFiles) ValidPolicy(data []byte) (valid, required bool) {
 	return err == nil, err == nil && policy.Gate == policyfile.GateRequired
 }
 
-func (f setupFiles) PinNote() string { return doctorPin(f.co.root, version) }
+// PinNote compares the local engine with the workflow pin. Setup leaves out
+// "cannot tell": nothing in setup changes it, and its causes are a candidate
+// pin setup wrote itself, a development build, or a workflow without a version
+// comment. doctor still reports it.
+func (f setupFiles) PinNote() string {
+	if note := doctorPin(f.co.root, version); note != unknownWorkflowPin {
+		return note
+	}
+	return ""
+}
 
 func (f setupFiles) Exceptions() ([]string, error) {
 	data, _, err := f.co.policyAt("")
@@ -220,6 +229,13 @@ func (f setupFiles) Paths() []string {
 		return paths[:len(paths)-2]
 	}
 	return paths
+}
+
+func (f setupFiles) HookPaths() []string {
+	if f.noHooks {
+		return nil
+	}
+	return []string{harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex)}
 }
 
 func setupUsesAction(data []byte) bool {

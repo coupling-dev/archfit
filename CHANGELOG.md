@@ -5,6 +5,7 @@ History before 0.9.0 is in [docs/archived/CHANGELOG-v0-v5.md](docs/archived/CHAN
 ## Unreleased
 
 - Add `archfit setup` to write the first policy and pin the Action, then open an advisory setup pull request.
+- `archfit setup` names the changes to show an owner, says what it commits and pushes before the commit, explains a `# candidate` pin in the pull request body, and no longer prints a pin line it cannot act on.
 
 ## v0.9.0
 
