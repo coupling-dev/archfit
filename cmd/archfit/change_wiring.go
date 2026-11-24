@@ -315,6 +315,10 @@ func (r repository) Parent(ctx context.Context, commit string) (string, bool, er
 	return gitpkg.Lookup(ctx, r.co.root, commit+"^", r.co.runner)
 }
 
+func (r repository) Shallow(ctx context.Context) (bool, error) {
+	return gitpkg.Shallow(ctx, r.co.root, r.co.runner)
+}
+
 func (r repository) MergeBase(ctx context.Context, a, b string) (string, bool, error) {
 	return gitpkg.MergeBase(ctx, r.co.root, a, b, r.co.runner)
 }
