@@ -386,7 +386,8 @@ func (s *Sender) repository(ctx context.Context) (target, error) {
 		}
 		push := "push this commit to the branch of the pull request"
 		if remoteName.MatchString(pushRemote) && branchName.MatchString(name) {
-			push = "git push " + pushRemote + " HEAD:" + name
+			// A full ref: a short name is ambiguous when a tag has it too.
+			push = "git push " + pushRemote + " HEAD:refs/heads/" + name
 		}
 		owner, _, _ := strings.Cut(pushRepo, "/")
 		return target{repo: repo, head: owner + ":" + name,
