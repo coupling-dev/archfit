@@ -38,24 +38,23 @@ func New(dir string, runner toolrun.Runner) *Sender {
 // Send finds exactly one open pull request and posts one comment. Without a
 // pull request, only a can answer may open an issue. POST is never retried.
 func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
-	repo, head, noHead, err := s.repository(ctx)
+	at, err := s.repository(ctx)
 	if err != nil {
 		return Outcome{}, err
 	}
-	if repo == "" {
+	if at.repo == "" {
 		return Outcome{}, nil
 	}
+	head := at.head
 	if head == "" && r.Can == nil {
-		return Outcome{}, noHead
+		return Outcome{}, at.noHead
 	}
 	token, err := s.credentials(ctx)
 	if err != nil {
 		return Outcome{}, err
 	}
-	path := "/repos/" + repo
-	var pulls []struct {
-		Number int `json:"number"`
-	}
+	path := "/repos/" + at.repo
+	var pulls []pull
 	if head != "" {
 		q := url.Values{"state": {"open"}, "head": {head}, "per_page": {"100"}}
 		more, err := s.call(ctx, token, http.MethodGet, path+"/pulls?"+q.Encode(), nil, &pulls)
@@ -71,6 +70,11 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 				numbers = append(numbers, "#"+strconv.Itoa(p.Number))
 			}
 			return Outcome{}, notSent(fmt.Sprintf("several open pull requests match: %s; nothing sent", strings.Join(numbers, ", ")))
+		}
+		if at.untracked != nil {
+			if err := s.untracked(ctx, token, *at.untracked, pulls, r.Can != nil); err != nil {
+				return Outcome{}, err
+			}
 		}
 	}
 	var payload any
@@ -106,13 +110,67 @@ func (s *Sender) Send(ctx context.Context, r Input) (Outcome, error) {
 		number = pulls[0].Number
 	}
 	u, err := url.Parse(sent.URL)
-	repoPath := "/" + repo + "/"
+	repoPath := "/" + at.repo + "/"
 	if err != nil || u.Scheme != "https" || u.Host != "github.com" || u.User != nil || u.RawQuery != "" ||
 		len(u.Path) < len(repoPath) || !strings.EqualFold(u.Path[:len(repoPath)], repoPath) || strings.Contains(sent.URL, token) ||
 		strings.Contains(u.Path+"#"+u.Fragment, token) || number < 1 {
 		return Outcome{}, errors.New("GitHub returned an invalid receipt; outcome unknown: check GitHub before trying again")
 	}
 	return Outcome{Number: number, URL: sent.URL}, nil
+}
+
+// pull is an open pull request from the lookup.
+type pull struct {
+	Number int `json:"number"`
+	Head   struct {
+		SHA string `json:"sha"`
+	} `json:"head"`
+}
+
+// guess is a pull request head read from the branch name, because Git keeps
+// no remote-tracking ref for the branch: a single-branch clone pushed with -u.
+type guess struct {
+	pushRepo, branch string
+	// notPushed is the answer when the branch is not on the push remote.
+	notPushed error
+}
+
+// untracked guards a guessed head. It posts only on a pull request whose head
+// is this checkout's HEAD, so a same-named branch of another pull request never
+// gets the comment. Without a pull request it says there is no upstream when
+// the branch is not on GitHub; a can answer still opens an issue.
+func (s *Sender) untracked(ctx context.Context, token string, g guess, pulls []pull, can bool) error {
+	if len(pulls) == 1 {
+		local, code, err := s.git(ctx, "rev-parse", "HEAD")
+		if err != nil {
+			return err
+		}
+		if code != 0 || local == "" {
+			return notSent("cannot read HEAD; nothing sent")
+		}
+		if pulls[0].Head.SHA != local {
+			return notSent(fmt.Sprintf("pull request #%d is at %.7s, this checkout is at %.7s; nothing sent\nnext: git push",
+				pulls[0].Number, pulls[0].Head.SHA, local))
+		}
+		return nil
+	}
+	if can {
+		return nil
+	}
+	segments := strings.Split(g.branch, "/")
+	for i, segment := range segments {
+		segments[i] = url.PathEscape(segment)
+	}
+	var branch struct {
+		Name string `json:"name"`
+	}
+	if _, err := s.call(ctx, token, http.MethodGet, "/repos/"+g.pushRepo+"/branches/"+strings.Join(segments, "/"), nil, &branch); err != nil {
+		if errors.Is(err, errNotFound) {
+			return g.notPushed
+		}
+		return err
+	}
+	return nil
 }
 
 // NothingSent marks an error after which nothing reached GitHub, so the
@@ -128,6 +186,7 @@ func notSent(message string) error { return nothingSent(message) }
 
 // Why the current checkout names no pull request head.
 var (
+	errNotFound = notSent("GitHub returned HTTP 404; nothing sent")
 	errDetached = notSent("HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request")
 	remoteName  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]*$`)
 )
@@ -221,6 +280,9 @@ func (s *Sender) call(ctx context.Context, token, method, path string, payload, 
 		if method == http.MethodPost && (response.StatusCode < 400 || response.StatusCode >= 500) {
 			return false, fmt.Errorf("GitHub returned HTTP %d; outcome unknown: check GitHub before trying again (not retried)", response.StatusCode)
 		}
+		if response.StatusCode == http.StatusNotFound {
+			return false, errNotFound
+		}
 		return false, notSent(fmt.Sprintf("GitHub returned HTTP %d; nothing sent", response.StatusCode))
 	}
 	dec := json.NewDecoder(io.LimitReader(response.Body, 1<<20))
@@ -249,67 +311,102 @@ func (s *Sender) git(ctx context.Context, args ...string) (string, int, error) {
 	return strings.TrimSpace(string(out.Stdout)), out.ExitCode, nil
 }
 
-// repository returns the target repository and the pull request head. When
-// the checkout names no head, noHead says why; a can answer still opens an
-// issue then.
-func (s *Sender) repository(ctx context.Context) (repo, head string, noHead, err error) {
+// target is where Send looks for the pull request.
+type target struct {
+	// repo is the repository of the pull request; empty for a checkout
+	// without a GitHub origin.
+	repo string
+	// head is owner:branch. Empty when noHead says why; a can answer still
+	// opens an issue then.
+	head   string
+	noHead error
+	// untracked is set when head is guessed from the branch name.
+	untracked *guess
+}
+
+// repository returns the target repository and the pull request head.
+func (s *Sender) repository(ctx context.Context) (target, error) {
 	origin, code, err := s.git(ctx, "config", "--get", "remote.origin.url")
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
 	if code != 0 && code != 1 {
-		return "", "", nil, notSent("cannot read origin; nothing sent")
+		return target{}, notSent("cannot read origin; nothing sent")
 	}
-	repo = githubRepository(origin)
+	repo := githubRepository(origin)
 	if repo == "" {
-		return "", "", nil, nil
+		return target{}, nil
 	}
-	target, _, err := s.git(ctx, "config", "--get", "remote.upstream.url")
+	upstreamURL, _, err := s.git(ctx, "config", "--get", "remote.upstream.url")
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
-	if upstream := githubRepository(target); upstream != "" {
+	if upstream := githubRepository(upstreamURL); upstream != "" {
 		repo = upstream
 	}
 	branch, code, err := s.git(ctx, "symbolic-ref", "--quiet", "--short", "HEAD")
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
 	if code == 1 {
-		return repo, "", errDetached, nil
+		return target{repo: repo, noHead: errDetached}, nil
 	}
 	if code != 0 {
-		return "", "", nil, notSent("cannot read current branch; nothing sent")
+		return target{}, notSent("cannot read current branch; nothing sent")
 	}
 	upstream, code, err := s.git(ctx, "rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
 	hasUpstream := code == 0
 	pushRemote, _, err := s.git(ctx, "for-each-ref", "--format=%(push:remotename)", "refs/heads/"+branch)
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
 	if pushRemote == "" {
 		pushRemote = "origin"
 	}
-	if !hasUpstream {
-		return repo, "", noUpstream(pushRemote), nil
-	}
 	remote, code, err := s.git(ctx, "remote", "get-url", "--push", pushRemote)
 	if err != nil {
-		return "", "", nil, err
+		return target{}, err
 	}
 	pushRepo := githubRepository(remote)
+	if !hasUpstream {
+		if code != 0 || pushRepo == "" {
+			return target{repo: repo, noHead: noUpstream(pushRemote)}, nil
+		}
+		name, err := s.pushedName(ctx, branch, pushRemote)
+		if err != nil {
+			return target{}, err
+		}
+		owner, _, _ := strings.Cut(pushRepo, "/")
+		return target{repo: repo, head: owner + ":" + name,
+			untracked: &guess{pushRepo: pushRepo, branch: name, notPushed: noUpstream(pushRemote)}}, nil
+	}
 	if code != 0 || pushRepo == "" {
-		return "", "", nil, notSent("cannot identify the GitHub push destination; nothing sent")
+		return target{}, notSent("cannot identify the GitHub push destination; nothing sent")
 	}
 	_, remoteBranch, ok := strings.Cut(upstream, "/")
 	if !ok || remoteBranch == "" {
-		return "", "", nil, notSent("cannot identify the upstream branch; nothing sent")
+		return target{}, notSent("cannot identify the upstream branch; nothing sent")
 	}
 	owner, _, _ := strings.Cut(pushRepo, "/")
-	return repo, owner + ":" + remoteBranch, nil, nil
+	return target{repo: repo, head: owner + ":" + remoteBranch}, nil
+}
+
+// pushedName is the branch's name on the push remote: the merge ref that
+// `git push -u` records, when it records it for that remote, else the local
+// name. A merge ref of another remote is never paired with the push owner.
+func (s *Sender) pushedName(ctx context.Context, branch, pushRemote string) (string, error) {
+	remote, _, err := s.git(ctx, "config", "--get", "branch."+branch+".remote")
+	if err != nil || remote != pushRemote {
+		return branch, err
+	}
+	merge, _, err := s.git(ctx, "config", "--get", "branch."+branch+".merge")
+	if name, ok := strings.CutPrefix(merge, "refs/heads/"); err == nil && ok && name != "" {
+		return name, nil
+	}
+	return branch, err
 }
 
 // githubRepository accepts GitHub HTTPS, SSH and scp-style clone URLs. Reject

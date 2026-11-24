@@ -69,6 +69,10 @@ func TestRequestSendsFromCLI(t *testing.T) {
 				if r.Header.Get("Authorization") != "Bearer "+token {
 					t.Error("missing credential")
 				}
+				if r.Method == http.MethodGet && strings.Contains(r.URL.Path, "/branches/") {
+					w.WriteHeader(http.StatusNotFound)
+					return
+				}
 				if r.Method == http.MethodGet {
 					_, _ = fmt.Fprint(w, tc.pulls)
 					return
@@ -149,3 +153,57 @@ func TestRequestSendsFromCLI(t *testing.T) {
 type requestTransport func(*http.Request) (*http.Response, error)
 
 func (f requestTransport) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// TestRequestFindsThePullRequestWithoutATrackingRef: a single-branch clone
+// pushed with -u records the upstream but keeps no remote-tracking ref. The
+// request still reaches the branch's pull request when its head is HEAD (N3).
+func TestRequestFindsThePullRequestWithoutATrackingRef(t *testing.T) {
+	const token = "cli-secret-token"
+	const receipt = "https://github.com/acme/shop/pull/431#issuecomment-7"
+	t.Setenv("GH_TOKEN", token)
+	t.Setenv("GITHUB_TOKEN", "")
+	dir := fixtureRepo(t, fixtureFiles(), map[string]string{tcNetem: tcImportsUtil})
+	gitFixture(t, dir, "remote", "add", "origin", "https://github.com/acme/shop.git")
+	branch := strings.TrimSpace(gitOutput(t, dir, "symbolic-ref", "--short", "HEAD"))
+	gitFixture(t, dir, "config", "branch."+branch+".remote", "origin")
+	gitFixture(t, dir, "config", "branch."+branch+".merge", "refs/heads/"+branch)
+	head := strings.TrimSpace(gitOutput(t, dir, "rev-parse", "HEAD"))
+	runCLI(t, fixtureDate, cmdCheck, "-C", dir)
+	var posted []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet {
+			if r.URL.Path != "/repos/acme/shop/pulls" || r.URL.Query().Get("head") != "acme:"+branch {
+				t.Errorf("lookup %s", r.URL)
+			}
+			_, _ = fmt.Fprintf(w, `[{"number":431,"head":{"sha":%q}}]`, head)
+			return
+		}
+		posted = append(posted, r.URL.Path)
+		w.WriteHeader(http.StatusCreated)
+		_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 7, "html_url": receipt})
+	}))
+	defer server.Close()
+	target, err := url.Parse(server.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	defer transport.CloseIdleConnections()
+	client := &http.Client{Transport: requestTransport(func(r *http.Request) (*http.Response, error) {
+		r = r.Clone(r.Context())
+		r.URL.Scheme, r.URL.Host = target.Scheme, target.Host
+		return transport.RoundTrip(r)
+	})}
+	processRunner := toolrun.New()
+	runner := &toolrun.RunnerMock{RunFunc: func(ctx context.Context, cmd toolrun.ToolCmd) (toolrun.Output, error) {
+		if cmd.Name == "gh" {
+			return toolrun.Output{ExitCode: 1}, nil
+		}
+		return processRunner.Run(ctx, cmd)
+	}}
+	var stdout, stderr bytes.Buffer
+	code := runDeps([]string{cmdRequest, "-C", dir, "-m", whyGraph}, &appDeps{Runner: runner, Stdout: &stdout, Stderr: &stderr, requestClient: client, now: day(fixtureDate)})
+	if code != 0 || stdout.String() != receipt+"\n" || stderr.Len() != 0 || len(posted) != 1 || posted[0] != "/repos/acme/shop/issues/431/comments" {
+		t.Fatalf("exit %d, posted %v, stdout %q, stderr %q", code, posted, stdout.String(), stderr.String())
+	}
+}
