@@ -304,11 +304,23 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 		atOtherCommit = "pull request #431 is at 1111111, this checkout is at 2222222; nothing sent\nnext: "
 	)
 	untracked := map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}
-	recorded := map[string]toolrun.Output{
-		upstreamCommand: {ExitCode: 128},
-		branchRemote:    {Stdout: []byte("origin\n")},
-		branchMerge:     {Stdout: []byte("refs/heads/feature\n")},
+	recorded := func(remote, merge string, more map[string]toolrun.Output) map[string]toolrun.Output {
+		out := map[string]toolrun.Output{
+			upstreamCommand: {ExitCode: 128},
+			branchRemote:    {Stdout: []byte(remote + "\n")},
+			branchMerge:     {Stdout: []byte(merge + "\n")},
+		}
+		for key, value := range more {
+			out[key] = value
+		}
+		return out
 	}
+	renamed := recorded("origin", "refs/heads/feature-x", nil)
+	unsafeName := recorded("origin", "refs/heads/$(touch x)", nil)
+	forkPullUpstream := recorded("upstream", "refs/heads/feature", map[string]toolrun.Output{
+		pushRemoteCommand: {Stdout: []byte("fork\n")},
+		forkPushURL:       {Stdout: []byte("git@github.com:worker/shop.git\n")},
+	})
 	forkPush := map[string]toolrun.Output{
 		upstreamCommand:   {ExitCode: 128},
 		pushRemoteCommand: {Stdout: []byte("fork\n")},
@@ -326,12 +338,16 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 	}{
 		{"its pull request at HEAD gets the comment", untracked, false, originHead,
 			`[{"number":431,"head":{"sha":"` + localSHA + `"}}]`, 0, "", commentsPath, ""},
-		{"a pull request at another commit gets nothing; push sets the upstream", untracked, false, originHead,
-			otherCommit, 0, "", "", atOtherCommit + "git push -u origin HEAD"},
-		{"a recorded upstream only needs a push", recorded, false, originHead,
-			otherCommit, 0, "", "", atOtherCommit + "git push"},
+		{"a pull request at another commit gets nothing", untracked, false, originHead,
+			otherCommit, 0, "", "", atOtherCommit + "git push origin HEAD:feature"},
+		{"the push names a recorded upstream of another name", renamed, false, "acme:feature-x",
+			otherCommit, 0, "", "", atOtherCommit + "git push origin HEAD:feature-x"},
+		{"the push to a fork keeps the pull upstream", forkPullUpstream, false, forkHead,
+			otherCommit, 0, "", "", atOtherCommit + "git push fork HEAD:feature"},
+		{"a branch name unsafe to paste is described", unsafeName, false, "acme:$(touch x)",
+			otherCommit, 0, "", "", atOtherCommit + "push this commit to the branch of the pull request"},
 		{"a can answer also needs HEAD", untracked, true, originHead,
-			otherCommit, 0, "", "", atOtherCommit + "git push -u origin HEAD"},
+			otherCommit, 0, "", "", atOtherCommit + "git push origin HEAD:feature"},
 		{"not on GitHub: no upstream", untracked, false, originHead, "[]",
 			http.StatusNotFound, "/repos/acme/shop/branches/feature", "", noUpstream + "origin HEAD"},
 		{"not on the fork: no upstream", forkPush, false, forkHead, "[]",
