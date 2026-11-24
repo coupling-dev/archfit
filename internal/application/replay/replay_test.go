@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"slices"
 	"testing"
 	"time"
 
@@ -272,5 +273,53 @@ func TestRunStopsWhenTheContextEndsInTheHistory(t *testing.T) {
 	got, err := svc.Run(ctx, 30)
 	if err != nil || !got.Stopped || got.Read != 0 {
 		t.Errorf("got %+v, %v; want a stopped result with nothing read", got, err)
+	}
+}
+
+func TestRunNamesUpToThreeChangesToLookAt(t *testing.T) {
+	fixOnly := result.Result{Status: result.StatusFail, Errors: []result.Error{{What: "x", Next: result.Next{Kind: result.NextFix}}}}
+	changes := []replay.Change{
+		{Commit: "c1", Parent: "p", PR: 12},
+		{Commit: "c2", Parent: "p", Subject: "Add billing (#11)"},
+		{Commit: "c3", Parent: "p", Subject: "Merge pull request #9 from a/b", Merge: true},
+		{Commit: "c4", Parent: "p", PR: 8},
+		{Commit: "c5abcdef01"},
+	}
+	svc := replay.Service{
+		History: &history{src: replay.Source{Changes: changes}},
+		Checker: &checker{
+			results: map[string]result.Result{"c1": fixOnly, "c3": {Status: result.StatusWaiting}, "c4": {}},
+			errs:    map[string]error{"c2": errors.New("git worktree add failed")},
+		},
+	}
+	got, err := svc.Run(context.Background(), 5)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []replay.Look{{Name: "#12", Status: "fail"}, {Name: "#11", Status: "unknown"}, {Name: "#9", Status: "waiting"}}
+	if got.Look != 5 || !slices.Equal(got.LookAt, want) {
+		t.Errorf("got %d to look at, named %+v; want 5, named %+v", got.Look, got.LookAt, want)
+	}
+}
+
+func TestChangeName(t *testing.T) {
+	cases := []struct {
+		name string
+		c    replay.Change
+		want string
+	}{
+		{"pull request from GitHub", replay.Change{Commit: "abcdef0123", PR: 7, Subject: "Fix (#3)"}, "#7"},
+		{"squash subject", replay.Change{Commit: "abcdef0123", Subject: "Add the tc shaper (#431)"}, "#431"},
+		{"merge subject", replay.Change{Commit: "abcdef0123", Subject: "Merge pull request #12 from a/feature"}, "#12"},
+		{"number inside the subject", replay.Change{Commit: "abcdef0123", Subject: "Revert (#5) and more"}, "abcdef0"},
+		{"no number", replay.Change{Commit: "abcdef0123", Subject: "Initial commit"}, "abcdef0"},
+		{"short commit", replay.Change{Commit: "abc"}, "abc"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := tc.c.Name(); got != tc.want {
+				t.Errorf("Name() = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
