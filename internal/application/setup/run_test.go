@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/coupling-dev/archfit/internal/testutil"
 )
 
 const (
@@ -203,6 +205,7 @@ type setupFixture struct {
 	ssh                                                                      bool
 	actions                                                                  []string
 	workflowTag, workflowSHA                                                 string
+	hooks                                                                    []string
 }
 
 func (f *setupFixture) deps(t *testing.T) Dependencies {
@@ -245,7 +248,10 @@ func (f *setupFixture) WriteBody(body string) error {
 	return nil
 }
 func (f *setupFixture) ValidationPaths() []string { return f.Paths() }
-func (f *setupFixture) Paths() []string           { return []string{".archfit.yaml", WorkflowPath} }
+func (f *setupFixture) Paths() []string {
+	return slices.Concat([]string{".archfit.yaml", WorkflowPath}, f.hooks)
+}
+func (f *setupFixture) HookPaths() []string { return f.hooks }
 
 type fixtureGit struct{ *setupFixture }
 
@@ -429,6 +435,52 @@ func TestCandidateActionPin(t *testing.T) {
 			}
 			if f.workflowSHA != tc.ref || f.workflowTag != tc.note {
 				t.Fatalf("workflow pinned %q@%q, want %q@%q", f.workflowTag, f.workflowSHA, tc.note, tc.ref)
+			}
+			if want := "marked `# " + note + "` instead of a release tag"; !strings.Contains(f.body, want) {
+				t.Fatalf("body does not explain the candidate pin %q:\n%s", want, f.body)
+			}
+		})
+	}
+}
+
+// TestSetupSaysWhatItCommits: the run that commits names the files and the
+// branch before the check, and the run before it says how to leave out the
+// hooks, while --no-hooks can still do that.
+func TestSetupSaysWhatItCommits(t *testing.T) {
+	hooks := []string{".claude/settings.json", ".codex/hooks.json"}
+	for _, tc := range []struct {
+		name      string
+		hooks     []string
+		firstRun  string
+		committed string
+	}{
+		{"with hooks", hooks,
+			"the next archfit setup commits the setup files, with .claude/settings.json and .codex/hooks.json, on archfit/setup and pushes the branch; archfit setup --no-hooks leaves out the hook files",
+			"setup commits .archfit.yaml, .github/workflows/archfit.yaml, .claude/settings.json, .codex/hooks.json on archfit/setup and pushes the branch"},
+		{"no hooks", nil, "", "setup commits .archfit.yaml, .github/workflows/archfit.yaml on archfit/setup and pushes the branch"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f := setupFixture{branch: fixtureBranch, ready: true, scope: true, hooks: tc.hooks}
+			deps := f.deps(t)
+			first := strings.Join(Run(t.Context(), deps).Lines, "\n")
+			if tc.firstRun == "" && strings.Contains(first, "--no-hooks") {
+				t.Errorf("hook line without hooks:\n%s", first)
+			}
+			if !strings.Contains(first, tc.firstRun) {
+				t.Errorf("missing %q in:\n%s", tc.firstRun, first)
+			}
+			second := strings.Join(Run(t.Context(), deps).Lines, "\n")
+			says, check := strings.Index(second, tc.committed), strings.Index(second, "check: fail against origin/main")
+			if says < 0 || check < says {
+				t.Errorf("want %q before the check in:\n%s", tc.committed, second)
+			}
+			if !strings.Contains(second, "committed as Setup Author <author@example.invalid>") {
+				t.Errorf("missing the commit line in:\n%s", second)
+			}
+			for _, text := range []string{first, second} {
+				if words := testutil.StoryNotUsedIn(text); len(words) > 0 {
+					t.Errorf("vocabulary %v in:\n%s", words, text)
+				}
 			}
 		})
 	}

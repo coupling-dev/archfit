@@ -177,3 +177,44 @@ func TestSetupPathReadFailureSuggestsRegularFile(t *testing.T) {
 		t.Fatalf("next %q error %v", next, err)
 	}
 }
+
+func TestSetupHookPathsFollowNoHooks(t *testing.T) {
+	hooks := []string{harnessConfigFile(harnessClaude), harnessConfigFile(harnessCodex)}
+	if got := (setupFiles{workflow: fixtureSetupWorkflow}).HookPaths(); !slices.Equal(got, hooks) {
+		t.Errorf("HookPaths() = %v, want %v", got, hooks)
+	}
+	if got := (setupFiles{workflow: fixtureSetupWorkflow, noHooks: true}).HookPaths(); got != nil {
+		t.Errorf("HookPaths() with --no-hooks = %v, want none", got)
+	}
+}
+
+// TestSetupPinNoteLeavesOutCannotTell: setup prints the pin line only when it
+// can compare; a candidate pin is "cannot tell", which only doctor reports.
+func TestSetupPinNoteLeavesOutCannotTell(t *testing.T) {
+	old := version
+	version = "v0.10.0"
+	t.Cleanup(func() { version = old })
+	sha := strings.Repeat("b", 40)
+	for _, tc := range []struct {
+		name, comment, want string
+	}{
+		{"candidate", "candidate", ""},
+		{"release", "v0.10.0", "the local engine matches the workflow pin"},
+		{"other release", "v0.9.0", "the local engine does not match the workflow pin (v0.10.0 vs v0.9.0)"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			path := filepath.Join(root, fixtureSetupWorkflow)
+			if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(path, []byte(setupWorkflow("main", tc.comment, sha)), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			f := setupFiles{co: checkout{root: root}, workflow: fixtureSetupWorkflow}
+			if got := f.PinNote(); got != tc.want {
+				t.Errorf("PinNote() = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

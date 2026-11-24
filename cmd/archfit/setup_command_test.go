@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -346,11 +347,14 @@ func TestSetupFirstPublication(t *testing.T) { //nolint:gocyclo // the process b
 					t.Fatal(out)
 				}
 			}
-			if out := run(); !strings.Contains(out, "opened setup pull request #7") {
+			announce := regexp.MustCompile(`(?m)^setup commits (\S+, )*\.github/workflows/archfit\.yaml(, \S+)* on archfit/setup and pushes the branch\ncheck: `)
+			if out := run(); !strings.Contains(out, "opened setup pull request #7") || !announce.MatchString(out) ||
+				!strings.Contains(out, "committed as Setup Author <author@example.invalid>") || strings.Contains(out, "--no-hooks leaves out") {
 				t.Fatal(out)
 			}
 			body, err := os.ReadFile(filepath.Join(dir, ".archfit-cache/setup-pull-request.md")) //nolint:gosec // dir is a test fixture
-			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests\n\n1 passed, 0 needed an owner, 1 to show an owner.") {
+			root := strings.TrimSpace(gitOutput(t, dir, "rev-list", "--max-parents=0", "--abbrev-commit", "--abbrev=7", headRef))
+			if err != nil || !strings.Contains(string(body), "## Last 30 merged pull requests\n\n1 passed, 0 needed an owner, 1 to show an owner ("+root+": unknown).") {
 				t.Fatalf("missing replay in PR body: %s, %v", body, err)
 			}
 			if words := testutil.StoryNotUsedIn(string(body)); len(words) > 0 {
