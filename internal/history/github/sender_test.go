@@ -298,8 +298,17 @@ func TestNoHeadSaysWhy(t *testing.T) {
 // name and gets the comment only when its head is HEAD; the no-upstream
 // answer is kept for a branch that is not on GitHub (N3).
 func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
-	const noUpstream = "this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u "
+	const (
+		noUpstream    = "this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u "
+		otherCommit   = `[{"number":431,"head":{"sha":"1111111111111111111111111111111111111111"}}]`
+		atOtherCommit = "pull request #431 is at 1111111, this checkout is at 2222222; nothing sent\nnext: "
+	)
 	untracked := map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}
+	recorded := map[string]toolrun.Output{
+		upstreamCommand: {ExitCode: 128},
+		branchRemote:    {Stdout: []byte("origin\n")},
+		branchMerge:     {Stdout: []byte("refs/heads/feature\n")},
+	}
 	forkPush := map[string]toolrun.Output{
 		upstreamCommand:   {ExitCode: 128},
 		pushRemoteCommand: {Stdout: []byte("fork\n")},
@@ -317,11 +326,12 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 	}{
 		{"its pull request at HEAD gets the comment", untracked, false, originHead,
 			`[{"number":431,"head":{"sha":"` + localSHA + `"}}]`, 0, "", commentsPath, ""},
-		{"a pull request at another commit gets nothing", untracked, false, originHead,
-			`[{"number":431,"head":{"sha":"1111111111111111111111111111111111111111"}}]`, 0, "", "",
-			"pull request #431 is at 1111111, this checkout is at 2222222; nothing sent\nnext: git push"},
+		{"a pull request at another commit gets nothing; push sets the upstream", untracked, false, originHead,
+			otherCommit, 0, "", "", atOtherCommit + "git push -u origin HEAD"},
+		{"a recorded upstream only needs a push", recorded, false, originHead,
+			otherCommit, 0, "", "", atOtherCommit + "git push"},
 		{"a can answer also needs HEAD", untracked, true, originHead,
-			`[{"number":431,"head":{"sha":"1111111111111111111111111111111111111111"}}]`, 0, "", "", "pull request #431 is at 1111111"},
+			otherCommit, 0, "", "", atOtherCommit + "git push -u origin HEAD"},
 		{"not on GitHub: no upstream", untracked, false, originHead, "[]",
 			http.StatusNotFound, "/repos/acme/shop/branches/feature", "", noUpstream + "origin HEAD"},
 		{"not on the fork: no upstream", forkPush, false, forkHead, "[]",
@@ -369,7 +379,7 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 			}
 			if tc.wantError != "" {
 				var marked interface{ NothingSent() }
-				if err == nil || !strings.HasPrefix(err.Error(), tc.wantError) || !errors.As(err, &marked) || len(posts) != 0 {
+				if err == nil || err.Error() != tc.wantError || !errors.As(err, &marked) || len(posts) != 0 {
 					t.Fatalf("err=%v posts=%v, want %q", err, posts, tc.wantError)
 				}
 				if words := testutil.StoryNotUsedIn(err.Error()); len(words) > 0 {

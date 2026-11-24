@@ -30,21 +30,19 @@ var (
 	InstallURL = "https://github.com/apps/archfit-review/installations/new"
 )
 
-const (
-	defaultAppSlug = "archfit-review"
-	appsPrefix     = "https://github.com/apps/"
-)
+const appsPrefix = "https://github.com/apps/"
 
 // AppSlug is the App whose archfit/gate check this build trusts: the slug in
 // InstallURL, so a candidate build that installs another App also reads its
-// check.
+// check. An InstallURL with no slug trusts no App: falling back to the
+// production App would read a check the build does not send users to.
 func AppSlug() string { return appSlug(InstallURL) }
 
 func appSlug(installURL string) string {
 	rest, ok := strings.CutPrefix(installURL, appsPrefix)
-	slug, _, found := strings.Cut(rest, "/")
-	if !ok || !found || slug == "" {
-		return defaultAppSlug
+	slug, _, _ := strings.Cut(rest, "/")
+	if !ok {
+		return ""
 	}
 	return slug
 }

@@ -112,10 +112,10 @@ func TestAppSlugComesFromTheInstallURL(t *testing.T) {
 	for _, tc := range []struct{ url, want string }{
 		{"https://github.com/apps/archfit-review/installations/new", "archfit-review"},
 		{"https://github.com/apps/archfit-review-staging/installations/new", "archfit-review-staging"},
-		{"https://github.com/apps/archfit-review-staging", defaultAppSlug},
-		{"https://github.com/apps//installations/new", defaultAppSlug},
-		{"https://example.com/apps/x/installations/new", defaultAppSlug},
-		{"", defaultAppSlug},
+		{"https://github.com/apps/archfit-review-staging", "archfit-review-staging"},
+		{"https://github.com/apps//installations/new", ""},
+		{"https://example.com/apps/x/installations/new", ""},
+		{"", ""},
 	} {
 		if got := appSlug(tc.url); got != tc.want {
 			t.Errorf("appSlug(%q) = %q, want %q", tc.url, got, tc.want)

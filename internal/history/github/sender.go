@@ -133,6 +133,9 @@ type guess struct {
 	pushRepo, branch string
 	// notPushed is the answer when the branch is not on the push remote.
 	notPushed error
+	// push is the command that sends HEAD to the pull request: `git push`
+	// when Git records the branch's upstream, else it must also set it.
+	push string
 }
 
 // untracked guards a guessed head. It posts only on a pull request whose head
@@ -149,8 +152,8 @@ func (s *Sender) untracked(ctx context.Context, token string, g guess, pulls []p
 			return notSent("cannot read HEAD; nothing sent")
 		}
 		if pulls[0].Head.SHA != local {
-			return notSent(fmt.Sprintf("pull request #%d is at %.7s, this checkout is at %.7s; nothing sent\nnext: git push",
-				pulls[0].Number, pulls[0].Head.SHA, local))
+			return notSent(fmt.Sprintf("pull request #%d is at %.7s, this checkout is at %.7s; nothing sent\nnext: %s",
+				pulls[0].Number, pulls[0].Head.SHA, local, g.push))
 		}
 		return nil
 	}
@@ -194,11 +197,14 @@ var (
 // noUpstream names the push remote in the command only when the name is safe
 // to paste into a shell.
 func noUpstream(remote string) error {
-	next := "push the branch with -u to its remote"
+	return notSent("this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: " + pushUpstream(remote))
+}
+
+func pushUpstream(remote string) string {
 	if remoteName.MatchString(remote) {
-		next = "git push -u " + remote + " HEAD"
+		return "git push -u " + remote + " HEAD"
 	}
-	return notSent("this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: " + next)
+	return "push the branch with -u to its remote"
 }
 
 // transportCause is the first line of the network error under err, never the
@@ -375,13 +381,17 @@ func (s *Sender) repository(ctx context.Context) (target, error) {
 		if code != 0 || pushRepo == "" {
 			return target{repo: repo, noHead: noUpstream(pushRemote)}, nil
 		}
-		name, err := s.pushedName(ctx, branch, pushRemote)
+		name, recorded, err := s.pushedName(ctx, branch, pushRemote)
 		if err != nil {
 			return target{}, err
 		}
+		push := pushUpstream(pushRemote)
+		if recorded {
+			push = "git push"
+		}
 		owner, _, _ := strings.Cut(pushRepo, "/")
 		return target{repo: repo, head: owner + ":" + name,
-			untracked: &guess{pushRepo: pushRepo, branch: name, notPushed: noUpstream(pushRemote)}}, nil
+			untracked: &guess{pushRepo: pushRepo, branch: name, notPushed: noUpstream(pushRemote), push: push}}, nil
 	}
 	if code != 0 || pushRepo == "" {
 		return target{}, notSent("cannot identify the GitHub push destination; nothing sent")
@@ -397,16 +407,17 @@ func (s *Sender) repository(ctx context.Context) (target, error) {
 // pushedName is the branch's name on the push remote: the merge ref that
 // `git push -u` records, when it records it for that remote, else the local
 // name. A merge ref of another remote is never paired with the push owner.
-func (s *Sender) pushedName(ctx context.Context, branch, pushRemote string) (string, error) {
+// recorded says whether Git records that upstream.
+func (s *Sender) pushedName(ctx context.Context, branch, pushRemote string) (name string, recorded bool, err error) {
 	remote, _, err := s.git(ctx, "config", "--get", "branch."+branch+".remote")
 	if err != nil || remote != pushRemote {
-		return branch, err
+		return branch, false, err
 	}
 	merge, _, err := s.git(ctx, "config", "--get", "branch."+branch+".merge")
 	if name, ok := strings.CutPrefix(merge, "refs/heads/"); err == nil && ok && name != "" {
-		return name, nil
+		return name, true, nil
 	}
-	return branch, err
+	return branch, false, err
 }
 
 // githubRepository accepts GitHub HTTPS, SSH and scp-style clone URLs. Reject
