@@ -527,7 +527,7 @@ func TestCheck(t *testing.T) {
 			},
 			want: want{
 				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
-					"  next: git checkout origin/main -- .archfit.yaml\n" + noVerdict,
+					"  next: git merge origin/main, then archfit check\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},
@@ -536,7 +536,7 @@ func TestCheck(t *testing.T) {
 			setup: func(w *world) { delete(w.policies.local, changecheck.PolicyPath) },
 			want: want{
 				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
-					"  next: git checkout origin/main -- .archfit.yaml\n" + noVerdict,
+					"  next: git merge origin/main, then archfit check\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
 		},

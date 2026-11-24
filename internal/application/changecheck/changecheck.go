@@ -12,13 +12,13 @@
 //     git's empty tree, so the change is every file. No base is unknown: a
 //     shallow clone names the fetch, a full clone names --base.
 //  3. The policy (design 9.1). The policy on the target branch is the approved
-//     one: when the local file differs from it, the result is unknown, names
-//     the command that restores the file, and no facts are read. A target with
-//     no policy file, or with a version 2 file (the conversion pull request of
-//     design 14), is not compared: the check judges with the local policy and
-//     adds one note. A target file that is not a valid policy is unknown. With
-//     Options.Policy the check judges with that file and compares nothing: a
-//     preview, which is not stored.
+//     one: when the local file differs from it, the result is unknown, says to
+//     merge the target branch into the branch, and no facts are read. A target
+//     with no policy file, or with a version 2 file (the conversion pull
+//     request of design 14), is not compared: the check judges with the local
+//     policy and adds one note. A target file that is not a valid policy is
+//     unknown. With Options.Policy the check judges with that file and
+//     compares nothing: a preview, which is not stored.
 //  4. The policy against the tree: resolved.Policy.CheckTree on every file of
 //     the working tree, not only the files the extractors read, so a language
 //     that is off or a missing tool never makes a path look empty. A path glob
@@ -197,7 +197,7 @@ const (
 	nextFetch      = "git fetch"
 	nextUnshallow  = "git fetch --unshallow"
 	nextCommit     = "make a first commit"
-	nextRestore    = "git checkout %s -- " + PolicyPath
+	nextMerge      = "git merge %s, then archfit check"
 	nextInit       = "archfit init"
 	nextPolicyFlag = "pass --policy <policy file>"
 	nextFix        = "fix %s"
@@ -477,7 +477,7 @@ func (s Service) compare(ctx context.Context, r *run, ref, commit string) (compa
 	case r.differs:
 		r.stop(reason{
 			path: PolicyPath, cause: result.CausePolicy, what: fmt.Sprintf(whatDiffers, ref), why: whyDiffers,
-			kind: result.NextRestore, next: fmt.Sprintf(nextRestore, ref),
+			kind: result.NextRestore, next: fmt.Sprintf(nextMerge, ref),
 		})
 	}
 	return true, nil

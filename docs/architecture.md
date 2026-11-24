@@ -57,7 +57,7 @@ flowchart LR
 ```
 
 1. The target branch is `--base`, else `origin/HEAD`. The base is the merge base of HEAD and the target. When HEAD is the tip of the target branch, the base is its first parent. The first commit of a repository has none: its base is git's empty tree, so the change is every file. A clone with no base gives `unknown`: a shallow clone names `git fetch --unshallow`, a full clone names `--base`.
-2. The policy on the target branch is the approved one. A local policy that differs from it gives `unknown`, and no facts are read. A target with no policy file is not compared: the check judges with the local policy and prints one line on stderr. `--policy FILE` judges with that file, compares nothing, and stores nothing.
+2. The policy on the target branch is the approved one. A local policy that differs from it gives `unknown`, says to merge the target branch into the branch, and no facts are read. A target with no policy file is not compared: the check judges with the local policy and prints one line on stderr. `--policy FILE` judges with that file, compares nothing, and stores nothing.
 3. `resolved.Policy.CheckTree` checks the policy against every file of the working tree, not only the files the extractors read. A path that matches nothing gives `unknown`.
 4. `checkfacts` reads the facts of the head and the base with the settings of the policy that judges. `count.Assess` counts the errors of each tree, applies the exceptions on the date, and gives the status.
 5. `changecheck/project.go` builds the `internal/model/result` value. The result is stored in `.archfit-cache/last.json` for `archfit request`.

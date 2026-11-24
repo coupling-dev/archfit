@@ -34,7 +34,7 @@ The keys are a top-level `coupling` or `ai`, a `type` in a rule, and `scip` or `
 
 ## Policy differs from the target
 
-A code change cannot judge itself under a policy it changes. Open a separate policy pull request for an owner, or bring the approved target policy into the branch when it is stale.
+A code change cannot judge itself under a policy it changes. Open a separate policy pull request for an owner. When an owner changed the policy on the target branch after you made your branch, merge the target branch into your branch (`git merge origin/main`) and run `archfit check` again. Do not copy the policy file alone.
 
 An owner can preview a candidate with `archfit check --policy candidate.yaml`. A preview gives no verdict and saves no output for `archfit request`.
 

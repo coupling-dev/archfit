@@ -16,7 +16,7 @@
             {
               "level": "warning",
               "message": {
-                "text": "policy: differs from origin/main\nwhy: only owners change the policy\nnext: git checkout origin/main -- .archfit.yaml"
+                "text": "policy: differs from origin/main\nwhy: only owners change the policy\nnext: git merge origin/main, then archfit check"
               },
               "locations": [
                 {
