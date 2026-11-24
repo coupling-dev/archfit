@@ -1,8 +1,11 @@
 # Getting started
 
-This guide installs archfit, sets up a repository with `archfit init`, and shows the daily loop: `rules`, `can`, `check`, and `request`. For full tool requirements, see [Language support](languages.md).
+This guide installs archfit, sets up a repository, and shows the daily loop: `rules`, `can`, `check`, and `request`. For full tool requirements, see [Language support](languages.md).
 
-For advisory checks on GitHub, follow [Try it on your pull request](try-it-on-your-pull-request.md). This guide also covers the local-only workflow.
+There are two ways to set up a repository:
+
+- **Checks on GitHub pull requests:** run `archfit setup` and follow [Try it on your pull request](try-it-on-your-pull-request.md). Setup writes the policy, the workflow and the setup pull request.
+- **Local only:** run `archfit init`, as below. It writes the policy and no workflow; you can run `archfit setup` later.
 
 ## Install archfit
 
@@ -15,10 +18,10 @@ brew install coupling-dev/tap/archfit
 Or install with Go 1.27 or newer:
 
 ```sh
-go install github.com/coupling-dev/archfit/cmd/archfit@v0.9.0
+go install github.com/coupling-dev/archfit/cmd/archfit@latest
 ```
 
-The Homebrew formula and the release binary need no Go toolchain. You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
+Each command installs the latest release. Setup pins the Action release that matches the archfit you installed, so install the release you want before you run `archfit setup`. The Homebrew formula and the release binary need no Go toolchain. You can also download a release binary from the [release page](https://github.com/coupling-dev/archfit/releases). Check the file against `SHA256SUMS` before you install it.
 
 ## Check the tools
 
@@ -32,15 +35,15 @@ This command reports tools for the languages it finds, in two groups: needed for
 
 `doctor` compares the local engine with the version comment on the workflow pin. It also reports missing or inactive hooks. See [Hooks](agents.md#hooks).
 
-## Set up the repository
+## Set up the repository locally
 
-From your repository, run:
+For checks on GitHub pull requests, run `archfit setup` instead: see [Try it on your pull request](try-it-on-your-pull-request.md). For the local-only path, run from your repository:
 
 ```sh
 archfit init
 ```
 
-`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the authenticated GitHub user as owner, or an unverified login from a GitHub noreply author email. If neither identity is available, replace the placeholder with your GitHub login. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes when the evidence is complete. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
+`init` writes the policy, `.archfit.yaml`, from the code: the modules, the part of each module that other modules use today (`public`), the dependencies between modules that exist (`depends_on`), the test and generated paths, and the authenticated GitHub user as owner, or an unverified login from a GitHub noreply author email. If neither identity is available, replace the placeholder with your GitHub login. Owners approve requests, so name an owner who does not write most of the changes: `init` and `setup` say so when they name you as the only owner. Each error that exists today becomes an exception dated 90 days from the run, so the first check passes when the evidence is complete. The final list names these decisions for the owner. `init` also writes five lines for agents between markers in `AGENTS.md`.
 
 ```text
 $ archfit init
@@ -51,6 +54,7 @@ installed hooks: .codex/hooks.json
   codex runs these hooks only after you trust them: start codex and approve the hooks
 exceptions for the owner to review:
   exception: duplication pkg_tc -> pkg_util until 2027-02-08
+owner: alice. Owners approve requests: name an owner who does not write most of the changes
 next: read .archfit.yaml, then open a pull request with it
 ```
 
@@ -125,7 +129,7 @@ Fail the job on any exit code except `0`. See [CI](ci.md) for the workflow.
 The release image runs archfit with a bundled toolchain:
 
 ```sh
-docker run --rm -v "$(pwd):/src" ghcr.io/coupling-dev/archfit:v0.9.0 \
+docker run --rm -v "$(pwd):/src" ghcr.io/coupling-dev/archfit:latest \
   check
 ```
 

@@ -13,7 +13,16 @@ In [Pumba](https://github.com/alexei-led/pumba), a change added a dependency and
    On Linux without Homebrew, download the binary for your architecture from the [releases page](https://github.com/coupling-dev/archfit/releases), verify it against `SHA256SUMS`, and put it on your `PATH`.
 2. From the default branch of a checkout with a GitHub `origin`, run `archfit setup`. Read the policy and follow each `next:` line, running `archfit setup` again when asked. Setup writes the workflow and opens a setup pull request, or prints a compare link to open one yourself.
 3. Install the App for the repository from the link printed by setup. If the check does not start, use the printed re-run link.
-4. Review and merge the setup pull request. Run `archfit setup` again to see the advisory state and setup page.
+4. Review and merge the setup pull request. Run `archfit setup` again on the default branch:
+
+   ```text
+   advisory: checks report on each pull request and do not block a merge
+   state: advisory checks on
+   next: open the setup page: https://app.coupling.dev
+   an owner approves the first policy there, then makes the check required
+   ```
+
+   An owner approves the first policy on the setup page before anyone can answer a request. When the policy has `gate: required`, setup says `required checks on` and names the branch ruleset that makes the check block a merge.
 
 No sign-in or passkey is required for initial advisory checks. See the [setup command reference](commands.md#setup) for its states and recovery steps.
 
