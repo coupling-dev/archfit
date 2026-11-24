@@ -543,7 +543,7 @@ func TestCheck(t *testing.T) {
 			name:  "a policy the target changed after the merge base names the merge",
 			setup: func(w *world) { w.policies.target[mainSHA] = file(policyYAML + "# owner\n") },
 			want: want{
-				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+				record: ".archfit.yaml: policy: changed on origin/main since this branch started\n  why: the check uses the policy on origin/main\n" +
 					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
@@ -556,7 +556,7 @@ func TestCheck(t *testing.T) {
 				w.policies.target[mainSHA] = file(policyYAML + "# owner\n")
 			},
 			want: want{
-				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+				record: ".archfit.yaml: policy: changed on origin/main since this branch started\n  why: the check uses the policy on origin/main\n" +
 					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
 				target: mainRef, differs: true, base: headSHA, stored: true,
 			},
@@ -568,7 +568,7 @@ func TestCheck(t *testing.T) {
 				delete(w.policies.target, baseSHA)
 			},
 			want: want{
-				record: ".archfit.yaml: policy: differs from origin/main\n  why: only owners change the policy\n" +
+				record: ".archfit.yaml: policy: changed on origin/main since this branch started\n  why: the check uses the policy on origin/main\n" +
 					"  next: git merge origin/main, then run archfit check again\n" + noVerdict,
 				target: mainRef, differs: true, base: baseSHA, stored: true,
 			},
@@ -715,7 +715,11 @@ func TestCheck(t *testing.T) {
 			w := newWorld()
 			tt.setup(w)
 			out := w.check(t, tt.opts)
-			if got := render(t, out.Result); got != tt.want.record {
+			got := render(t, out.Result)
+			if words := testutil.StoryNotUsedIn(got); tt.want.differs && len(words) > 0 {
+				t.Errorf("the policy record uses %v:\n%s", words, got)
+			}
+			if got != tt.want.record {
 				t.Errorf("record:\n--- got\n%s--- want\n%s", got, tt.want.record)
 			}
 			for _, note := range out.Notes {

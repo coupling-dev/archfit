@@ -180,8 +180,10 @@ results need one:
 
 - A `fail` whose `next:` is `archfit request`: the policy does not allow the
   change. Only an owner can change that.
-- An `unknown` whose cause is `policy`: the policy differs from the target
-  branch. An owner approves a policy change.
+- An `unknown` whose cause is `policy` and whose `why:` is `only owners change
+  the policy`: the branch changed the policy. An owner approves a policy change.
+  When the record says the policy changed on the target branch instead, merge
+  the target branch and run the check again.
 
 An `unknown` whose `next:` names a tool or a `git fetch` is yours to clear.
 

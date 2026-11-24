@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"testing"
 
+	"github.com/coupling-dev/archfit/internal/testutil"
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
@@ -368,6 +369,9 @@ func TestUntrackedBranchFindsItsPullRequest(t *testing.T) {
 				var marked interface{ NothingSent() }
 				if err == nil || !strings.HasPrefix(err.Error(), tc.wantError) || !errors.As(err, &marked) || len(posts) != 0 {
 					t.Fatalf("err=%v posts=%v, want %q", err, posts, tc.wantError)
+				}
+				if words := testutil.StoryNotUsedIn(err.Error()); len(words) > 0 {
+					t.Errorf("%q uses %v", err, words)
 				}
 				return
 			}
