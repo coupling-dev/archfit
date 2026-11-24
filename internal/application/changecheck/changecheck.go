@@ -185,6 +185,7 @@ type Outcome struct {
 const (
 	whyCompare   = "the check compares the change with the merge base of its target branch"
 	whyDiffers   = "only owners change the policy"
+	whyMoved     = "the check uses the policy on %s"
 	whyInvalid   = "the check cannot judge with a policy that is not valid"
 	whyTree      = "the policy does not fit the files of the tree"
 	whyTargetBad = "the policy on %s is not valid"
@@ -195,6 +196,7 @@ const (
 	whatNoBase     = "HEAD and %s have no merge base in this clone"
 	whatNoParent   = "HEAD is the tip of %s and its parent is not in this clone"
 	whatDiffers    = "differs from %s"
+	whatMoved      = "changed on %s since this branch started"
 	whatNoPolicy   = "no policy file"
 	nextBaseFlag   = "pass --base <target branch>"
 	nextFetch      = "git fetch"
@@ -479,18 +481,21 @@ func (s Service) compare(ctx context.Context, r *run, ref, commit string) (compa
 	case t.Err != nil:
 		r.stopLines(t.Err, fmt.Sprintf(whyTargetBad, ref), result.NextRestore, fmt.Sprintf(nextAskOwner, ref))
 	case r.differs:
-		next := fmt.Sprintf(nextRestore, ref)
 		moved, err := s.targetMoved(ctx, r, commit)
 		if err != nil {
 			return false, err
 		}
-		if moved {
-			next = fmt.Sprintf(nextMerge, ref)
-		}
-		r.stop(reason{
+		// A branch that edited the file must restore it; a branch the target
+		// moved past only needs the target's policy, so it is not told that
+		// only owners change the policy.
+		why := reason{
 			path: PolicyPath, cause: result.CausePolicy, what: fmt.Sprintf(whatDiffers, ref), why: whyDiffers,
-			kind: result.NextRestore, next: next,
-		})
+			kind: result.NextRestore, next: fmt.Sprintf(nextRestore, ref),
+		}
+		if moved {
+			why.what, why.why, why.next = fmt.Sprintf(whatMoved, ref), fmt.Sprintf(whyMoved, ref), fmt.Sprintf(nextMerge, ref)
+		}
+		r.stop(why)
 	}
 	return true, nil
 }

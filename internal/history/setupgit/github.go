@@ -13,11 +13,13 @@ import (
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
-// GitHub runs gh without prompts and leaves the credentials with gh.
+// GitHub runs gh without prompts and leaves the credentials with gh. AppSlug
+// is the App whose archfit/gate check setup trusts; empty trusts none.
 type GitHub struct {
 	Root     string
 	Runner   toolrun.Runner
 	BodyPath string
+	AppSlug  string
 }
 
 // PullRequest describes the setup pull request and its Git head.
@@ -201,7 +203,7 @@ func (g GitHub) Check(ctx context.Context, repo, head string) (AppCheck, error) 
 		return AppCheck{}, err
 	}
 	for _, c := range data.Runs {
-		if c.App.Slug == "archfit-review" {
+		if g.AppSlug != "" && c.App.Slug == g.AppSlug {
 			return AppCheck{Status: c.Status, Conclusion: c.Conclusion, HTMLURL: c.HTMLURL, Title: c.Output.Title}, nil
 		}
 	}

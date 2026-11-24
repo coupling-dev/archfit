@@ -43,7 +43,13 @@ $ archfit check
 archfit: unknown, no verdict
 ```
 
-This branch changed `.archfit.yaml`, so `next` restores the file. When the branch's file is still the one at the merge base and an owner changed the policy on the target branch, `next` is `git merge origin/main, then run archfit check again`.
+This branch changed `.archfit.yaml`, so `next` restores the file. When the branch's file is still the one at the merge base, an owner changed the policy on the target branch, and the record says so:
+
+```text
+.archfit.yaml: policy: changed on origin/main since this branch started
+  why: the check uses the policy on origin/main
+  next: git merge origin/main, then run archfit check again
+```
 
 - `next` is `fix the code`, a command to run, `wait for an owner: #n`, or a short instruction such as `git fetch --unshallow`. A note in parentheses can follow it.
 - An error with no file, such as an expired exception, names `.archfit.yaml` and no line.

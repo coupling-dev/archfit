@@ -1,7 +1,6 @@
 package requestsend
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -26,9 +25,9 @@ func TestEffectivePushURLAndTrackingBranch(t *testing.T) {
 		}, "acme:feature/part"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			_, head, _, err := New(".", gitRunner(t, tc.override)).repository(t.Context())
-			if err != nil || head != tc.want {
-				t.Fatalf("head=%q err=%v, want %q", head, err, tc.want)
+			at, err := New(".", gitRunner(t, tc.override)).repository(t.Context())
+			if err != nil || at.head != tc.want {
+				t.Fatalf("head=%q err=%v, want %q", at.head, err, tc.want)
 			}
 		})
 	}
@@ -53,8 +52,7 @@ func TestCanonicalReceiptCasing(t *testing.T) {
 				if can {
 					receipt = issueURL
 				}
-				w.WriteHeader(http.StatusCreated)
-				_ = json.NewEncoder(w).Encode(map[string]any{"number": 431, "id": 9, "html_url": receipt})
+				created(w, receipt)
 			})
 			in := Input{Reason: testReason}
 			if can {

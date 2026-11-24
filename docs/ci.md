@@ -13,6 +13,7 @@ Run [`archfit setup`](commands.md#setup) to write this workflow. Setup substitut
 `main` and the commit SHA of the Action tag that matches the installed Archfit release.
 For an annotated tag, it uses the commit the tag points to. Development builds cannot pin an Action release.
 A candidate build, made for testing before a release, pins an Action commit and marks it `# candidate` instead of a tag.
+A candidate build can also name another App, such as a staging App, in its install link. `archfit setup` and `archfit status` then read the `archfit/gate` check of that App only. A build whose install link names no App reads no check.
 Setup does not replace an existing workflow. The Action checks out the repository itself.
 
 ```yaml

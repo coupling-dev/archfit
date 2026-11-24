@@ -29,13 +29,23 @@ func TestRoutingWithRealGit(t *testing.T) {
 	git("config", "branch.feature.pushRemote", "fork")
 	git("config", "push.default", "current")
 	s := New(dir, runner)
-	repo, head, noHead, err := s.repository(t.Context())
-	if err != nil || repo != testRepo || head != forkHead || noHead != nil {
-		t.Fatalf("repo=%q head=%q noHead=%v err=%v", repo, head, noHead, err)
+	at, err := s.repository(t.Context())
+	if err != nil || at.repo != testRepo || at.head != forkHead || at.noHead != nil || at.untracked != nil {
+		t.Fatalf("target=%+v err=%v", at, err)
+	}
+	// A single-branch clone pushed with -u: Git records the upstream but keeps
+	// no remote-tracking ref, so @{upstream} does not resolve (N3).
+	git("checkout", "-q", "-b", "solo")
+	git("config", "branch.solo.remote", "origin")
+	git("config", "branch.solo.merge", "refs/heads/solo-remote")
+	at, err = s.repository(t.Context())
+	if err != nil || at.repo != testRepo || at.head != "acme:solo-remote" || at.untracked == nil ||
+		at.untracked.pushRepo != testRepo || at.untracked.branch != "solo-remote" {
+		t.Fatalf("untracked: target=%+v err=%v", at, err)
 	}
 	git("checkout", "--detach", "-q")
-	repo, head, noHead, err = s.repository(t.Context())
-	if err != nil || repo != testRepo || head != "" || !errors.Is(noHead, errDetached) {
-		t.Fatalf("detached: repo=%q head=%q noHead=%v err=%v", repo, head, noHead, err)
+	at, err = s.repository(t.Context())
+	if err != nil || at.repo != testRepo || at.head != "" || !errors.Is(at.noHead, errDetached) {
+		t.Fatalf("detached: target=%+v err=%v", at, err)
 	}
 }
