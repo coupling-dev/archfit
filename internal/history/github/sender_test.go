@@ -28,6 +28,7 @@ const (
 	originCommand    = "git config --get remote.origin.url"
 	pushURLCommand   = "git remote get-url --push origin"
 	upstreamCommand  = "git rev-parse --abbrev-ref --symbolic-full-name @{upstream}"
+	branchCommand    = "git symbolic-ref --quiet --short HEAD"
 )
 
 const testToken = "secret-test-token"
@@ -216,7 +217,7 @@ func TestRepositoryRouting(t *testing.T) {
 			"git config --get remote.upstream.url": {Stdout: []byte("https://github.com/acme/shop.git")},
 		}, testRepo, forkHead},
 		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}}, testRepo, ""},
-		{"detached", map[string]toolrun.Output{"git symbolic-ref --quiet --short HEAD": {ExitCode: 1}}, testRepo, ""},
+		{"detached", map[string]toolrun.Output{branchCommand: {ExitCode: 1}}, testRepo, ""},
 		{"non GitHub", map[string]toolrun.Output{originCommand: {Stdout: []byte("git@gitlab.com:acme/shop.git")}}, "", ""},
 		{"no origin", map[string]toolrun.Output{originCommand: {ExitCode: 1}}, "", ""},
 	} {
@@ -240,7 +241,7 @@ func TestNoHeadSaysWhy(t *testing.T) {
 	}{
 		{"no upstream", map[string]toolrun.Output{upstreamCommand: {ExitCode: 128}},
 			"this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD"},
-		{"detached", map[string]toolrun.Output{"git symbolic-ref --quiet --short HEAD": {ExitCode: 1}},
+		{"detached", map[string]toolrun.Output{branchCommand: {ExitCode: 1}},
 			"HEAD is not on a branch, so archfit cannot find its pull request; nothing sent\nnext: switch to the branch of the pull request"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -379,10 +380,10 @@ func fakeSender(t *testing.T, override map[string]toolrun.Output, handler http.H
 func gitRunner(t *testing.T, override map[string]toolrun.Output) *toolrun.RunnerMock {
 	t.Helper()
 	commands := map[string]toolrun.Output{
-		originCommand:                           {Stdout: []byte("https://github.com/acme/shop.git\n")},
-		"git config --get remote.upstream.url":  {ExitCode: 1},
-		"git symbolic-ref --quiet --short HEAD": {Stdout: []byte("feature\n")},
-		upstreamCommand:                         {Stdout: []byte("origin/feature\n")},
+		originCommand:                          {Stdout: []byte("https://github.com/acme/shop.git\n")},
+		"git config --get remote.upstream.url": {ExitCode: 1},
+		branchCommand:                          {Stdout: []byte("feature\n")},
+		upstreamCommand:                        {Stdout: []byte("origin/feature\n")},
 		"git for-each-ref --format=%(push:remotename) refs/heads/feature": {},
 	}
 	for key, value := range override {

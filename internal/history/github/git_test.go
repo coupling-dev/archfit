@@ -2,6 +2,7 @@ package requestsend
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/coupling-dev/archfit/internal/toolrun"
@@ -34,7 +35,7 @@ func TestRoutingWithRealGit(t *testing.T) {
 	}
 	git("checkout", "--detach", "-q")
 	repo, head, noHead, err = s.repository(t.Context())
-	if err != nil || repo != testRepo || head != "" || noHead != errDetached {
+	if err != nil || repo != testRepo || head != "" || !errors.Is(noHead, errDetached) {
 		t.Fatalf("detached: repo=%q head=%q noHead=%v err=%v", repo, head, noHead, err)
 	}
 }

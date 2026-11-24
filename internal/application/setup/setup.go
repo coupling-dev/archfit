@@ -536,7 +536,8 @@ func decisionLines(d Dependencies) ([]string, error) {
 
 func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 	out.InstallURL = InstallURL
-	if s.login.Ready {
+	switch {
+	case s.login.Ready:
 		pr, err := d.GitHub.PullRequest(ctx, s.Repo, s.Default, Branch)
 		if err != nil {
 			out.stop(err, "fix the pull request lookup, then archfit setup")
@@ -553,9 +554,9 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		if d.GitHub.IsFork(ctx, s.Repo) {
 			out.add("warning: fork pull requests do not receive an id-token")
 		}
-	} else if s.login.Unreachable != "" {
+	case s.login.Unreachable != "":
 		out.add("could not reach GitHub: %s", s.login.Unreachable)
-	} else {
+	default:
 		out.add("pull request: open it, or check on GitHub; gh cannot show it")
 	}
 	decisions, err := decisionLines(d)
@@ -567,7 +568,8 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		out.stop(err, "fix the pull request body file")
 		return
 	}
-	if s.login.Ready {
+	switch {
+	case s.login.Ready:
 		pr, err := d.GitHub.Create(ctx, s.Repo, s.Default, Branch)
 		if err == nil {
 			out.add("opened setup pull request #%d: %s", pr.Number, pr.URL)
@@ -575,9 +577,9 @@ func publishPR(ctx context.Context, d Dependencies, s Detection, out *Outcome) {
 		}
 		out.add("could not open the pull request: %v", err)
 		out.State = ComparePR
-	} else if s.login.Unreachable != "" {
+	case s.login.Unreachable != "":
 		out.State = OfflinePR
-	} else {
+	default:
 		out.State = ManualPR
 	}
 	out.add("pull request body: %s", BodyPath)

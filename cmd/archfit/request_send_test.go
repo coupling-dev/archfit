@@ -18,6 +18,8 @@ import (
 	"github.com/coupling-dev/archfit/internal/toolrun"
 )
 
+const onePullJSON = "[{\"number\":431}]"
+
 func TestRequestSendsFromCLI(t *testing.T) {
 	const token = "cli-secret-token"
 	const receipt = "https://github.com/acme/shop/issues/431"
@@ -34,13 +36,13 @@ func TestRequestSendsFromCLI(t *testing.T) {
 		offline       bool
 		reply         bool
 	}{
-		{"pull comment", []string{cmdCheck}, true, "[{\"number\":431}]", 201, false, 0, "", 1, false, false},
+		{"pull comment", []string{cmdCheck}, true, onePullJSON, 201, false, 0, "", 1, false, false},
 		{"can issue", []string{cmdCan, pkgTC, pkgUtil}, false, "[]", 201, false, 0, "", 1, false, false},
 		{"check no upstream", []string{cmdCheck}, false, "[]", 0, false, 2, "this branch has no upstream branch, so archfit cannot find its pull request; nothing sent\nnext: git push -u origin HEAD", 0, false, true},
 		{"check no pull", []string{cmdCheck}, true, "[]", 0, false, 2, "open a pull request first", 0, false, true},
 		{"ambiguous", []string{cmdCheck}, true, "[{\"number\":431},{\"number\":432}]", 0, false, 2, "#431, #432", 0, false, true},
-		{"API failure", []string{cmdCheck}, true, "[{\"number\":431}]", 403, false, 2, "HTTP 403", 1, false, true},
-		{"API failure, outcome unknown", []string{cmdCheck}, true, "[{\"number\":431}]", 500, false, 2, "outcome unknown", 1, false, false},
+		{"API failure", []string{cmdCheck}, true, onePullJSON, 403, false, 2, "HTTP 403", 1, false, true},
+		{"API failure, outcome unknown", []string{cmdCheck}, true, onePullJSON, 500, false, 2, "outcome unknown", 1, false, false},
 		{"no credentials", []string{cmdCheck}, true, "[]", 0, true, 2, "next: gh auth login", 0, false, true},
 		{"can, no credentials", []string{cmdCan, pkgTC, pkgUtil}, false, "[]", 0, true, 2, "next: gh auth login", 0, false, false},
 		{"GitHub unreachable", []string{cmdCheck}, true, "[]", 0, false, 2, "could not reach GitHub: tls: failed to verify certificate: x509: OSStatus -26276; nothing sent", 0, true, true},
